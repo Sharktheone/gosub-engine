@@ -254,6 +254,16 @@ impl<'stream> Tokenizer<'stream> {
         self.position = 0;
     }
 
+    pub fn current(&mut self) -> Token {
+        self.tokens[self.position].clone()
+    }
+
+    pub fn reconsume(&mut self) {
+        if self.position > 0 {
+            self.position -= 1;
+        }
+    }
+
     pub fn lookahead(&self, offset: usize) -> Token {
         if self.position + offset >= self.tokens.len() {
             return Token::EOF;
