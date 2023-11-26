@@ -1786,4 +1786,41 @@ mod test {
         assert_eq!(tokenizer.consume(), Token::LBracket);
         assert_eq!(tokenizer.lookahead(0), Token::RBracket);
     }
+
+    #[test]
+    fn parse_css_seq_5() {
+        let mut chars = CharIterator::new();
+
+        chars.read_from_str(
+            "test { color: #123; background-color: #11223344 }",
+            Some(Encoding::UTF8),
+        );
+
+        let tokens = vec![
+            Token::Ident("test".into()),
+            Token::Whitespace,
+            Token::LCurly,
+            Token::Whitespace,
+            Token::Ident("color".into()),
+            Token::Colon,
+            Token::Whitespace,
+            Token::Hash("123".into()),
+            Token::Semicolon,
+            Token::Whitespace,
+            Token::Ident("background-color".into()),
+            Token::Colon,
+            Token::Whitespace,
+            Token::Hash("11223344".into()),
+            Token::Whitespace,
+            Token::RCurly,
+        ];
+        let mut tokenizer = Tokenizer::new(&mut chars);
+
+        for token in tokens {
+            assert_eq!(tokenizer.consume_token(), token);
+        }
+
+        assert!(tokenizer.stream.eof());
+    }
+
 }
