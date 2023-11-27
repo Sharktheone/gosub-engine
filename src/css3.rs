@@ -1,3 +1,5 @@
+use core::fmt::Debug;
+use log::{debug, trace};
 use thiserror::Error;
 use crate::bytes::CharIterator;
 use crate::css3::Error::{Syntax, UnexpectedEof};
@@ -11,7 +13,7 @@ mod unicode;
 pub enum Error {
     #[error("syntax error: {0}")]
     Syntax(String),
-    #[error("unexpected end of file")]
+    #[error("unexpected end of stream")]
     UnexpectedEof,
 }
 
@@ -22,30 +24,54 @@ pub struct CSS3ParserTng<'stream> {
 }
 
 #[derive(Default)]
-struct QualifiedRule {
+pub struct QualifiedRule {
     prelude: Vec<ComponentValue>,
     block: Option<SimpleBlock>,
 }
 
+impl Debug for QualifiedRule {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "QualifiedRule {{ prelude: {:?}, block: {:?} }}", self.prelude, self.block)
+    }
+}
+
 #[derive(Default)]
-struct Declaration {
+pub struct Declaration {
     name: String,
     value: Vec<ComponentValue>,
     important: bool,
 }
 
-enum ComponentValue {
-    PreservedToken(Token),
-    Function,
-    SimpleBlock
+pub enum DeclarationAndAtRules {
+    Declaration(Declaration),
+    AtRule(AtRule),
 }
 
-struct Function {
+#[derive(PartialEq)]
+pub enum ComponentValue {
+    PreservedToken(Token),
+    Function(Function),
+    SimpleBlock(SimpleBlock)
+}
+
+impl Debug for ComponentValue {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ComponentValue::PreservedToken(token) => write!(f, "{:?}", token),
+            ComponentValue::Function(function) => write!(f, "{:?}", function),
+            ComponentValue::SimpleBlock(block) => write!(f, "{:?}", block),
+        }
+    }
+}
+
+#[derive(Default, PartialEq, Debug)]
+pub struct Function {
     name: String,
     values: Vec<ComponentValue>,
 }
 
-struct SimpleBlock {
+#[derive(PartialEq, Debug)]
+pub struct SimpleBlock {
     associated_token: Token,
     values: Vec<ComponentValue>,
 }
@@ -59,26 +85,37 @@ impl SimpleBlock {
     }
 }
 
-enum Rule {
+pub enum Rule {
     NormRule(NormRule),
     AtRule(AtRule),
     QualifiedRule(QualifiedRule),
 }
 
-#[derive(Default)]
-struct AtRule {
+impl Debug for Rule {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Rule::NormRule(rule) => write!(f, "\n{:?}", rule),
+            Rule::AtRule(rule) => write!(f, "\n{:?}", rule),
+            Rule::QualifiedRule(rule) => write!(f, "\n{:?}", rule),
+        }
+    }
+}
+
+#[derive(Default, Debug)]
+pub struct AtRule {
     name: String,
     prelude: Vec<ComponentValue>,
     block: Option<SimpleBlock>
 }
 
-struct NormRule {
+#[derive(Debug)]
+pub struct NormRule {
     prelude: Vec<ComponentValue>,
     block: Option<SimpleBlock>,
 }
 
-#[derive(Default)]
-struct Stylesheet {
+#[derive(Default, Debug)]
+pub struct Stylesheet {
     location: Option<String>,
     rules: Vec<Rule>,
 }
@@ -96,19 +133,41 @@ impl<'stream> CSS3ParserTng<'stream> {
     // =============================================================================================
     // These are the public parse_* functions
 
-    pub fn parse(&mut self, _grammar: String) -> Result<Vec<Rule>, Error>
+    pub fn parse(&mut self, _grammar: String) -> Result<Vec<ComponentValue>, Error>
     {
+        debug!("parse()");
         let _result = self.parse_list_of_component_values();
 
         // @todo: match grammar against result // !????
         return Err(Syntax("not implemented yet".to_string()));
     }
 
+    pub fn parse_comma_separated_list(&mut self, _grammar: String) -> Result<Vec<ComponentValue>, Error>
+    {
+        debug!("parse_comma_separated_list()");
+
+        let mut retvals = Vec::new();
+
+        let result_list = self.parse_commaseparated_list_of_component_values();
+        for result in result_list {
+            // @todo: match grammar against result // !????
+            // if matches against grammar {
+            //     retvals.push(result);
+            // }
+            retvals.push(result)
+        }
+
+        Ok(retvals)
+    }
+
     // This will parse a complete stylesheet, which isn't much more than a list of rules
     pub fn parse_stylesheet(&mut self, location: Option<String>) -> Result<Stylesheet, Error> {
+        debug!("parse_stylesheet({:?})", location);
+
         let mut stylesheet = Stylesheet::default();
         stylesheet.location = location;
         stylesheet.rules = self.consume_list_of_rules(true);
+
         Ok(stylesheet)
     }
 
@@ -119,13 +178,13 @@ impl<'stream> CSS3ParserTng<'stream> {
 
     /// When parsing a rule, the stream must return an EOF at the end of that rule.
     pub fn parse_rule(&mut self) -> Result<Rule, Error> {
-        let mut rule = None;
+        let rule;
 
         self.consume_whitespaces();
 
         match self.tokenizer.lookahead(0) {
             Token::EOF => {
-                return Err(UnexpectedEof);
+                return Err(Syntax("unexpected eof".to_string()));
             }
             Token::AtKeyword(_) => {
                 match self.consume_at_rule() {
@@ -160,8 +219,8 @@ impl<'stream> CSS3ParserTng<'stream> {
         self.consume_whitespaces();
 
         if match self.tokenizer.consume() {
-            Token::Ident(_) => true,
-            _ => false,
+            Token::Ident(_) => false,
+            _ => true,
         } {
             return Err(Syntax("syntax error".to_string()));
         }
@@ -176,11 +235,11 @@ impl<'stream> CSS3ParserTng<'stream> {
         Err(Syntax("syntax error".to_string()))
     }
 
-    pub fn parse_style_block_content(&mut self)  {
-        todo!();
+    pub fn parse_style_block_content(&mut self) -> (Vec<Declaration>, Vec<Rule>)  {
+        self.consume_style_block_content()
     }
 
-    pub fn parse_list_of_declarations(&mut self) -> Vec<Declaration> {
+    pub fn parse_list_of_declarations(&mut self) -> Vec<DeclarationAndAtRules> {
         self.consume_list_of_declarations()
     }
 
@@ -202,8 +261,9 @@ impl<'stream> CSS3ParserTng<'stream> {
     }
 
     pub fn parse_list_of_component_values(&mut self) -> Vec<ComponentValue> {
-        let mut cvalues = Vec::new();
+        trace!("parse_list_of_component_values()");
 
+        let mut cvalues = Vec::new();
         loop {
             match self.tokenizer.consume() {
                 Token::EOF => break,
@@ -215,6 +275,7 @@ impl<'stream> CSS3ParserTng<'stream> {
             }
         }
 
+        trace!("returning: {:?}", cvalues);
         return cvalues;
     }
 
@@ -395,7 +456,7 @@ impl<'stream> CSS3ParserTng<'stream> {
                     //   consume a component value and append it to the temporary list. Consume a declaration
                     //   from the temporary list. If anything was returned, append it to decls.
 
-                    let mut tmp = vec![self.tokenizer.current()];
+                    let mut tmp = vec![ComponentValue::PreservedToken(self.tokenizer.current())];
                     loop {
                         match self.tokenizer.consume() {
                             Token::Semicolon | Token::EOF => {
@@ -446,8 +507,12 @@ impl<'stream> CSS3ParserTng<'stream> {
         }
     }
 
-    fn consume_list_of_declarations(&mut self) -> Vec<Declaration> {
-        let mut decls = Vec::new();
+    /// Note that even though it says this consumes a list of declarations, it actually reutrns
+    /// a list of declarations and at-rules. This is because the CSS grammar allows for at-rules
+    /// to be mixed in with declarations. This is not the case for rules, which are always
+    /// separated by a semicolon.
+    fn consume_list_of_declarations(&mut self) -> Vec<DeclarationAndAtRules> {
+        let mut mixed_list = Vec::new();
 
         loop {
             match self.tokenizer.consume() {
@@ -461,11 +526,11 @@ impl<'stream> CSS3ParserTng<'stream> {
                 Token::AtKeyword(_) => {
                     self.tokenizer.reconsume();
                     if let Some(at_rule) = self.consume_at_rule() {
-                        decls.push(at_rule);
+                        mixed_list.push(DeclarationAndAtRules::AtRule(at_rule));
                     }
                 }
                 Token::Ident(_) => {
-                    let mut tmp = vec![self.tokenizer.current()];
+                    let mut tmp = vec![ComponentValue::PreservedToken(self.tokenizer.current())];
                     loop {
                         match self.tokenizer.consume() {
                             Token::Semicolon | Token::EOF => {
@@ -489,7 +554,7 @@ impl<'stream> CSS3ParserTng<'stream> {
             }
         }
 
-        decls
+        mixed_list
     }
 
     fn consume_declaration(&mut self) -> Option<Declaration> {
@@ -529,7 +594,7 @@ impl<'stream> CSS3ParserTng<'stream> {
             }
         }
 
-        while declaration.value.len() > 0 && declaration.value[declaration.value.len() - 1] == Token::Whitespace {
+        while declaration.value.len() > 0 && declaration.value[declaration.value.len() - 1] == ComponentValue::PreservedToken(Token::Whitespace) {
             declaration.value.pop();
         }
 
@@ -537,24 +602,36 @@ impl<'stream> CSS3ParserTng<'stream> {
     }
 
     fn consume_component_value(&mut self) -> Option<ComponentValue> {
+        let current_token = self.tokenizer.current();
         match self.tokenizer.consume() {
             Token::LCurly | Token::LBracket | Token::LParen => {
-                return Some(ComponentValue::SimpleBlock(self.consume_simple_block()));
-            }
-            Token::Function(_) => {
-                if let Some(function) = self.consume_function() {
-                    return Some(ComponentValue::Function(function));
+                match self.consume_simple_block(current_token) {
+                    Some(block) => {
+                        return Some(ComponentValue::SimpleBlock(block));
+                    }
+                    None => {
+                        // parse error
+                    }
                 }
             }
-            _ => {}
+            Token::Function(_) => {
+                match self.consume_function() {
+                    Some(function) => {
+                        return Some(ComponentValue::Function(function));
+                    }
+                    None => {
+                        // parse error
+                    }
+                }
+            }
+            _ => {} // return preserved token below
         }
 
         Some(ComponentValue::PreservedToken(self.tokenizer.current()))
     }
 
     fn consume_simple_block(&mut self, closing_token: Token) -> Option<SimpleBlock> {
-        let mut block = SimpleBlock::default();
-        block.associated_token = self.tokenizer.current();
+        let mut block = SimpleBlock::new(self.tokenizer.current());
 
         loop {
             match self.tokenizer.consume() {
@@ -566,7 +643,9 @@ impl<'stream> CSS3ParserTng<'stream> {
                     if self.tokenizer.current() == closing_token {
                         return Some(block);
                     }
-                    if let Some(component_value) = self.tokenizer.consume_component_value() {
+
+                    self.tokenizer.reconsume();
+                    if let Some(component_value) = self.consume_component_value() {
                         block.values.push(component_value);
                     }
                 }
@@ -603,17 +682,31 @@ impl<'stream> CSS3ParserTng<'stream> {
 
 #[cfg(test)]
 mod tests {
+    use simple_logger::SimpleLogger;
     use crate::bytes::Encoding;
     use super::*;
 
     #[test]
     fn test_css3_parser() {
-        let mut ci = CharIterator::new();
-        ci.read_from_str("test { color: #123; background-color: #11223344 }", Some(Encoding::UTF8));
-        let mut parser = CSS3ParserTng::from_input_stream(&mut ci);
-        let node = parser.parse("grammar".to_string());
+        SimpleLogger::new().init().unwrap();
 
-        println!("node: {:?}", node);
+        let mut ci = CharIterator::new();
+        ci.read_from_str("\
+test { color: #123; background-color: #11223344 }\
+\
+foo { yes: 12px }
+
+@media screen and (min-width: 900px) {
+    body {
+        background-color: lightgreen;
+    }
+}\
+\
+", Some(Encoding::UTF8));
+        let mut parser = CSS3ParserTng::from_input_stream(&mut ci);
+        let node = parser.parse_stylesheet(Some("style.css".to_string()));
+
+        println!("node: {:?}", node.unwrap());
         // assert_eq!(node, CssNode::Stylesheet(vec![]));
     }
 }

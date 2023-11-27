@@ -6,6 +6,7 @@ use crate::bytes::{
 use crate::css3::unicode::{get_unicode_char, UnicodeChar};
 use std::fmt;
 use std::usize;
+use log::trace;
 
 pub type Number = f32;
 
@@ -230,7 +231,7 @@ macro_rules! consume {
 /// CSS Tokenizer according to the [w3 specification](https://www.w3.org/TR/css-syntax-3/#tokenization)
 pub struct Tokenizer<'stream> {
     pub stream: &'stream mut CharIterator,
-    /// Current position
+    /// Position on the NEXT read to consume. If it's outside the vec list, it will return EOF
     position: usize,
     /// Full list of all tokens produced by the tokenizer
     tokens: Vec<Token>,
@@ -255,7 +256,13 @@ impl<'stream> Tokenizer<'stream> {
     }
 
     pub fn current(&mut self) -> Token {
-        self.tokens[self.position].clone()
+        if self.position == 0 || self.position > self.tokens.len() {
+            // We havent read anything yet, or we are at the end of the stream
+            return Token::EOF;
+        }
+
+        trace!("token ({}) {:?}", self.position - 1, self.tokens[self.position - 1]);
+        self.tokens[self.position - 1].clone()
     }
 
     pub fn reconsume(&mut self) {
@@ -265,16 +272,23 @@ impl<'stream> Tokenizer<'stream> {
     }
 
     pub fn lookahead(&self, offset: usize) -> Token {
-        if self.position + offset >= self.tokens.len() {
+        let pos : isize = (self.position + offset - 1) as isize;
+        if pos < 0 || pos >= self.tokens.len() as isize {
             return Token::EOF;
         }
 
-        self.tokens[self.position + offset].clone()
+        self.tokens[pos as usize].clone()
     }
 
     pub fn consume(&mut self) -> Token {
+        if self.tokens.is_empty() || self.tokens.len() == self.position {
+            let token = self.consume_token();
+            self.tokens.push(token);
+        }
+
         let token = &self.tokens[self.position];
         self.position += 1;
+
         token.clone()
     }
 
