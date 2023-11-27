@@ -228,6 +228,13 @@ macro_rules! consume {
     }};
 }
 
+pub trait Tokenize {
+    fn current(&self) -> Token;
+    fn lookahead(&self, offset: usize) -> Token;
+    fn consume(&mut self) -> Token;
+    fn reconsume(&mut self);
+}
+
 /// CSS Tokenizer according to the [w3 specification](https://www.w3.org/TR/css-syntax-3/#tokenization)
 pub struct Tokenizer<'stream> {
     pub stream: &'stream mut CharIterator,
@@ -235,6 +242,55 @@ pub struct Tokenizer<'stream> {
     position: usize,
     /// Full list of all tokens produced by the tokenizer
     tokens: Vec<Token>,
+}
+
+impl<'stream> Tokenizer<'stream> {
+    pub(crate) fn new_from_tokens(input: Vec<Token>) -> Box<dyn Tokenize> {
+        Box::new(Tokenizer {
+            stream: &mut CharIterator::new(),
+            position: 0,
+            tokens: input,
+        })
+    }
+}
+
+impl Tokenize for Tokenizer<'_> {
+    fn current(&self) -> Token {
+        if self.position == 0 || self.position > self.tokens.len() {
+            // We havent read anything yet, or we are at the end of the stream
+            return Token::EOF;
+        }
+
+        trace!("token ({}) {:?}", self.position - 1, self.tokens[self.position - 1]);
+        self.tokens[self.position - 1].clone()
+    }
+
+    fn reconsume(&mut self) {
+        if self.position > 0 {
+            self.position -= 1;
+        }
+    }
+
+    fn lookahead(&self, offset: usize) -> Token {
+        let pos : isize = (self.position + offset - 1) as isize;
+        if pos < 0 || pos >= self.tokens.len() as isize {
+            return Token::EOF;
+        }
+
+        self.tokens[pos as usize].clone()
+    }
+
+    fn consume(&mut self) -> Token {
+        if self.tokens.is_empty() || self.tokens.len() == self.position {
+            let token = self.consume_token();
+            self.tokens.push(token);
+        }
+
+        let token = &self.tokens[self.position];
+        self.position += 1;
+
+        token.clone()
+    }
 }
 
 impl<'stream> Tokenizer<'stream> {
@@ -253,43 +309,6 @@ impl<'stream> Tokenizer<'stream> {
         }
 
         self.position = 0;
-    }
-
-    pub fn current(&mut self) -> Token {
-        if self.position == 0 || self.position > self.tokens.len() {
-            // We havent read anything yet, or we are at the end of the stream
-            return Token::EOF;
-        }
-
-        trace!("token ({}) {:?}", self.position - 1, self.tokens[self.position - 1]);
-        self.tokens[self.position - 1].clone()
-    }
-
-    pub fn reconsume(&mut self) {
-        if self.position > 0 {
-            self.position -= 1;
-        }
-    }
-
-    pub fn lookahead(&self, offset: usize) -> Token {
-        let pos : isize = (self.position + offset - 1) as isize;
-        if pos < 0 || pos >= self.tokens.len() as isize {
-            return Token::EOF;
-        }
-
-        self.tokens[pos as usize].clone()
-    }
-
-    pub fn consume(&mut self) -> Token {
-        if self.tokens.is_empty() || self.tokens.len() == self.position {
-            let token = self.consume_token();
-            self.tokens.push(token);
-        }
-
-        let token = &self.tokens[self.position];
-        self.position += 1;
-
-        token.clone()
     }
 
     /// 4.3.1. [Consume a token](https://www.w3.org/TR/css-syntax-3/#consume-token)
