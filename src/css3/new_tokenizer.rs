@@ -228,7 +228,8 @@ macro_rules! consume {
     }};
 }
 
-pub trait Tokenize {
+/// The token streamer interface is used to abstract the tokenization process.
+pub trait TokenStreamer {
     fn current(&self) -> Token;
     fn lookahead(&self, offset: usize) -> Token;
     fn consume(&mut self) -> Token;
@@ -244,17 +245,7 @@ pub struct Tokenizer<'stream> {
     tokens: Vec<Token>,
 }
 
-impl<'stream> Tokenizer<'stream> {
-    pub(crate) fn new_from_tokens(input: Vec<Token>) -> Box<dyn Tokenize> {
-        Box::new(Tokenizer {
-            stream: &mut CharIterator::new(),
-            position: 0,
-            tokens: input,
-        })
-    }
-}
-
-impl Tokenize for Tokenizer<'_> {
+impl TokenStreamer for Tokenizer<'_> {
     fn current(&self) -> Token {
         if self.position == 0 || self.position > self.tokens.len() {
             // We havent read anything yet, or we are at the end of the stream
@@ -263,12 +254,6 @@ impl Tokenize for Tokenizer<'_> {
 
         trace!("token ({}) {:?}", self.position - 1, self.tokens[self.position - 1]);
         self.tokens[self.position - 1].clone()
-    }
-
-    fn reconsume(&mut self) {
-        if self.position > 0 {
-            self.position -= 1;
-        }
     }
 
     fn lookahead(&self, offset: usize) -> Token {
@@ -290,6 +275,12 @@ impl Tokenize for Tokenizer<'_> {
         self.position += 1;
 
         token.clone()
+    }
+
+    fn reconsume(&mut self) {
+        if self.position > 0 {
+            self.position -= 1;
+        }
     }
 }
 
