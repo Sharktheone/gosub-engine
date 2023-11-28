@@ -1,12 +1,11 @@
+use crate::css3::new_tokenizer::{Token, TokenStreamer};
+use crate::css3::Error::{Syntax, UnexpectedEof};
 use core::fmt::Debug;
 use log::{debug, trace};
 use thiserror::Error;
-use crate::css3::Error::{Syntax, UnexpectedEof};
-use crate::css3::new_tokenizer::{Token, TokenStreamer};
 
 mod new_tokenizer;
 mod unicode;
-
 
 #[derive(Error, Debug)]
 pub enum Error {
@@ -66,8 +65,8 @@ impl TokenStreamer for TokenStream {
 
 // =================================================================================================
 
-pub struct CSS3ParserTng {
-    token_stream: Box<dyn TokenStreamer>,
+pub struct CSS3ParserTng<'a> {
+    token_stream: &'a mut dyn TokenStreamer,
 }
 
 #[derive(Default)]
@@ -78,7 +77,11 @@ pub struct QualifiedRule {
 
 impl Debug for QualifiedRule {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "QualifiedRule {{ prelude: {:?}, block: {:?} }}", self.prelude, self.block)
+        write!(
+            f,
+            "QualifiedRule {{ prelude: {:?}, block: {:?} }}",
+            self.prelude, self.block
+        )
     }
 }
 
@@ -98,7 +101,7 @@ pub enum DeclarationAndAtRules {
 pub enum ComponentValue {
     PreservedToken(Token),
     Function(Function),
-    SimpleBlock(SimpleBlock)
+    SimpleBlock(SimpleBlock),
 }
 
 impl Debug for ComponentValue {
@@ -152,7 +155,7 @@ impl Debug for Rule {
 pub struct AtRule {
     name: String,
     prelude: Vec<ComponentValue>,
-    block: Option<SimpleBlock>
+    block: Option<SimpleBlock>,
 }
 
 #[derive(Debug)]
@@ -167,26 +170,26 @@ pub struct Stylesheet {
     rules: Vec<Rule>,
 }
 
-
-impl CSS3ParserTng {
-    pub fn new(token_stream: Box<dyn TokenStreamer>) -> CSS3ParserTng {
+impl<'a> CSS3ParserTng<'a> {
+    pub fn new(token_stream: &'a mut impl TokenStreamer) -> CSS3ParserTng {
         CSS3ParserTng { token_stream }
     }
 
     // =============================================================================================
     // These are the public parse_* functions
 
-    pub fn parse(&mut self, _grammar: String) -> Result<Vec<ComponentValue>, Error>
-    {
+    pub fn parse(&mut self, _grammar: String) -> Result<Vec<ComponentValue>, Error> {
         debug!("parse()");
         let _result = self.parse_list_of_component_values();
 
         // @todo: match grammar against result // !????
-        return Err(Syntax("not implemented yet".to_string()));
+        Err(Syntax("not implemented yet".to_string()))
     }
 
-    pub fn parse_comma_separated_list(&mut self, _grammar: String) -> Result<Vec<ComponentValue>, Error>
-    {
+    pub fn parse_comma_separated_list(
+        &mut self,
+        _grammar: String,
+    ) -> Result<Vec<ComponentValue>, Error> {
         debug!("parse_comma_separated_list()");
 
         let mut retvals = Vec::new();
@@ -229,16 +232,14 @@ impl CSS3ParserTng {
             Token::EOF => {
                 return Err(Syntax("unexpected eof".to_string()));
             }
-            Token::AtKeyword(_) => {
-                match self.consume_at_rule() {
-                    Some(at_rule) => {
-                        rule = Some(Rule::AtRule(at_rule));
-                    }
-                    None => {
-                        return Err(Syntax("syntax error".to_string()));
-                    }
+            Token::AtKeyword(_) => match self.consume_at_rule() {
+                Some(at_rule) => {
+                    rule = Some(Rule::AtRule(at_rule));
                 }
-            }
+                None => {
+                    return Err(Syntax("syntax error".to_string()));
+                }
+            },
             _ => {
                 rule = match self.consume_qualified_rule() {
                     Some(qrule) => Some(Rule::QualifiedRule(qrule)),
@@ -246,12 +247,12 @@ impl CSS3ParserTng {
                         return Err(Syntax("syntax error".to_string()));
                     }
                 }
-            },
+            }
         }
 
         self.consume_whitespaces();
 
-        if ! self.next_token_is_eof() {
+        if !self.next_token_is_eof() {
             return Err(Syntax("syntax error".to_string()));
         }
 
@@ -278,7 +279,7 @@ impl CSS3ParserTng {
         Err(Syntax("syntax error".to_string()))
     }
 
-    pub fn parse_style_block_content(&mut self) -> (Vec<Declaration>, Vec<Rule>)  {
+    pub fn parse_style_block_content(&mut self) -> (Vec<Declaration>, Vec<Rule>) {
         self.consume_style_block_content()
     }
 
@@ -300,7 +301,7 @@ impl CSS3ParserTng {
             return Ok(result.unwrap());
         }
 
-        return Err(Syntax("syntax error".to_string()));
+        Err(Syntax("syntax error".to_string()))
     }
 
     pub fn parse_list_of_component_values(&mut self) -> Vec<ComponentValue> {
@@ -319,7 +320,7 @@ impl CSS3ParserTng {
         }
 
         trace!("returning: {:?}", cvalues);
-        return cvalues;
+        cvalues
     }
 
     pub fn parse_commaseparated_list_of_component_values(&mut self) -> Vec<ComponentValue> {
@@ -340,7 +341,7 @@ impl CSS3ParserTng {
             }
         }
 
-        return cvalues;
+        cvalues
     }
 
     // =============================================================================================
@@ -413,7 +414,7 @@ impl CSS3ParserTng {
                 Token::EOF => {
                     // @Todo: parser error
                     return Some(at_rule);
-                },
+                }
                 Token::LCurly => {
                     if let Some(block) = self.consume_simple_block(Token::RCurly) {
                         at_rule.block = Some(block);
@@ -437,8 +438,8 @@ impl CSS3ParserTng {
             match self.token_stream.consume() {
                 Token::EOF => {
                     // parse error
-                    return None
-                },
+                    return None;
+                }
                 Token::LCurly => {
                     if let Some(block) = self.consume_simple_block(Token::RCurly) {
                         qrule.block = Some(block);
@@ -483,7 +484,7 @@ impl CSS3ParserTng {
                 }
                 Token::EOF => {
                     break;
-                },
+                }
                 Token::AtKeyword(_) => {
                     self.token_stream.reconsume();
                     if let Some(at_rule) = self.consume_at_rule() {
@@ -520,8 +521,8 @@ impl CSS3ParserTng {
                             }
                         }
 
-                        let token_stream = TokenStream::new(tmp_input.clone());
-                        let mut parser = CSS3ParserTng::new(Box::new(token_stream));
+                        let mut token_stream = TokenStream::new(tmp_input.clone());
+                        let mut parser = CSS3ParserTng::new(&mut token_stream);
 
                         if let Ok(declaration) = parser.parse_declaration() {
                             decls.push(declaration);
@@ -637,17 +638,16 @@ impl CSS3ParserTng {
             }
         }
 
-        if declaration.value.len() >= 2 {
-            if declaration.value[declaration.value.len() - 2] == ComponentValue::PreservedToken(Token::Delim('!')) {
-                if declaration.value[declaration.value.len() - 1] == ComponentValue::PreservedToken(Token::Ident("important".to_string())) {
-                    declaration.important = true;
-                    declaration.value.pop();
-                    declaration.value.pop();
-                }
-            }
+        if declaration.value.len() >= 2 && declaration.value[declaration.value.len() - 2] == ComponentValue::PreservedToken(Token::Delim('!')) && declaration.value[declaration.value.len() - 1] == ComponentValue::PreservedToken(Token::Ident("important".to_string())) {
+            declaration.important = true;
+            declaration.value.pop();
+            declaration.value.pop();
         }
 
-        while declaration.value.len() > 0 && declaration.value[declaration.value.len() - 1] == ComponentValue::PreservedToken(Token::Whitespace) {
+        while !declaration.value.is_empty()
+            && declaration.value[declaration.value.len() - 1]
+                == ComponentValue::PreservedToken(Token::Whitespace)
+        {
             declaration.value.pop();
         }
 
@@ -691,7 +691,7 @@ impl CSS3ParserTng {
                 Token::EOF => {
                     // @todo: parse_error
                     return Some(block);
-                },
+                }
                 _ => {
                     if self.token_stream.current() == closing_token {
                         return Some(block);
@@ -731,24 +731,23 @@ impl CSS3ParserTng {
 
         Some(function)
     }
-
 }
-
 
 #[cfg(test)]
 mod tests {
-    use simple_logger::SimpleLogger;
+    use super::*;
+    use crate::bytes::CharIterator;
     use crate::bytes::Encoding;
     use crate::css3::new_tokenizer::Tokenizer;
-    use crate::bytes::CharIterator;
-    use super::*;
+    use simple_logger::SimpleLogger;
 
     #[test]
     fn test_css3_parser() {
         SimpleLogger::new().init().unwrap();
 
         let mut ci = CharIterator::new();
-        ci.read_from_str("
+        ci.read_from_str(
+            "
             hr .short, hr .long {
             background-color: var(--border-base-color);
             border: 0;
@@ -759,13 +758,17 @@ mod tests {
             padding: 0;
             text-align: left;
             width: 65px
-        }", Some(Encoding::UTF8));
+        }",
+            Some(Encoding::UTF8),
+        );
 
-        let tokenizer = Tokenizer::new(&mut ci);
-        let mut parser = CSS3ParserTng::new(Box::new(tokenizer));
-        let stylesheet = parser.parse_stylesheet(Some("style.css".to_string())).unwrap();
+        let mut tokenizer = Tokenizer::new(&mut ci);
+
+        let mut parser = CSS3ParserTng::new(&mut tokenizer);
+        let stylesheet = parser
+            .parse_stylesheet(Some("style.css".to_string()))
+            .unwrap();
 
         println!("stylesheet: {:?}", stylesheet);
     }
 }
-
