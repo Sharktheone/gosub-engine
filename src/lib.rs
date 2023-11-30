@@ -22,3 +22,4 @@ mod engine;
 mod net;
 #[allow(dead_code)]
 mod timing;
+mod js;
