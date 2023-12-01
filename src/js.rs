@@ -1,4 +1,5 @@
 use thiserror::Error;
+use crate::js::v8::V8Context;
 
 use crate::types::Result;
 
@@ -6,14 +7,16 @@ mod v8;
 
 #[derive(Error, Debug)]
 pub enum Error {
-    #[error("js: generic error: {0}")]
+    #[error("generic error: {0}")]
     Generic(String),
 }
 
 pub trait JSRuntime {
+    type Context;
+
     fn new() -> Result<Self> where Self: Sized;
 
-    fn new_context(&self) -> Result<Box<dyn JSContext>>;
+    fn new_context(&self) -> Result<Self::Context>;
 }
 
 pub trait JSContext {
