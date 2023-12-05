@@ -1,24 +1,17 @@
-pub mod runtime_types;
-
 use std::sync::atomic::{AtomicBool, Ordering};
+use crate::js::{JSContext, JSRuntime};
+use crate::js::context::Context;
 use crate::types::Result;
-use crate::js::{JSContext, JSObject, JSRuntime};
+
 
 
 static PLATFORM_INITIALIZED: AtomicBool = AtomicBool::new(false);
+static PLATFORM_INITIALIZING: AtomicBool = AtomicBool::new(false);
 
 pub struct V8Engine;
 
 pub struct V8Context {
     pub isolate: v8::OwnedIsolate,
-}
-
-pub struct V8Value {
-    pub value: v8::Global<v8::Value>,
-}
-
-pub struct V8Array {
-    pub array: v8::Global<v8::Array>,
 }
 
 impl V8Engine {
@@ -27,12 +20,22 @@ impl V8Engine {
             return;
         }
 
+        if PLATFORM_INITIALIZING.load(Ordering::SeqCst) {
+            while !PLATFORM_INITIALIZED.load(Ordering::SeqCst) {
+                std::thread::sleep(std::time::Duration::from_millis(10));
+            }
+            return;
+        }
+
+        PLATFORM_INITIALIZING.store(true, Ordering::SeqCst);
+
 
         let platform = v8::new_default_platform(0, false).make_shared();
         v8::V8::initialize_platform(platform);
         v8::V8::initialize();
 
         PLATFORM_INITIALIZED.store(true, Ordering::SeqCst);
+        PLATFORM_INITIALIZING.store(false, Ordering::SeqCst);
     }
 
     pub fn new() -> Self {
@@ -47,14 +50,17 @@ impl JSRuntime for V8Engine {
     type Value = V8Value;
     type Array = V8Array;
 
-    fn new() -> Result<Self> where Self: Sized {
-        todo!()
-    }
 
-    fn new_context(&self) -> Result<Self::Context> {
+    fn new_context(&self) -> Result<Context<Self::Context>> {
         todo!()
     }
 }
+
+
+impl JSContext for V8Context {
+    fn run(&self, code: &str) -> Result<()> {
+        todo!()
+    }
 
 
 impl JSContext for V8Engine {
@@ -73,10 +79,9 @@ impl JSContext for V8Engine {
         todo!()
     }
 
-    fn add_global_object(&self, name: &str) -> Result<Self::Object> {
+    fn add_global_object(&self, name: &str, object: &str) -> Result<()> {
         todo!()
     }
-}
 
 pub struct V8Object {
     pub object: v8::Global<v8::Object>,
