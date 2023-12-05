@@ -7,7 +7,7 @@ pub struct Runtime<R: JSRuntime>(R);
 
 
 impl Runtime<V8Engine> {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self(V8Engine::new())
     }
 }
