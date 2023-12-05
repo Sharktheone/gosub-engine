@@ -1,8 +1,12 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 use crate::js::{JSContext, JSRuntime};
+use crate::js::context::Context;
+use crate::types::Result;
+
 
 
 static PLATFORM_INITIALIZED: AtomicBool = AtomicBool::new(false);
+static PLATFORM_INITIALIZING: AtomicBool = AtomicBool::new(false);
 
 pub struct V8Engine;
 
@@ -16,12 +20,22 @@ impl V8Engine {
             return;
         }
 
+        if PLATFORM_INITIALIZING.load(Ordering::SeqCst) {
+            while !PLATFORM_INITIALIZED.load(Ordering::SeqCst) {
+                std::thread::sleep(std::time::Duration::from_millis(10));
+            }
+            return;
+        }
+
+        PLATFORM_INITIALIZING.store(true, Ordering::SeqCst);
+
 
         let platform = v8::new_default_platform(0, false).make_shared();
         v8::V8::initialize_platform(platform);
         v8::V8::initialize();
 
         PLATFORM_INITIALIZED.store(true, Ordering::SeqCst);
+        PLATFORM_INITIALIZING.store(false, Ordering::SeqCst);
     }
 
     pub fn new() -> Self {
@@ -33,34 +47,31 @@ impl V8Engine {
 impl JSRuntime for V8Engine {
     type Context = V8Context;
 
-    fn new() -> crate::types::Result<Self> where Self: Sized {
-        todo!()
-    }
 
-    fn new_context(&self) -> crate::types::Result<Self::Context> {
+    fn new_context(&self) -> Result<Context<Self::Context>> {
         todo!()
     }
 }
 
 
-impl JSContext for V8Engine {
-    fn run(&self, code: &str) -> crate::types::Result<()> {
+impl JSContext for V8Context {
+    fn run(&self, code: &str) -> Result<()> {
         todo!()
     }
 
-    fn compile(&self, code: &str) -> crate::types::Result<()> {
+    fn compile(&self, code: &str) -> Result<()> {
         todo!()
     }
 
-    fn run_compiled(&self) -> crate::types::Result<()> {
+    fn run_compiled(&self) -> Result<()> {
         todo!()
     }
 
-    fn add_global_object(&self, name: &str, object: &str) -> crate::types::Result<()> {
+    fn add_global_object(&self, name: &str, object: &str) -> Result<()> {
         todo!()
     }
 
-    fn add_function_to_object(&self, object: &str, name: &str, function: &str) -> crate::types::Result<()> {
+    fn add_function_to_object(&self, object: &str, name: &str, function: &str) -> Result<()> {
         todo!()
     }
 }

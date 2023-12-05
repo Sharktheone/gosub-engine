@@ -1,9 +1,12 @@
+use lazy_static::lazy_static;
 use thiserror::Error;
-use crate::js::v8::V8Context;
+use crate::js::context::Context;
 
 use crate::types::Result;
 
 mod v8;
+mod context;
+mod runtime;
 
 #[derive(Error, Debug)]
 pub enum Error {
@@ -11,12 +14,15 @@ pub enum Error {
     Generic(String),
 }
 
+lazy_static!(
+    static ref RUNTIME:  = v8::V8Engine::new();
+);
+
+
 pub trait JSRuntime {
-    type Context;
+    type Context: JSContext;
 
-    fn new() -> Result<Self> where Self: Sized;
-
-    fn new_context(&self) -> Result<Self::Context>;
+    fn new_context(&self) -> Result<Context<Self::Context>>;
 }
 
 pub trait JSContext {
