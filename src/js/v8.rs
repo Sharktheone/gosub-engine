@@ -1,5 +1,5 @@
 use std::sync::atomic::{AtomicBool, Ordering};
-use crate::js::{JSContext, JSRuntime};
+use crate::js::{JSContext, JSRuntime, JSObject, JSValue, JSType, ValueTranslation, JSArray};
 use crate::js::context::Context;
 use crate::types::Result;
 
@@ -46,9 +46,6 @@ impl V8Engine {
 
 impl JSRuntime for V8Engine {
     type Context = V8Context;
-    type Object = V8Object;
-    type Value = V8Value;
-    type Array = V8Array;
 
 
     fn new_context(&self) -> Result<Context<Self::Context>> {
@@ -58,13 +55,6 @@ impl JSRuntime for V8Engine {
 
 
 impl JSContext for V8Context {
-    fn run(&self, code: &str) -> Result<()> {
-        todo!()
-    }
-
-
-impl JSContext for V8Engine {
-
     type Object = V8Object;
 
     fn run(&self, code: &str) -> Result<()> {
@@ -79,8 +69,29 @@ impl JSContext for V8Engine {
         todo!()
     }
 
-    fn add_global_object(&self, name: &str, object: &str) -> Result<()> {
+    fn add_global_object(&self, name: &str) -> Result<Self::Object> {
         todo!()
+    }
+}
+
+    impl JSContext for V8Engine {
+        type Object = V8Object;
+
+        fn run(&self, code: &str) -> Result<()> {
+            todo!()
+        }
+
+        fn compile(&self, code: &str) -> Result<()> {
+            todo!()
+        }
+
+        fn run_compiled(&self) -> Result<()> {
+            todo!()
+        }
+
+        fn add_global_object(&self, name: &str) -> Result<Self::Object> {
+            todo!()
+        }
     }
 
 pub struct V8Object {
@@ -88,19 +99,147 @@ pub struct V8Object {
 }
 
 impl JSObject for V8Object {
-    fn set_property(&self, name: &str, value: &str) -> crate::types::Result<()> {
+    type Value = V8Value;
+
+    fn set_property(&self, name: &str, value: &str) -> Result<()> {
         todo!()
     }
 
-    fn get_property(&self, name: &str) -> crate::types::Result<String> {
+    fn get_property(&self, name: &str) -> Result<V8Value> {
         todo!()
     }
 
-    fn call_method(&self, name: &str, args: &[&str]) -> crate::types::Result<String> {
+    fn call_method(&self, name: &str, args: &[&str]) -> Result<V8Value> {
         todo!()
     }
 
-    fn set_method(&self, name: &str, function: &str) -> crate::types::Result<()> {
+    fn set_method(&self, name: &str, function: &str) -> Result<()> {
+        todo!()
+    }
+}
+
+
+pub struct V8Value {
+    pub value: v8::Global<v8::Value>,
+}
+
+impl JSValue for V8Value {
+    type Object = V8Object;
+    type Array = V8Array;
+
+    fn as_string(&self) -> Result<String> {
+        todo!()
+    }
+
+    fn as_number(&self) -> Result<f64> {
+        todo!()
+    }
+
+    fn as_bool(&self) -> Result<bool> {
+        todo!()
+    }
+
+    fn as_object(&self) -> Result<Self::Object> {
+        todo!()
+    }
+
+    fn as_array(&self) -> Result<Self::Array> {
+        todo!()
+    }
+
+    fn is_string(&self) -> bool {
+        todo!()
+    }
+
+    fn is_number(&self) -> bool {
+        todo!()
+    }
+
+    fn is_bool(&self) -> bool {
+        todo!()
+    }
+
+    fn is_object(&self) -> bool {
+        todo!()
+    }
+
+    fn is_array(&self) -> bool {
+        todo!()
+    }
+
+    fn is_null(&self) -> bool {
+        todo!()
+    }
+
+    fn is_undefined(&self) -> bool {
+        todo!()
+    }
+
+    fn is_function(&self) -> bool {
+        todo!()
+    }
+
+    fn type_of(&self) -> JSType {
+        todo!()
+    }
+
+    fn new_object() -> Result<Self::Object> {
+        todo!()
+    }
+
+    fn new_array<T: ValueTranslation>(value: &[T]) -> Result<Self::Array> {
+        todo!()
+    }
+
+    fn new_string(value: &str) -> Result<Self> {
+        todo!()
+    }
+
+    fn new_number(value: f64) -> Result<Self> {
+        todo!()
+    }
+
+    fn new_bool(value: bool) -> Result<Self> {
+        todo!()
+    }
+
+    fn new_null() -> Result<Self> {
+        todo!()
+    }
+
+    fn new_undefined() -> Result<Self> {
+        todo!()
+    }
+
+    fn new_function(func: &fn()) -> Result<Self> {
+        todo!()
+    }
+}
+
+pub struct V8Array {
+    pub array: v8::Global<v8::Array>,
+}
+
+impl JSArray for V8Array {
+    type Value = V8Value;
+
+    fn get(&self, index: usize) -> Result<V8Value> {
+        todo!()
+    }
+
+    fn set(&self, index: usize, value: &str) -> Result<()> {
+        todo!()
+    }
+
+    fn push(&self, value: &str) -> Result<()> {
+        todo!()
+    }
+
+    fn pop(&self) -> Result<V8Value> {
+        todo!()
+    }
+
+    fn length(&self) -> Result<usize> {
         todo!()
     }
 }

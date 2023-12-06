@@ -1,7 +1,15 @@
 use crate::js::context::Context;
-use crate::js::{JSRuntime};
+use crate::js::{JSContext};
 use crate::js::v8::V8Engine;
 use crate::types::Result;
+
+
+pub trait JSRuntime {
+    type Context: JSContext;
+
+    fn new_context(&self) -> Result<Context<Self::Context>>;
+}
+
 
 pub struct Runtime<R: JSRuntime>(R);
 
