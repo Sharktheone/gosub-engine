@@ -16,4 +16,4 @@ pub trait JSContext {
     fn add_global_object(&self, name: &str) -> crate::types::Result<Self::Object>;
 }
 
-pub struct Context<C: JSContext>(C);
+pub struct Context<C: JSContext>(pub C);

@@ -1,9 +1,12 @@
+use std::pin::Pin;
+use std::ptr::NonNull;
 use std::sync::atomic::{AtomicBool, Ordering};
-use v8::HandleScope;
 
-use crate::js::{JSError, JSArray, JSContext, JSObject, JSRuntime, JSValue, ValueConversion, JSType};
+use v8::{HandleScope, Local};
+
+use crate::js::{JSArray, JSContext, JSError, JSObject, JSRuntime, JSType, JSValue, ValueConversion};
 use crate::js::context::Context;
-use crate::types::{Result, Error};
+use crate::types::{Error, Result};
 
 static PLATFORM_INITIALIZED: AtomicBool = AtomicBool::new(false);
 static PLATFORM_INITIALIZING: AtomicBool = AtomicBool::new(false);
@@ -12,7 +15,9 @@ pub struct V8Engine<'a>(std::marker::PhantomData<&'a ()>);
 
 pub struct V8Context<'a> {
     pub isolate: v8::OwnedIsolate,
-    _marker: std::marker::PhantomData<&'a ()>,
+    pub handle_scope: HandleScope<'a, ()>,
+    pub context: Local<'a, v8::Context>,
+    pub scope: v8::ContextScope<'a, HandleScope<'a>>,
 }
 
 impl<'a> V8Engine<'a> {
@@ -50,10 +55,19 @@ impl<'a> JSRuntime for V8Engine<'a> {
 
 
     fn new_context(&self) -> Result<Context<Self::Context>> {
-        todo!()
+
+
+
+        Ok(Context(
+            V8Context { // I start to doubt that this isn't even possible in rust. I've tried Rc, RefCell, Rc<RefCell>, MaybeUninit (unsafe). I'm starting to think that this is impossible.
+                isolate: v8::Isolate::new(Default::default()),
+                handle_scope: HandleScope::new(),
+                context: v8::Context::new(),
+                scope: v8::ContextScope::new(),
+            }
+        ))
     }
 }
-
 
 impl<'a> JSContext for V8Context<'a> {
     type Object = V8Object<'a>;
@@ -117,7 +131,6 @@ impl<'a> JSObject for V8Object<'a> {
     }
 }
 
-
 pub struct V8Value<'a>(v8::Local<'a, v8::Value>);
 
 impl<'a> JSValue for V8Value<'a> {
@@ -129,7 +142,6 @@ impl<'a> JSValue for V8Value<'a> {
     }
 
     fn as_number(&self) -> Result<f64> {
-
         let mut scope: HandleScope = todo!();
 
         if let Some(value) = self.0.number_value(&mut scope) {
