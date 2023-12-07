@@ -1,4 +1,4 @@
-use crate::js::{JSArray, JSObject, JSType, ValueTranslation};
+use crate::js::{JSArray, JSObject, JSType};
 use crate::types::Result;
 
 pub trait JSValue
@@ -37,7 +37,7 @@ pub trait JSValue
 
     fn new_object() -> Result<Self::Object>;
 
-    fn new_array<T: ValueTranslation>(value: &[T]) -> Result<Self::Array>;
+    fn new_array<T: Into<Self>>(value: &[T]) -> Result<Self::Array>;
 
     fn new_string(value: &str) -> Result<Self>;
 

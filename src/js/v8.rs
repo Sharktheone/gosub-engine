@@ -1,5 +1,5 @@
 use std::sync::atomic::{AtomicBool, Ordering};
-use crate::js::{JSContext, JSRuntime, JSObject, JSValue, JSType, ValueTranslation, JSArray};
+use crate::js::{JSContext, JSRuntime, JSObject, JSValue, JSType, ValueConversion, JSArray};
 use crate::js::context::Context;
 use crate::types::Result;
 
@@ -187,7 +187,7 @@ impl JSValue for V8Value {
         todo!()
     }
 
-    fn new_array<T: ValueTranslation>(value: &[T]) -> Result<Self::Array> {
+    fn new_array<T: ValueConversion>(value: &[T]) -> Result<Self::Array> {
         todo!()
     }
 

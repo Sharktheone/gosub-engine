@@ -4,7 +4,7 @@ use thiserror::Error;
 pub use context::*;
 pub use runtime::*;
 pub use value::*;
-pub use valuetranslation::*;
+pub use value_conversion::*;
 
 use crate::js::v8::V8Engine;
 use crate::types::Result;
@@ -13,7 +13,7 @@ pub mod v8;
 mod context;
 mod runtime;
 mod value;
-mod valuetranslation;
+mod value_conversion;
 
 #[derive(Error, Debug)]
 pub enum Error {
