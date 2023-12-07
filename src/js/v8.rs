@@ -1,20 +1,21 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 use v8::HandleScope;
 
-use crate::js::{JSError, JSArray, JSContext, JSObject, JSRuntime, JSValue, ValueConversion};
+use crate::js::{JSError, JSArray, JSContext, JSObject, JSRuntime, JSValue, ValueConversion, JSType};
 use crate::js::context::Context;
 use crate::types::{Result, Error};
 
 static PLATFORM_INITIALIZED: AtomicBool = AtomicBool::new(false);
 static PLATFORM_INITIALIZING: AtomicBool = AtomicBool::new(false);
 
-pub struct V8Engine;
+pub struct V8Engine<'a>(std::marker::PhantomData<&'a ()>);
 
-pub struct V8Context {
+pub struct V8Context<'a> {
     pub isolate: v8::OwnedIsolate,
+    _marker: std::marker::PhantomData<&'a ()>,
 }
 
-impl V8Engine {
+impl<'a> V8Engine<'a> {
     pub fn initialize() {
         if PLATFORM_INITIALIZED.load(Ordering::SeqCst) {
             return;
@@ -40,12 +41,12 @@ impl V8Engine {
 
     pub fn new() -> Self {
         Self::initialize();
-        Self
+        Self(std::marker::PhantomData)
     }
 }
 
-impl JSRuntime for V8Engine {
-    type Context = V8Context;
+impl<'a> JSRuntime for V8Engine<'a> {
+    type Context = V8Context<'a>;
 
 
     fn new_context(&self) -> Result<Context<Self::Context>> {
@@ -54,8 +55,8 @@ impl JSRuntime for V8Engine {
 }
 
 
-impl JSContext for V8Context {
-    type Object = V8Object;
+impl<'a> JSContext for V8Context<'a> {
+    type Object = V8Object<'a>;
 
     fn run(&self, code: &str) -> Result<()> {
         todo!()
@@ -74,8 +75,8 @@ impl JSContext for V8Context {
     }
 }
 
-impl JSContext for V8Engine {
-    type Object = V8Object;
+impl<'a> JSContext for V8Engine<'a> {
+    type Object = V8Object<'a>;
 
     fn run(&self, code: &str) -> Result<()> {
         todo!()
@@ -121,7 +122,7 @@ pub struct V8Value<'a>(v8::Local<'a, v8::Value>);
 
 impl<'a> JSValue for V8Value<'a> {
     type Object = V8Object<'a>;
-    type Array = V8Array;
+    type Array = V8Array<'a>;
 
     fn as_string(&self) -> Result<String> {
         todo!()
@@ -219,14 +220,12 @@ impl<'a> JSValue for V8Value<'a> {
     }
 }
 
-pub struct V8Array {
-    pub array: v8::Global<v8::Array>,
-}
+pub struct V8Array<'a> (v8::Local<'a, v8::Array>);
 
-impl JSArray for V8Array {
-    type Value = V8Value;
+impl<'a> JSArray for V8Array<'a> {
+    type Value = V8Value<'a>;
 
-    fn get(&self, index: usize) -> Result<V8Value> {
+    fn get(&self, index: usize) -> Result<Self::Value> {
         todo!()
     }
 
@@ -238,7 +237,7 @@ impl JSArray for V8Array {
         todo!()
     }
 
-    fn pop(&self) -> Result<V8Value> {
+    fn pop(&self) -> Result<Self::Value> {
         todo!()
     }
 

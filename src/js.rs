@@ -26,7 +26,7 @@ pub enum JSError {
 
 
 lazy_static!(
-    static ref RUNTIME: Runtime<V8Engine> = runtime::Runtime::new();
+    static ref RUNTIME: Runtime<V8Engine<'static>> = runtime::Runtime::new();
 );
 
 
