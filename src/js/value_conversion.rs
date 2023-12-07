@@ -1,42 +1,59 @@
 use crate::js::JSValue;
-
+use crate::types::Result;
 
 pub trait ValueConversion<V: JSValue> {
-
     type Value: JSValue;
-    fn to_js_value(&self) -> Option<Self::Value>;
+    fn to_js_value(&self) -> Result<Self::Value>;
 }
 
 macro_rules! impl_value_conversion {
     (number, $type:ty) => {
-        impl_value_conversion!(new_number, $type);
+        impl<V: JSValue> ValueConversion<V> for $type {
+            type Value = V;
+
+            fn to_js_value(&self) -> Result<Self::Value> {
+                Self::Value::new_number(*self as f64)
+            }
+        }
     };
 
     (string, $type:ty) => {
-        impl_value_conversion!(new_string, $type);
+        impl_value_conversion!(new_string, $type, deref);
     };
 
     (bool, $type:ty) => {
-        impl_value_conversion!(new_bool, $type);
+        impl_value_conversion!(new_bool, $type, deref);
     };
 
     (array, $type:ty) => {
-        impl_value_conversion!(new_array, $type);
+        impl_value_conversion!(new_array, $type, deref);
     };
 
     (function, $type:ty) => {
         impl_value_conversion!(new_function, $type);
     };
 
+    ($func:ident, $type:ty, deref) => {
+        impl<V: JSValue> ValueConversion<V> for $type {
+            type Value = V;
+
+            fn to_js_value(&self) -> Result<Self::Value> {
+                Self::Value::$func(*self)
+            }
+        }
+    };
+
     ($func:ident, $type:ty) => {
         impl<V: JSValue> ValueConversion<V> for $type {
             type Value = V;
 
-            fn to_js_value(&self) -> Option<Self::Value> {
+            fn to_js_value(&self) -> Result<Self::Value> {
                 Self::Value::$func(self)
             }
         }
     };
+
+
 }
 
 impl_value_conversion!(number, i8);
@@ -59,24 +76,13 @@ impl_value_conversion!(bool, bool);
 impl_value_conversion!(function, fn());
 
 
-impl <V: JSValue, T> ValueConversion<V> for T {
-    type Value = V;
-
-    fn to_js_value(&self) -> Option<Self::Value> {
-        Some(self.clone())
-    }
-}
-
 impl<V: JSValue> ValueConversion<V> for String {
     type Value = V;
 
-    fn to_js_value(&self) -> Option<Self::Value> {
-        Some(self.clone())
+    fn to_js_value(&self) -> Result<Self::Value> {
+        Self::Value::new_string(&self)
     }
 }
-
-
-
 
 
 //TODO: implement this for different rust types

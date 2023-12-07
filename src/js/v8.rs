@@ -1,9 +1,9 @@
 use std::sync::atomic::{AtomicBool, Ordering};
-use crate::js::{JSContext, JSRuntime, JSObject, JSValue, JSType, ValueConversion, JSArray};
+use v8::HandleScope;
+
+use crate::js::{JSError, JSArray, JSContext, JSObject, JSRuntime, JSValue, ValueConversion};
 use crate::js::context::Context;
-use crate::types::Result;
-
-
+use crate::types::{Result, Error};
 
 static PLATFORM_INITIALIZED: AtomicBool = AtomicBool::new(false);
 static PLATFORM_INITIALIZING: AtomicBool = AtomicBool::new(false);
@@ -74,42 +74,40 @@ impl JSContext for V8Context {
     }
 }
 
-    impl JSContext for V8Engine {
-        type Object = V8Object;
+impl JSContext for V8Engine {
+    type Object = V8Object;
 
-        fn run(&self, code: &str) -> Result<()> {
-            todo!()
-        }
-
-        fn compile(&self, code: &str) -> Result<()> {
-            todo!()
-        }
-
-        fn run_compiled(&self) -> Result<()> {
-            todo!()
-        }
-
-        fn add_global_object(&self, name: &str) -> Result<Self::Object> {
-            todo!()
-        }
+    fn run(&self, code: &str) -> Result<()> {
+        todo!()
     }
 
-pub struct V8Object {
-    pub object: v8::Global<v8::Object>,
+    fn compile(&self, code: &str) -> Result<()> {
+        todo!()
+    }
+
+    fn run_compiled(&self) -> Result<()> {
+        todo!()
+    }
+
+    fn add_global_object(&self, name: &str) -> Result<Self::Object> {
+        todo!()
+    }
 }
 
-impl JSObject for V8Object {
-    type Value = V8Value;
+pub struct V8Object<'a>(v8::Local<'a, v8::Object>);
+
+impl<'a> JSObject for V8Object<'a> {
+    type Value = V8Value<'a>;
 
     fn set_property(&self, name: &str, value: &str) -> Result<()> {
         todo!()
     }
 
-    fn get_property(&self, name: &str) -> Result<V8Value> {
+    fn get_property(&self, name: &str) -> Result<Self::Value> {
         todo!()
     }
 
-    fn call_method(&self, name: &str, args: &[&str]) -> Result<V8Value> {
+    fn call_method(&self, name: &str, args: &[&str]) -> Result<Self::Value> {
         todo!()
     }
 
@@ -119,12 +117,10 @@ impl JSObject for V8Object {
 }
 
 
-pub struct V8Value {
-    pub value: v8::Global<v8::Value>,
-}
+pub struct V8Value<'a>(v8::Local<'a, v8::Value>);
 
-impl JSValue for V8Value {
-    type Object = V8Object;
+impl<'a> JSValue for V8Value<'a> {
+    type Object = V8Object<'a>;
     type Array = V8Array;
 
     fn as_string(&self) -> Result<String> {
@@ -132,7 +128,14 @@ impl JSValue for V8Value {
     }
 
     fn as_number(&self) -> Result<f64> {
-        todo!()
+
+        let mut scope: HandleScope = todo!();
+
+        if let Some(value) = self.0.number_value(&mut scope) {
+            return Ok(value);
+        } else {
+            return Err(Error::JS(JSError::Conversion("could not convert to number".to_owned())));
+        }
     }
 
     fn as_bool(&self) -> Result<bool> {
@@ -187,7 +190,7 @@ impl JSValue for V8Value {
         todo!()
     }
 
-    fn new_array<T: ValueConversion>(value: &[T]) -> Result<Self::Array> {
+    fn new_array<T: ValueConversion<Self>>(value: &[T]) -> Result<Self::Array> {
         todo!()
     }
 
@@ -195,7 +198,7 @@ impl JSValue for V8Value {
         todo!()
     }
 
-    fn new_number(value: f64) -> Result<Self> {
+    fn new_number<N: Into<f64>>(value: N) -> Result<Self> {
         todo!()
     }
 

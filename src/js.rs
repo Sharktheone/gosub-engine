@@ -16,9 +16,12 @@ mod value;
 mod value_conversion;
 
 #[derive(Error, Debug)]
-pub enum Error {
+pub enum JSError {
     #[error("generic error: {0}")]
     Generic(String),
+
+    #[error("conversion error: {0}")]
+    Conversion(String),
 }
 
 
