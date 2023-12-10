@@ -1,8 +1,8 @@
-use std::pin::Pin;
-use std::ptr::NonNull;
+use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
-
-use v8::{HandleScope, Local};
+use ouroboros::self_referencing;
+use rand::random;
+use v8::{ContextScope, HandleScope, Isolate, OwnedIsolate};
 
 use crate::js::{JSArray, JSContext, JSError, JSObject, JSRuntime, JSType, JSValue, ValueConversion};
 use crate::js::context::Context;
@@ -11,16 +11,29 @@ use crate::types::{Error, Result};
 static PLATFORM_INITIALIZED: AtomicBool = AtomicBool::new(false);
 static PLATFORM_INITIALIZING: AtomicBool = AtomicBool::new(false);
 
-pub struct V8Engine<'a>(std::marker::PhantomData<&'a ()>);
 
-pub struct V8Context<'a> {
-    pub isolate: v8::OwnedIsolate,
-    pub handle_scope: HandleScope<'a, ()>,
-    pub context: Local<'a, v8::Context>,
-    pub scope: v8::ContextScope<'a, HandleScope<'a>>,
+
+#[self_referencing]
+pub struct IsoScope {
+    isolate: OwnedIsolate,
+
+    #[borrows(mut isolate)]
+    #[covariant]
+    scope: HandleScope<'this, ()>,
 }
 
-impl<'a> V8Engine<'a> {
+pub struct V8Engine<'a> {
+    iso_scopes: HashMap<usize, IsoScope>,
+    _marker: std::marker::PhantomData<&'a ()>,
+}
+
+
+pub struct V8Context<'a> {
+    id: usize,
+    scope: ContextScope<'a, HandleScope<'a>>
+}
+
+impl V8Engine<'_> {
     pub fn initialize() {
         if PLATFORM_INITIALIZED.load(Ordering::SeqCst) {
             return;
@@ -46,26 +59,48 @@ impl<'a> V8Engine<'a> {
 
     pub fn new() -> Self {
         Self::initialize();
-        Self(std::marker::PhantomData)
+        Self {
+            iso_scopes: HashMap::new(),
+            _marker: std::marker::PhantomData,
+        }
     }
 }
 
-impl<'a> JSRuntime for V8Engine<'a> {
-    type Context = V8Context<'a>;
+impl JSRuntime for V8Engine<'static> {
+    type Context = V8Context<'static>;
 
 
-    fn new_context(&self) -> Result<Context<Self::Context>> {
+    //let isolate = &mut Isolate::new(Default::default());
+    //let hs = &mut HandleScope::new(isolate);
+    //let c = Context::new(hs);
+    //let s = &mut ContextScope::new(hs, c);
+
+    fn new_context(&'static mut self) -> Result<Context<Self::Context>> {
+        let id = random();
 
 
+        let iso_scope = IsoScopeBuilder {
+            isolate: Isolate::new(Default::default()),
+            scope_builder: |isolate: &mut OwnedIsolate| {
+                HandleScope::new(isolate)
+            },
+        }.build();
 
-        Ok(Context(
-            V8Context { // I start to doubt that this isn't even possible in rust. I've tried Rc, RefCell, Rc<RefCell>, MaybeUninit (unsafe). I'm starting to think that this is impossible.
-                isolate: v8::Isolate::new(Default::default()),
-                handle_scope: HandleScope::new(),
-                context: v8::Context::new(),
-                scope: v8::ContextScope::new(),
-            }
-        ))
+        let scope:ContextScope<HandleScope> = self.iso_scopes.get_mut(&id).unwrap().with_scope_mut(|scope| {
+            let ctx = v8::Context::new(scope);
+            ContextScope::new(scope, ctx)
+        });
+
+        Ok(Context(V8Context{
+            id,
+            scope
+        }))
+    }
+}
+
+impl Drop for V8Context<'_> {
+    fn drop(&mut self) {
+
     }
 }
 
