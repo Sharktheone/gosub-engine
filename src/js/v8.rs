@@ -22,6 +22,9 @@ pub struct IsoScope {
     scope: HandleScope<'this, ()>,
 }
 
+
+unsafe impl Sync for IsoScope {}
+
 pub struct V8Engine<'a> {
     iso_scopes: HashMap<usize, IsoScope>,
     _marker: std::marker::PhantomData<&'a ()>,
