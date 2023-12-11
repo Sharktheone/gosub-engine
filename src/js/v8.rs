@@ -25,6 +25,12 @@ pub struct V8Context<'a> {
     _phantom: std::marker::PhantomData<&'a ()>,
 }
 
+impl Drop for V8Context<'_> {
+    fn drop(&mut self) {
+        Store::drop(self.id);
+    }
+}
+
 impl<'a> V8Context<'a> {
     fn new(params: CreateParams) -> Context<Self> {
         let id = rand::random();

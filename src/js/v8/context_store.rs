@@ -9,16 +9,7 @@ pub(super) struct Store<'a> {
     _marker: PhantomData<*mut ()>,
 }
 
-impl Store<'_> {
-    const fn new() -> Self {
-        Self {
-            isolates: Vec::new(),
-            handle_scopes: Vec::new(),
-            context_scopes: Vec::new(),
-            _marker: PhantomData,
-        }
-    }
-}
+
 
 
 //TODO: we can get rid of this static value by using #[self_referencing] on the V8Context struct, but currently id doesn't support chain references
@@ -31,7 +22,21 @@ macro_rules! context {
     };
 }
 
+impl<'a> Default for Store<'a> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<'a> Store<'a> {
+    const fn new() -> Self {
+        Self {
+            isolates: Vec::new(),
+            handle_scopes: Vec::new(),
+            context_scopes: Vec::new(),
+            _marker: PhantomData,
+        }
+    }
     fn _insert_isolate(&mut self, id: usize, isolate: OwnedIsolate) {
         self.isolates.push((id, isolate));
     }
@@ -55,7 +60,7 @@ impl<'a> Store<'a> {
         })
     }
 
-    fn _get_handle_scope(&'a mut self, id: usize) -> Option<&'a mut HandleScope<'a, ()>> {
+    fn _get_handle_scope(&'a mut self, id: usize) -> Option<&'static mut HandleScope<'a, ()>> {
         self.handle_scopes.iter_mut().find_map(|(i, handle_scope)| {
             if *i == id {
                 Some(handle_scope)
@@ -65,7 +70,7 @@ impl<'a> Store<'a> {
         })
     }
 
-    fn _get_context_scope(&'a mut self, id: usize) -> Option<&'a mut ContextScope<'a, HandleScope<'a>>> {
+    fn _get_context_scope(&'a mut self, id: usize) -> Option<&'static mut ContextScope<'a, HandleScope<'a>>> {
         self.context_scopes.iter_mut().find_map(|(i, context_scope)| {
             if *i == id {
                 Some(context_scope)
@@ -118,5 +123,14 @@ impl<'a> Store<'a> {
     pub fn context_scope(id: usize, context_scope: ContextScope<'a, HandleScope<'a>>) -> &'a mut ContextScope<'static, HandleScope<'a>> {
         Self::insert_context_scope(id, context_scope);
         Self::get_context_scope(id).expect("something very weird jus happened...") //We can unwrap here because we just inserted it
+    }
+
+    pub fn drop(id: usize) {
+        //use correct drop order here. First context scope, then handle scope and at last the isolate, because they depend on each other
+        unsafe {
+            STORE.context_scopes.retain(|(i, _)| *i != id);
+            STORE.handle_scopes.retain(|(i, _)| *i != id);
+            STORE.isolates.retain(|(i, _)| *i != id);
+        }
     }
 }
