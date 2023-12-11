@@ -11,10 +11,10 @@ pub trait JSRuntime {
 }
 
 
-pub struct Runtime<R: JSRuntime>(R);
+pub struct Runtime<R: JSRuntime>(pub R);
 
 
-impl Runtime<V8Engine<'static>> {
+impl Runtime<V8Engine<'_>> {
     pub fn new() -> Self {
         Self(V8Engine::new())
     }

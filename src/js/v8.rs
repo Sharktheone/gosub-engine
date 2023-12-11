@@ -1,40 +1,61 @@
-use std::collections::HashMap;
-mod context_store;
+use std::any::Any;
+use std::ops::{Deref, DerefMut};
 use std::sync::atomic::{AtomicBool, Ordering};
-use ouroboros::self_referencing;
-use rand::random;
-use v8::{ContextScope, HandleScope, Isolate, OwnedIsolate};
+
+use v8::{ContextScope, CreateParams, HandleScope, Isolate, Local};
 
 use crate::js::{JSArray, JSContext, JSError, JSObject, JSRuntime, JSType, JSValue, ValueConversion};
 use crate::js::context::Context;
+use crate::js::v8::context_store::Store;
 use crate::types::{Error, Result};
+
+mod context_store;
 
 static PLATFORM_INITIALIZED: AtomicBool = AtomicBool::new(false);
 static PLATFORM_INITIALIZING: AtomicBool = AtomicBool::new(false);
 
 
-
-#[self_referencing]
-pub struct IsoScope {
-    isolate: OwnedIsolate,
-
-    #[borrows(mut isolate)]
-    #[covariant]
-    scope: HandleScope<'this, ()>,
-}
-
-
-unsafe impl Sync for IsoScope {}
-
 pub struct V8Engine<'a> {
-    iso_scopes: HashMap<usize, IsoScope>,
     _marker: std::marker::PhantomData<&'a ()>,
 }
 
 
 pub struct V8Context<'a> {
     id: usize,
-    scope: ContextScope<'a, HandleScope<'a>>
+    _phantom: std::marker::PhantomData<&'a ()>,
+}
+
+impl<'a> V8Context<'a> {
+    fn new(params: CreateParams) -> Context<Self> {
+        let id = rand::random();
+
+        let isolate = Store::isolate(id, Isolate::new(params));
+
+        let hs = Store::handle_scope(id, HandleScope::new(isolate));
+
+        let ctx = v8::Context::new(hs);
+
+        Store::insert_context_scope(id, ContextScope::new(hs, ctx));
+
+        Context(Self {
+            id,
+            _phantom: std::marker::PhantomData,
+        })
+    }
+
+    fn default() -> Context<Self> {
+        Self::new(Default::default())
+    }
+
+    fn scope(&self) -> &'a mut ContextScope<'static, HandleScope<'a>> {
+        let Some(scope) = Store::get_context_scope(self.id)
+            else {
+                Self::new(Default::default());
+                return Store::get_context_scope(self.id).expect("we should not be here. Created a new context but it is not in the store");
+            };
+
+        scope
+    }
 }
 
 impl V8Engine<'_> {
@@ -64,14 +85,13 @@ impl V8Engine<'_> {
     pub fn new() -> Self {
         Self::initialize();
         Self {
-            iso_scopes: HashMap::new(),
             _marker: std::marker::PhantomData,
         }
     }
 }
 
-impl JSRuntime for V8Engine<'static> {
-    type Context = V8Context<'static>;
+impl<'a> JSRuntime for V8Engine<'a> {
+    type Context = V8Context<'a>;
 
 
     //let isolate = &mut Isolate::new(Default::default());
@@ -80,31 +100,7 @@ impl JSRuntime for V8Engine<'static> {
     //let s = &mut ContextScope::new(hs, c);
 
     fn new_context(&'static mut self) -> Result<Context<Self::Context>> {
-        let id = random();
-
-
-        let iso_scope = IsoScopeBuilder {
-            isolate: Isolate::new(Default::default()),
-            scope_builder: |isolate: &mut OwnedIsolate| {
-                HandleScope::new(isolate)
-            },
-        }.build();
-
-        let scope:ContextScope<HandleScope> = self.iso_scopes.get_mut(&id).unwrap().with_scope_mut(|scope| {
-            let ctx = v8::Context::new(scope);
-            ContextScope::new(scope, ctx)
-        });
-
-        Ok(Context(V8Context{
-            id,
-            scope
-        }))
-    }
-}
-
-impl Drop for V8Context<'_> {
-    fn drop(&mut self) {
-
+        Ok(Self::Context::default())
     }
 }
 
@@ -148,7 +144,7 @@ impl<'a> JSContext for V8Engine<'a> {
     }
 }
 
-pub struct V8Object<'a>(v8::Local<'a, v8::Object>);
+pub struct V8Object<'a>(Local<'a, v8::Object>);
 
 impl<'a> JSObject for V8Object<'a> {
     type Value = V8Value<'a>;
@@ -170,7 +166,7 @@ impl<'a> JSObject for V8Object<'a> {
     }
 }
 
-pub struct V8Value<'a>(v8::Local<'a, v8::Value>);
+pub struct V8Value<'a>(Local<'a, v8::Value>);
 
 impl<'a> JSValue for V8Value<'a> {
     type Object = V8Object<'a>;
