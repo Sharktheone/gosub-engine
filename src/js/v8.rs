@@ -35,13 +35,13 @@ impl<'a> V8Context<'a> {
     fn new(params: CreateParams) -> Context<Self> {
         let id = rand::random();
 
-        let isolate = Store::isolate(id, Isolate::new(params));
+        let isolate =
 
-        let hs = Store::handle_scope(id, HandleScope::new(isolate));
-
-        let ctx = v8::Context::new(hs);
-
-        Store::insert_context_scope(id, ContextScope::new(hs, ctx));
+        Store::isolate(id, Isolate::new(params), |i| {
+            Store::handle_scope(id, HandleScope::new(i), |hs| {
+                Store::insert_context_scope(id, ContextScope::new(hs, v8::Context::new(hs)))
+            })
+        });
 
         Context(Self {
             id,
@@ -53,14 +53,15 @@ impl<'a> V8Context<'a> {
         Self::new(Default::default())
     }
 
-    fn scope(&self) -> &'a mut ContextScope<'static, HandleScope<'a>> {
-        let Some(scope) = Store::get_context_scope(self.id)
-            else {
-                Self::new(Default::default());
-                return Store::get_context_scope(self.id).expect("we should not be here. Created a new context but it is not in the store");
-            };
-
-        scope
+    fn scope<R, F>(&self, f: F) -> Result<R>
+    where
+        F: FnOnce(&mut ContextScope<'a, HandleScope<'a>>) -> Result<R>
+    {
+        Store::with_handle_scope(self.id, |hs| {
+            Store::with_context_scope(self.id, |cs| {
+                f(cs)
+            })
+        })
     }
 }
 
