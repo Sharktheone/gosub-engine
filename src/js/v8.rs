@@ -23,7 +23,24 @@ pub struct V8Engine<'a> {
 pub struct V8Context<'a> {
     id: usize,
     _phantom: std::marker::PhantomData<&'a ()>,
+    _marker: std::marker::PhantomData<*mut ()>,
 }
+
+
+
+struct V8ContextInner<'a> {
+    id: usize,
+    data: &'a mut ContextScope<'a, HandleScope<'a>>,
+    _phantom: std::marker::PhantomData<&'a ()>,
+}
+
+
+impl Drop for V8ContextInner<'_> {
+    fn drop(&mut self) {
+        Store::lower_context_scope_count(self.id);
+    }
+}
+
 
 impl Drop for V8Context<'_> {
     fn drop(&mut self) {
@@ -32,37 +49,37 @@ impl Drop for V8Context<'_> {
 }
 
 impl<'a> V8Context<'a> {
-    fn new(params: CreateParams) -> Result<Context<Self>> {
+    fn new(params: CreateParams) -> Context<Self> {
         let id = rand::random();
 
-        let isolate = Isolate::new(params);
-        Store::isolate(id, isolate, |isolate| {
-            let hs = HandleScope::new(isolate);
+        let isolate = Store::isolate(id, Isolate::new(params));
 
-            Store::handle_scope(id, hs, |hs| {
-                let ctx = v8::Context::new(hs);
-                let context_scope = ContextScope::new(hs, ctx);
-                Store::context_scope(id, context_scope, |_| {
-                    Ok(())
-                })
-            })
-        })?;
+        let hs = Store::handle_scope(id, HandleScope::new(isolate));
 
-        Ok(Context(Self {
+        let ctx = v8::Context::new(hs);
+
+        Store::insert_context_scope(id, ContextScope::new(hs, ctx));
+
+        Context(Self {
             id,
             _phantom: std::marker::PhantomData,
-        }))
+            _marker: std::marker::PhantomData,
+        })
     }
 
-    fn default() -> Result<Context<Self>> {
+    fn default() -> Context<Self> {
         Self::new(Default::default())
     }
 
-    fn scope<R, F>(&self, f: F) -> Result<R>
-    where
-        F: FnOnce(&mut ContextScope<HandleScope>) -> Result<R>
-    {
-        Store::with_context_scope(self.id, f)
+    fn scope(&self) -> V8ContextInner<'static> {
+        Store::raise_context_scope_count(self.id);
+        let data = Store::get_context_scope(self.id).expect("we have fucked up somewhere in the safety system... \n This should have been prevented. \n This is a bug!");
+
+        V8ContextInner {
+            id: self.id,
+            data,
+            _phantom: std::marker::PhantomData,
+        }
     }
 }
 
@@ -108,7 +125,7 @@ impl<'a> JSRuntime for V8Engine<'a> {
     //let s = &mut ContextScope::new(hs, c);
 
     fn new_context(&'static mut self) -> Result<Context<Self::Context>> {
-        Self::Context::default()
+        Ok(Self::Context::default())
     }
 }
 
