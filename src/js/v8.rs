@@ -32,36 +32,37 @@ impl Drop for V8Context<'_> {
 }
 
 impl<'a> V8Context<'a> {
-    fn new(params: CreateParams) -> Context<Self> {
+    fn new(params: CreateParams) -> Result<Context<Self>> {
         let id = rand::random();
 
-        let isolate =
+        let isolate = Isolate::new(params);
+        Store::isolate(id, isolate, |isolate| {
+            let hs = HandleScope::new(isolate);
 
-        Store::isolate(id, Isolate::new(params), |i| {
-            Store::handle_scope(id, HandleScope::new(i), |hs| {
-                Store::insert_context_scope(id, ContextScope::new(hs, v8::Context::new(hs)))
+            Store::handle_scope(id, hs, |hs| {
+                let ctx = v8::Context::new(hs);
+                let context_scope = ContextScope::new(hs, ctx);
+                Store::context_scope(id, context_scope, |_| {
+                    Ok(())
+                })
             })
-        });
+        })?;
 
-        Context(Self {
+        Ok(Context(Self {
             id,
             _phantom: std::marker::PhantomData,
-        })
+        }))
     }
 
-    fn default() -> Context<Self> {
+    fn default() -> Result<Context<Self>> {
         Self::new(Default::default())
     }
 
     fn scope<R, F>(&self, f: F) -> Result<R>
     where
-        F: FnOnce(&mut ContextScope<'a, HandleScope<'a>>) -> Result<R>
+        F: FnOnce(&mut ContextScope<HandleScope>) -> Result<R>
     {
-        Store::with_handle_scope(self.id, |hs| {
-            Store::with_context_scope(self.id, |cs| {
-                f(cs)
-            })
-        })
+        Store::with_context_scope(self.id, f)
     }
 }
 
@@ -107,7 +108,7 @@ impl<'a> JSRuntime for V8Engine<'a> {
     //let s = &mut ContextScope::new(hs, c);
 
     fn new_context(&'static mut self) -> Result<Context<Self::Context>> {
-        Ok(Self::Context::default())
+        Self::Context::default()
     }
 }
 
