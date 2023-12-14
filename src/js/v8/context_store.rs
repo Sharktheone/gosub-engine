@@ -253,6 +253,4 @@ impl<'a> Store<'a> {
     pub(super) fn lower_isolate_count(id: usize) {
         Self::change_isolate_count(id);
     }
-
-
 }

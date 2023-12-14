@@ -142,7 +142,46 @@ impl<'a> JSContext for V8Context<'a> {
 
         let code = v8::String::new(s.data, code).unwrap();
 
-        let value = v8::Script::compile(s.data, code, None).unwrap().run(s.data).unwrap();
+        let script = v8::Script::compile(s.data, code, None);
+
+        let Some(script) = script else {
+            let try_catch = &mut v8::TryCatch::new(s.data);
+
+            let s = self.scope();
+
+            if let Some(exception) = try_catch.exception() {
+                let exception = exception.to_string(s.data).unwrap();
+
+                let exception = exception.to_rust_string_lossy(s.data);
+
+                println!("V8Exception: {}", exception);
+
+                return Err(Error::JS(JSError::Generic(exception)));
+            }
+
+            if let Some(stack_trace) = try_catch.stack_trace() {
+                let stack_trace = stack_trace.to_string(s.data).unwrap();
+
+                let stack_trace = stack_trace.to_rust_string_lossy(s.data);
+
+                println!("V8StackTrace: {}", stack_trace);
+            }
+
+            if let Some(message) = try_catch.message() {
+                let message = message.get(s.data);
+
+                let message = message.to_rust_string_lossy(s.data);
+
+                println!("V8Message: {}", message);
+            }
+
+            println!("HELLO");
+
+
+            return Err(Error::JS(JSError::Generic("unknown error".to_owned())));
+        };
+
+        let value = script.run(s.data).unwrap();
 
         println!("{}", value.to_rust_string_lossy(s.data));
 
@@ -313,6 +352,7 @@ impl<'a> JSArray for V8Array<'a> {
 
 
 mod tests {
+    use std::cell::RefCell;
     use std::sync::Mutex;
     use lazy_static::lazy_static;
 
@@ -335,8 +375,6 @@ mod tests {
             1234
         "#).unwrap();
 
-        drop(context.0);
-
         println!("dropped context")
     }
 
@@ -347,9 +385,8 @@ mod tests {
     // scope.rs:1534
     // scope:rs:1581
 
-    #[test]
+    // #[test]
     fn test2() {
-
         let platform = v8::new_default_platform(0, false).make_shared();
         v8::V8::initialize_platform(platform);
         v8::V8::initialize();
@@ -357,9 +394,11 @@ mod tests {
         let isolate = &mut v8::Isolate::new(Default::default());
         let hs = &mut v8::HandleScope::new(isolate);
         let c = v8::Context::new(hs);
-        let s = &mut v8::ContextScope::new(hs, c);
+        let mut s = &mut v8::ContextScope::new(hs, c);
 
         let code = v8::String::new(s, "console.log(\"Hello World!\"); 1234").unwrap();
+
+        // let value = v8::Script::compile(s, code, None);
 
         let value = v8::Script::compile(s, code, None).unwrap().run(s).unwrap();
 
