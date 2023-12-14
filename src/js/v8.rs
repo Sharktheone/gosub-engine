@@ -322,6 +322,8 @@ mod tests {
     lazy_static!(
     static ref RUNTIME: Mutex<Runtime<V8Engine<'static>>> = Mutex::new(runtime::Runtime::new());
     );
+
+
     #[test]
     fn test() {
         let mut rt = RUNTIME.lock().unwrap();
@@ -332,5 +334,35 @@ mod tests {
             console.log("Hello World!");
             1234
         "#).unwrap();
+
+        drop(context.0);
+
+        println!("dropped context")
+    }
+
+
+    //BREAKPOINTS
+    //
+    // scope.rs:1294
+    // scope.rs:1534
+    // scope:rs:1581
+
+    #[test]
+    fn test2() {
+
+        let platform = v8::new_default_platform(0, false).make_shared();
+        v8::V8::initialize_platform(platform);
+        v8::V8::initialize();
+
+        let isolate = &mut v8::Isolate::new(Default::default());
+        let hs = &mut v8::HandleScope::new(isolate);
+        let c = v8::Context::new(hs);
+        let s = &mut v8::ContextScope::new(hs, c);
+
+        let code = v8::String::new(s, "console.log(\"Hello World!\"); 1234").unwrap();
+
+        let value = v8::Script::compile(s, code, None).unwrap().run(s).unwrap();
+
+        println!("{}", value.to_rust_string_lossy(s));
     }
 }
