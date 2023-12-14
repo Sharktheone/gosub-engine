@@ -7,7 +7,7 @@ use crate::types::Result;
 pub trait JSRuntime {
     type Context: JSContext;
 
-    fn new_context(&'static mut self) -> Result<Context<Self::Context>>;
+    fn new_context(&mut self) -> Result<Context<Self::Context>>;
 }
 
 
@@ -23,7 +23,7 @@ impl Runtime<V8Engine<'_>> {
 impl<R: JSRuntime> JSRuntime for Runtime<R> {
     type Context = R::Context;
 
-    fn new_context(&'static mut self) -> Result<Context<Self::Context>> {
+    fn new_context(&mut self) -> Result<Context<Self::Context>> {
         self.0.new_context()
     }
 }

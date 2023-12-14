@@ -141,17 +141,17 @@ impl<'a> Store<'a> {
 
     pub fn isolate(id: usize, isolate: OwnedIsolate) -> &'a mut OwnedIsolate {
         Self::insert_isolate(id, isolate);
-        Self::get_isolate(id).expect("something very weird jus happened...") //We can unwrap here because we just inserted it
+        Self::get_isolate(id).expect("something very weird just happened...") //We can unwrap here because we just inserted it
     }
 
     pub fn handle_scope(id: usize, handle_scope: HandleScope<'static, ()>) -> &'a mut HandleScope<'static, ()> {
         Self::insert_handle_scope(id, handle_scope);
-        Self::get_handle_scope(id).expect("something very weird jus happened...") //We can unwrap here because we just inserted it
+        Self::get_handle_scope(id).expect("something very weird just happened...") //We can unwrap here because we just inserted it
     }
 
     pub fn context_scope(id: usize, context_scope: ContextScope<'a, HandleScope<'a>>) -> &'static mut ContextScope<'static, HandleScope<'a>> {
         Self::insert_context_scope(id, context_scope);
-        Self::get_context_scope(id).expect("something very weird jus happened...") //We can unwrap here because we just inserted it
+        Self::get_context_scope(id).expect("something very weird just happened...") //We can unwrap here because we just inserted it
     }
 
     pub fn drop(id: usize) {

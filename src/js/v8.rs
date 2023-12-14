@@ -27,11 +27,10 @@ pub struct V8Context<'a> {
 }
 
 
-
 struct V8ContextInner<'a> {
     id: usize,
     data: &'a mut ContextScope<'a, HandleScope<'a>>,
-    _phantom: std::marker::PhantomData<&'a ()>,
+    _phantom: std::marker::PhantomData<&'a mut ContextScope<'a, HandleScope<'a>>>,
 }
 
 
@@ -71,6 +70,12 @@ impl<'a> V8Context<'a> {
         Self::new(Default::default())
     }
 
+    /// You can't move the scope out of this struct for safety reasons.
+    /// But you can get a reference to it.
+    /// ```not_rust
+    /// let s = context::scope();
+    /// v8::String::new(s.data, string)
+    /// ```
     fn scope(&self) -> V8ContextInner<'static> {
         Store::raise_context_scope_count(self.id);
         let data = Store::get_context_scope(self.id).expect("we have fucked up somewhere in the safety system... \n This should have been prevented. \n This is a bug!");
@@ -124,7 +129,7 @@ impl<'a> JSRuntime for V8Engine<'a> {
     //let c = Context::new(hs);
     //let s = &mut ContextScope::new(hs, c);
 
-    fn new_context(&'static mut self) -> Result<Context<Self::Context>> {
+    fn new_context(&mut self) -> Result<Context<Self::Context>> {
         Ok(Self::Context::default())
     }
 }
@@ -133,27 +138,15 @@ impl<'a> JSContext for V8Context<'a> {
     type Object = V8Object<'a>;
 
     fn run(&self, code: &str) -> Result<()> {
-        todo!()
-    }
+        let s = self.scope();
 
-    fn compile(&self, code: &str) -> Result<()> {
-        todo!()
-    }
+        let code = v8::String::new(s.data, code).unwrap();
 
-    fn run_compiled(&self) -> Result<()> {
-        todo!()
-    }
+        let value = v8::Script::compile(s.data, code, None).unwrap().run(s.data).unwrap();
 
-    fn add_global_object(&self, name: &str) -> Result<Self::Object> {
-        todo!()
-    }
-}
+        println!("{}", value.to_rust_string_lossy(s.data));
 
-impl<'a> JSContext for V8Engine<'a> {
-    type Object = V8Object<'a>;
-
-    fn run(&self, code: &str) -> Result<()> {
-        todo!()
+        Ok(())
     }
 
     fn compile(&self, code: &str) -> Result<()> {
@@ -315,5 +308,29 @@ impl<'a> JSArray for V8Array<'a> {
 
     fn length(&self) -> Result<usize> {
         todo!()
+    }
+}
+
+
+mod tests {
+    use std::sync::Mutex;
+    use lazy_static::lazy_static;
+
+    use crate::js::{JSContext, JSRuntime, Runtime, runtime};
+    use crate::js::v8::V8Engine;
+
+    lazy_static!(
+    static ref RUNTIME: Mutex<Runtime<V8Engine<'static>>> = Mutex::new(runtime::Runtime::new());
+    );
+    #[test]
+    fn test() {
+        let mut rt = RUNTIME.lock().unwrap();
+
+        let context = rt.new_context().unwrap();
+
+        context.run(r#"
+            console.log("Hello World!");
+            1234
+        "#).unwrap();
     }
 }
