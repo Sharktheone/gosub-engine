@@ -156,6 +156,8 @@ impl<'a> Store<'a> {
 
     pub fn drop(id: usize) {
         //use correct drop order here. First context scope, then handle scope and at last the isolate, because they depend on each other
+        let mut dont_drop = false;
+
         unsafe {
             for (i, inner) in STORE.context_scopes.iter_mut().enumerate() {
                 if inner.id == id {
@@ -163,6 +165,7 @@ impl<'a> Store<'a> {
                         STORE.context_scopes.remove(i);
                     } else {
                         inner.drop_next = true;
+                        dont_drop = true;
                     }
                     break;
                 }
@@ -170,17 +173,18 @@ impl<'a> Store<'a> {
 
             for (i, inner) in STORE.handle_scopes.iter_mut().enumerate() {
                 if inner.id == id {
-                    if inner.id == 0 {
+                    if inner.ref_count == 0 && !dont_drop {
                         STORE.handle_scopes.remove(i);
                     } else {
                         inner.drop_next = true;
+                        dont_drop = true;
                     }
                     break;
                 }
             }
 
             for (i, inner) in STORE.isolates.iter_mut().enumerate() {
-                if inner.id == id {
+                if inner.id == id && !dont_drop {
                     if inner.ref_count == 0 {
                         STORE.isolates.remove(i);
                     } else {
@@ -228,7 +232,6 @@ impl<'a> Store<'a> {
             }
         }
     }
-
 
     pub(super) fn raise_context_scope_count(id: usize) {
         Self::change_context_scope_count(id, true);

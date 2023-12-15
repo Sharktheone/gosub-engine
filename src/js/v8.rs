@@ -374,8 +374,6 @@ mod tests {
             console.log("Hello World!");
             1234
         "#).unwrap();
-
-        println!("dropped context")
     }
 
 
@@ -385,7 +383,7 @@ mod tests {
     // scope.rs:1534
     // scope:rs:1581
 
-    // #[test]
+    #[test]
     fn test2() {
         let platform = v8::new_default_platform(0, false).make_shared();
         v8::V8::initialize_platform(platform);
