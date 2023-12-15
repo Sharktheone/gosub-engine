@@ -159,38 +159,71 @@ impl<'a> Store<'a> {
         let mut dont_drop = false;
 
         unsafe {
-            for (i, inner) in STORE.context_scopes.iter_mut().enumerate() {
+            let context_scope = STORE.context_scopes.iter_mut().enumerate().find_map(|(i, inner)| {
                 if inner.id == id {
-                    if inner.ref_count == 0 {
-                        STORE.context_scopes.remove(i);
-                    } else {
-                        inner.drop_next = true;
-                        dont_drop = true;
-                    }
-                    break;
+                    Some((i, inner))
+                } else {
+                    None
+                }
+            });
+
+            let handle_scope = STORE.handle_scopes.iter_mut().enumerate().find_map(|(i, inner)| {
+                if inner.id == id {
+                    Some((i, inner))
+                } else {
+                    None
+                }
+            });
+
+            let isolate = STORE.isolates.iter_mut().enumerate().find_map(|(i, inner)| {
+                if inner.id == id {
+                    Some((i, inner))
+                } else {
+                    None
+                }
+            });
+
+            if let Some((_, inner)) = &context_scope {
+                if inner.ref_count != 0 {
+                    dont_drop = true;
                 }
             }
 
-            for (i, inner) in STORE.handle_scopes.iter_mut().enumerate() {
-                if inner.id == id {
-                    if inner.ref_count == 0 && !dont_drop {
-                        STORE.handle_scopes.remove(i);
-                    } else {
-                        inner.drop_next = true;
-                        dont_drop = true;
-                    }
-                    break;
+            if let Some((_, inner)) = &handle_scope {
+                if inner.ref_count != 0 {
+                    dont_drop = true;
                 }
             }
 
-            for (i, inner) in STORE.isolates.iter_mut().enumerate() {
-                if inner.id == id && !dont_drop {
-                    if inner.ref_count == 0 {
-                        STORE.isolates.remove(i);
-                    } else {
-                        inner.drop_next = true;
-                    }
-                    break;
+            if let Some((_, inner)) = &isolate {
+                if inner.ref_count != 0 {
+                    dont_drop = true;
+                }
+            }
+
+            if !dont_drop {
+                if let Some((i, _)) = context_scope {
+                    STORE.context_scopes.remove(i);
+                }
+
+                if let Some((i, _)) = handle_scope {
+                    STORE.handle_scopes.remove(i);
+                }
+
+                if let Some((i, _)) = isolate {
+                    STORE.isolates.remove(i);
+                }
+            } else {
+                if let Some((_, inner)) = context_scope {
+                    inner.drop_next = true;
+                }
+
+                if let Some((_, inner)) = handle_scope {
+                    inner.drop_next = true;
+                }
+
+                if let Some((_, inner)) = isolate {
+                    inner.drop_next = true;
                 }
             }
         }
