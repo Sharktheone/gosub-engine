@@ -18,9 +18,9 @@ mod dns;
 
 #[allow(dead_code)]
 mod engine;
+#[allow(dead_code, unused)]
+mod js;
 #[allow(dead_code)]
 mod net;
 #[allow(dead_code)]
 mod timing;
-#[allow(dead_code, unused)]
-mod js;

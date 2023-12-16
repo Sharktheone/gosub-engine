@@ -35,10 +35,8 @@ impl<T> Inner<T> {
     }
 }
 
-
 //TODO: we can get rid of this static value by using #[self_referencing] on the V8Context struct, but currently id doesn't support chain references
 static mut STORE: Store<'static> = Store::new();
-
 
 macro_rules! context {
     ($value: expr) => {
@@ -75,7 +73,11 @@ impl<'a> Store<'a> {
         self.handle_scopes.push(Inner::new(id, handle_scope));
     }
 
-    fn _insert_context_scope(&mut self, id: usize, context_scope: ContextScope<'a, HandleScope<'a>>) {
+    fn _insert_context_scope(
+        &mut self,
+        id: usize,
+        context_scope: ContextScope<'a, HandleScope<'a>>,
+    ) {
         self.context_scopes.push(Inner::new(id, context_scope));
     }
 
@@ -99,7 +101,10 @@ impl<'a> Store<'a> {
         })
     }
 
-    fn _get_context_scope(&'a mut self, id: usize) -> Option<&'static mut ContextScope<'a, HandleScope<'a>>> {
+    fn _get_context_scope(
+        &'a mut self,
+        id: usize,
+    ) -> Option<&'static mut ContextScope<'a, HandleScope<'a>>> {
         self.context_scopes.iter_mut().find_map(|inner| {
             if inner.id == id {
                 Some(&mut inner.data)
@@ -144,14 +149,22 @@ impl<'a> Store<'a> {
         Self::get_isolate(id).expect("something very weird just happened...") //We can unwrap here because we just inserted it
     }
 
-    pub fn handle_scope(id: usize, handle_scope: HandleScope<'static, ()>) -> &'a mut HandleScope<'static, ()> {
+    pub fn handle_scope(
+        id: usize,
+        handle_scope: HandleScope<'static, ()>,
+    ) -> &'a mut HandleScope<'static, ()> {
         Self::insert_handle_scope(id, handle_scope);
-        Self::get_handle_scope(id).expect("something very weird just happened...") //We can unwrap here because we just inserted it
+        Self::get_handle_scope(id).expect("something very weird just happened...")
+        //We can unwrap here because we just inserted it
     }
 
-    pub fn context_scope(id: usize, context_scope: ContextScope<'a, HandleScope<'a>>) -> &'static mut ContextScope<'static, HandleScope<'a>> {
+    pub fn context_scope(
+        id: usize,
+        context_scope: ContextScope<'a, HandleScope<'a>>,
+    ) -> &'static mut ContextScope<'static, HandleScope<'a>> {
         Self::insert_context_scope(id, context_scope);
-        Self::get_context_scope(id).expect("something very weird just happened...") //We can unwrap here because we just inserted it
+        Self::get_context_scope(id).expect("something very weird just happened...")
+        //We can unwrap here because we just inserted it
     }
 
     pub fn drop(id: usize) {
@@ -159,29 +172,42 @@ impl<'a> Store<'a> {
         let mut dont_drop = false;
 
         unsafe {
-            let context_scope = STORE.context_scopes.iter_mut().enumerate().find_map(|(i, inner)| {
-                if inner.id == id {
-                    Some((i, inner))
-                } else {
-                    None
-                }
-            });
+            let context_scope =
+                STORE
+                    .context_scopes
+                    .iter_mut()
+                    .enumerate()
+                    .find_map(|(i, inner)| {
+                        if inner.id == id {
+                            Some((i, inner))
+                        } else {
+                            None
+                        }
+                    });
 
-            let handle_scope = STORE.handle_scopes.iter_mut().enumerate().find_map(|(i, inner)| {
-                if inner.id == id {
-                    Some((i, inner))
-                } else {
-                    None
-                }
-            });
+            let handle_scope = STORE
+                .handle_scopes
+                .iter_mut()
+                .enumerate()
+                .find_map(|(i, inner)| {
+                    if inner.id == id {
+                        Some((i, inner))
+                    } else {
+                        None
+                    }
+                });
 
-            let isolate = STORE.isolates.iter_mut().enumerate().find_map(|(i, inner)| {
-                if inner.id == id {
-                    Some((i, inner))
-                } else {
-                    None
-                }
-            });
+            let isolate = STORE
+                .isolates
+                .iter_mut()
+                .enumerate()
+                .find_map(|(i, inner)| {
+                    if inner.id == id {
+                        Some((i, inner))
+                    } else {
+                        None
+                    }
+                });
 
             if let Some((_, inner)) = &context_scope {
                 if inner.ref_count != 0 {

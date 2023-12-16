@@ -9,9 +9,9 @@ pub use value_conversion::*;
 use crate::js::v8::V8Engine;
 use crate::types::Result;
 
-pub mod v8;
 mod context;
 mod runtime;
+pub mod v8;
 mod value;
 mod value_conversion;
 
@@ -24,12 +24,9 @@ pub enum JSError {
     Conversion(String),
 }
 
-
-lazy_static!(
+lazy_static! {
     static ref RUNTIME: Runtime<V8Engine<'static>> = runtime::Runtime::new();
-);
-
-
+}
 
 pub trait JSObject {
     type Value: JSValue;
@@ -43,10 +40,8 @@ pub trait JSObject {
     fn set_method(&self, name: &str, function: &str) -> Result<()>;
 }
 
-
 pub trait JSArray {
     type Value: JSValue;
-
 
     fn get(&self, index: usize) -> Result<Self::Value>;
 

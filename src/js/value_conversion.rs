@@ -52,8 +52,6 @@ macro_rules! impl_value_conversion {
             }
         }
     };
-
-
 }
 
 impl_value_conversion!(number, i8);
@@ -75,14 +73,12 @@ impl_value_conversion!(bool, bool);
 
 impl_value_conversion!(function, fn());
 
-
 impl<V: JSValue> ValueConversion<V> for String {
     type Value = V;
 
     fn to_js_value(&self) -> Result<Self::Value> {
-        Self::Value::new_string(&self)
+        Self::Value::new_string(self)
     }
 }
-
 
 //TODO: implement this for different rust types

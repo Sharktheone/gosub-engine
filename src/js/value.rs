@@ -2,7 +2,8 @@ use crate::js::{JSArray, JSObject, JSType, ValueConversion};
 use crate::types::Result;
 
 pub trait JSValue
-    where Self: Sized
+where
+    Self: Sized,
 {
     type Object: JSObject;
     type Array: JSArray;
@@ -49,8 +50,9 @@ pub trait JSValue
 
     fn new_undefined() -> Result<Self>;
 
-    fn new_function(func: &fn(/*Input arguments, return type, some kind of context (HandleScope for V8)*/)) -> Result<Self>; //Is a function also a value? I think so, but I'm not sure.
+    fn new_function(
+        func: &fn(/*Input arguments, return type, some kind of context (HandleScope for V8)*/),
+    ) -> Result<Self>; //Is a function also a value? I think so, but I'm not sure.
 }
-
 
 //TODO: implement this for different rust types
