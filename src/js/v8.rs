@@ -2,25 +2,22 @@ use std::any::Any;
 use std::ops::{Deref, DerefMut};
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use v8::{ContextScope, CreateParams, HandleScope, Isolate, Local};
+pub use array::V8Array;
+pub use context::V8Context;
+pub use object::V8Object;
+pub use value::V8Value;
 
-use crate::js::context::Context;
-use crate::js::v8::context_store::Store;
 use crate::js::{
-    JSArray, JSContext, JSError, JSObject, JSRuntime, JSType, JSValue, ValueConversion,
+    JSArray, JSContext, JSObject, JSRuntime, JSValue, ValueConversion,
 };
-use crate::types::{Error, Result};
+use crate::js::context::Context;
+use crate::types::Result;
 
 mod array;
 mod context;
 mod context_store;
 mod object;
 mod value;
-
-pub use array::V8Array;
-pub use context::V8Context;
-pub use object::V8Object;
-pub use value::V8Value;
 
 static PLATFORM_INITIALIZED: AtomicBool = AtomicBool::new(false);
 static PLATFORM_INITIALIZING: AtomicBool = AtomicBool::new(false);
@@ -74,11 +71,13 @@ impl<'a> JSRuntime for V8Engine<'a> {
 }
 
 mod tests {
-    use lazy_static::lazy_static;
     use std::sync::Mutex;
 
+    use lazy_static::lazy_static;
+
+    use crate::js::{JSContext, JSRuntime, JSValue, runtime, Runtime};
     use crate::js::v8::V8Engine;
-    use crate::js::{runtime, JSContext, JSRuntime, Runtime};
+    use crate::types::Error;
 
     lazy_static! {
         static ref RUNTIME: Mutex<Runtime<V8Engine<'static>>> = Mutex::new(runtime::Runtime::new());
@@ -108,13 +107,30 @@ mod tests {
 
         let context = rt.new_context().unwrap();
 
-        context
-            .run(
-                r#"
+        let value = context.run(
+            r#"
             console.log("Hello World!");
             1234
         "#,
-            )
-            .unwrap();
+        ).unwrap();
+
+        assert!(value.is_number());
+        assert_eq!(value.as_number().unwrap(), 1234.0);
+    }
+
+    #[test]
+    fn invalid_syntax() {
+        let mut rt = RUNTIME.lock().unwrap();
+
+        let context = rt.new_context().unwrap();
+
+        let result = context.run(r#"
+        console.log(Hello World!);
+        1234
+        "#);
+
+        assert!(result.is_err());
+
+        assert!(matches!(result, Err(Error::JS(crate::js::JSError::Compile(_)))));
     }
 }
