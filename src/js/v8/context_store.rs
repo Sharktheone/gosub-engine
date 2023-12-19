@@ -339,7 +339,7 @@ impl<'a> Store<'a> {
         Self::change_isolate_count(id);
     }
 
-    pub(super) fn get_inner_context_scope(id: usize) -> Option<&'static mut Pin<Box<Inner<ContextScope<'a, HandleScope<'a>>>>>> {
+    pub(super) fn get_inner_context_scope(id: usize) -> Option<&'a mut Pin<Box<Inner<ContextScope<'static, HandleScope<'static>>>>>> {
         unsafe {
             STORE
                 .context_scopes
