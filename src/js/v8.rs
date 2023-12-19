@@ -15,7 +15,6 @@ use crate::types::Result;
 
 mod array;
 mod context;
-mod context_store;
 mod object;
 mod value;
 
@@ -66,7 +65,7 @@ impl<'a> JSRuntime for V8Engine<'a> {
     //let s = &mut ContextScope::new(hs, c);
 
     fn new_context(&mut self) -> Result<Context<Self::Context>> {
-        Ok(Self::Context::default())
+        Self::Context::default()
     }
 }
 
