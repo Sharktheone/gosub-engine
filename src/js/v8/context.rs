@@ -1,19 +1,17 @@
-use crate::js::v8::context_store::Store;
+use crate::js::v8::context_store::{Inner, Store};
 use crate::js::v8::{V8Object, V8Value};
 use crate::js::{Context, JSContext, JSError};
 use crate::types::Error;
-use v8::{ContextScope, CreateParams, HandleScope, Isolate, Local, Message, Value};
+use v8::{ContextScope, CreateParams, HandleScope, Isolate};
 
 pub struct V8Context<'a> {
     id: usize,
-    _phantom: std::marker::PhantomData<&'a ()>,
-    _marker: std::marker::PhantomData<*mut ()>,
+    _marker: std::marker::PhantomData<&'a ()>,
 }
 
 struct V8ContextInner<'a> {
     id: usize,
     data: &'a mut ContextScope<'a, HandleScope<'a>>,
-    _phantom: std::marker::PhantomData<&'a mut ContextScope<'a, HandleScope<'a>>>,
 }
 
 impl Drop for V8ContextInner<'_> {
@@ -42,7 +40,6 @@ impl<'a> V8Context<'a> {
 
         Context(Self {
             id,
-            _phantom: std::marker::PhantomData,
             _marker: std::marker::PhantomData,
         })
     }
@@ -58,19 +55,11 @@ impl<'a> V8Context<'a> {
     /// v8::String::new(s.data, string)
     /// ```
     fn scope(&self) -> V8ContextInner<'static> {
-        Store::raise_context_scope_count(self.id);
-        let data = Store::get_context_scope(self.id).expect("we have fucked up somewhere in the safety system... \n This should have been prevented. \n This is a bug!");
 
         V8ContextInner {
             id: self.id,
-            data,
-            _phantom: std::marker::PhantomData,
+            data: Store::get_context_scope(self.id).unwrap() //TODO: Handle error,
         }
-    }
-
-    extern "C" fn listener(&self, message: Local<Message>, value: Local<Value>) {
-
-
     }
 }
 
@@ -78,9 +67,7 @@ impl<'a> JSContext for V8Context<'a> {
     type Object = V8Object<'a>;
     type Value = V8Value<'a>;
 
-    fn run(&self, code: &str) -> crate::types::Result<Self::Value> {
-
-
+    fn run(&mut self, code: &str) -> crate::types::Result<Self::Value> {
         let s = self.scope();
 
         let code = v8::String::new(s.data, code).unwrap();
@@ -100,17 +87,17 @@ impl<'a> JSContext for V8Context<'a> {
         Ok(V8Value::from(value))
     }
 
-    fn compile(&self, code: &str) -> crate::types::Result<()> {
+    fn compile(&mut self, code: &str) -> crate::types::Result<()> {
 
 
         todo!()
     }
 
-    fn run_compiled(&self) -> crate::types::Result<Self::Value> {
+    fn run_compiled(&mut self) -> crate::types::Result<Self::Value> {
         todo!()
     }
 
-    fn new_global_object(&self, name: &str) -> crate::types::Result<Self::Object> {
+    fn new_global_object(&mut self, name: &str) -> crate::types::Result<Self::Object> {
         todo!()
     }
 }

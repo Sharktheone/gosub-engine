@@ -106,7 +106,7 @@ mod tests {
     fn execution() {
         let mut rt = RUNTIME.lock().unwrap();
 
-        let context = rt.new_context().unwrap();
+        let mut context = rt.new_context().unwrap();
 
         context
             .run(

@@ -1,16 +1,18 @@
 use std::marker::PhantomData;
+use std::ops::DerefMut;
+use std::pin::Pin;
 
 use v8::{ContextScope, HandleScope, OwnedIsolate};
 
 pub(super) struct Store<'a> {
-    isolates: Vec<Inner<OwnedIsolate>>,
-    handle_scopes: Vec<Inner<HandleScope<'a, ()>>>,
-    context_scopes: Vec<Inner<ContextScope<'a, HandleScope<'a>>>>,
+    isolates: Vec<Pin<Box<Inner<OwnedIsolate>>>>,
+    handle_scopes: Vec<Pin<Box<Inner<HandleScope<'a, ()>>>>>,
+    context_scopes: Vec<Pin<Box<Inner<ContextScope<'a, HandleScope<'a>>>>>>,
     _marker: PhantomData<*mut ()>,
 }
 
-struct Inner<T> {
-    id: usize,
+pub(super) struct Inner<T> {
+    pub(super) id: usize,
     ref_count: usize,
     drop_next: bool,
     data: T,
@@ -24,14 +26,35 @@ impl<T> Drop for Inner<T> {
     }
 }
 
-impl<T> Inner<T> {
-    fn new(id: usize, data: T) -> Self {
-        Self {
+impl<'a, T> Inner<T>
+{
+    fn new(id: usize, data: T) -> Pin<Box<Inner<T>>> {
+        Box::pin(Self {
             id,
             ref_count: 0,
             drop_next: false,
             data,
-        }
+        })
+    }
+
+    pub(super) fn get(&mut self) -> &T {
+        self.ref_count += 1;
+        &self.data
+    }
+
+    pub(super) fn borrow_mut(&mut self) -> &mut T {
+        self.ref_count += 1;
+        &mut self.data
+    }
+}
+
+impl<T> Inner<T>
+    where
+        T: DerefMut
+{
+    pub(super) fn get_mut(&mut self) -> &mut T {
+        self.ref_count += 1;
+        &mut self.data
     }
 }
 
@@ -60,12 +83,12 @@ impl<'a> Store<'a> {
         }
     }
     fn _insert_isolate(&mut self, id: usize, isolate: OwnedIsolate) {
-        self.isolates.push(Inner {
+        self.isolates.push(Box::pin(Inner {
             id,
             ref_count: 0,
             drop_next: false,
             data: isolate,
-        });
+        }));
     }
 
     #[inline(always)]
@@ -81,7 +104,7 @@ impl<'a> Store<'a> {
         self.context_scopes.push(Inner::new(id, context_scope));
     }
 
-    fn _get_isolate(&'a mut self, id: usize) -> Option<&'a mut OwnedIsolate> {
+    fn _get_isolate(&'a mut self, id: usize) -> Option<&mut OwnedIsolate> {
         self.isolates.iter_mut().find_map(|inner| {
             if inner.id == id {
                 Some(&mut inner.data)
@@ -91,7 +114,7 @@ impl<'a> Store<'a> {
         })
     }
 
-    fn _get_handle_scope(&'a mut self, id: usize) -> Option<&'static mut HandleScope<'a, ()>> {
+    fn _get_handle_scope(&'a mut self, id: usize) -> Option<&mut HandleScope<'a, ()>> {
         self.handle_scopes.iter_mut().find_map(|inner| {
             if inner.id == id {
                 Some(&mut inner.data)
@@ -104,7 +127,7 @@ impl<'a> Store<'a> {
     fn _get_context_scope(
         &'a mut self,
         id: usize,
-    ) -> Option<&'static mut ContextScope<'a, HandleScope<'a>>> {
+    ) -> Option<&mut ContextScope<'a, HandleScope<'a>>> {
         self.context_scopes.iter_mut().find_map(|inner| {
             if inner.id == id {
                 Some(&mut inner.data)
@@ -314,5 +337,20 @@ impl<'a> Store<'a> {
 
     pub(super) fn lower_isolate_count(id: usize) {
         Self::change_isolate_count(id);
+    }
+
+    pub(super) fn get_inner_context_scope(id: usize) -> Option<&'static mut Pin<Box<Inner<ContextScope<'a, HandleScope<'a>>>>>> {
+        unsafe {
+            STORE
+                .context_scopes
+                .iter_mut()
+                .find_map(|inner| {
+                    if inner.id == id {
+                        Some(inner)
+                    } else {
+                        None
+                    }
+                })
+        }
     }
 }
