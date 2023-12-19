@@ -22,6 +22,12 @@ pub enum JSError {
 
     #[error("conversion error: {0}")]
     Conversion(String),
+
+    #[error("runtime error: {0}")]
+    Runtime(String),
+
+    #[error("compile error: {0}")]
+    Compile(String),
 }
 
 lazy_static! {

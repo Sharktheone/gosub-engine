@@ -1,12 +1,9 @@
-use std::pin::Pin;
 use std::ptr::NonNull;
-use ouroboros::macro_help::AliasableBox;
-use v8::{ContextScope, CreateParams, HandleScope, Isolate, OwnedIsolate};
-
-use crate::js::{Context, JSContext, JSError};
 use crate::js::v8::{V8Object, V8Value};
+use crate::js::{Context, JSContext, JSError};
+use crate::types::{Error, Result};
+use v8::{ContextScope, CreateParams, HandleScope, Isolate, OwnedIsolate, TryCatch};
 use crate::js::v8::context_store::{Inner, Store};
-use crate::types::Error;
 
 pub struct V8Context<'a> {
     inner: &'static mut Inner<ContextScope<'static, HandleScope<'static>>>,
@@ -42,7 +39,6 @@ impl<'a> V8Context<'a> {
 
         Store::insert_context_scope(id, ContextScope::new(hs, ctx));
 
-
         Context(Self {
             inner: Store::get_inner_context_scope(id).expect("Context not found"),
             _marker: std::marker::PhantomData,
@@ -65,41 +61,60 @@ impl<'a> V8Context<'a> {
             data: Store::get_context_scope(self.inner.id).expect("Something weird happened... We've fucked up somewhere in the safety system. This is a bug!"), //TODO: Handle error,
         }
     }
+
+    fn report_exception(try_catch: &mut TryCatch<HandleScope>)  -> Error {
+        if let Some(exception) = try_catch.exception() {
+            let e = exception.to_rust_string_lossy(try_catch);
+
+            return Error::JS(JSError::Compile(e))
+        }
+
+        if let Some(m) = try_catch.message() {
+            let message = m.get(try_catch).to_rust_string_lossy(try_catch);
+
+            return Error::JS(JSError::Compile(message))
+
+        }
+
+        Error::JS(JSError::Compile("unknown error".to_owned()))
+    }
 }
 
 impl<'a> JSContext for V8Context<'a> {
     type Object = V8Object<'a>;
     type Value = V8Value<'a>;
 
-    fn run(&mut self, code: &str) -> crate::types::Result<Self::Value> {
+    fn run(&mut self, code: &str) -> Result<Self::Value> {
         let s = self.scope();
 
-        let code = v8::String::new(s.data, code).unwrap();
+        let try_catch = &mut v8::TryCatch::new(s.data);
 
-        let script = v8::Script::compile(s.data, code, None);
+        let code = v8::String::new(try_catch, code).unwrap();
+
+        let script = v8::Script::compile(try_catch, code, None);
 
         let Some(script) = script else {
-            let try_catch = &mut v8::TryCatch::new(s.data);
-
-            let s = self.scope();
-
-            return Err(Error::JS(JSError::Generic("unknown error".to_owned())));
+            return Err(Self::report_exception(try_catch))
         };
 
-        let value = script.run(s.data).unwrap();
+        let Some(value) = script.run(try_catch) else {
+            return Err(Self::report_exception(try_catch))
+        };
 
         Ok(V8Value::from(value))
     }
 
-    fn compile(&mut self, code: &str) -> crate::types::Result<()> {
+    fn compile(&mut self, code: &str) -> Result<()> {
+
+
         todo!()
     }
 
-    fn run_compiled(&mut self) -> crate::types::Result<Self::Value> {
+    fn run_compiled(&mut self) -> Result<Self::Value> {
         todo!()
     }
 
-    fn new_global_object(&mut self, name: &str) -> crate::types::Result<Self::Object> {
+    fn new_global_object(&mut self, name: &str) -> Result<Self::Object> {
         todo!()
     }
 }
