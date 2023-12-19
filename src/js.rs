@@ -28,6 +28,9 @@ pub enum JSError {
 
     #[error("compile error: {0}")]
     Compile(String),
+
+    #[error("initialize error: {0}")]
+    Initialize(String),
 }
 
 lazy_static! {

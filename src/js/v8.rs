@@ -122,7 +122,7 @@ mod tests {
     fn invalid_syntax() {
         let mut rt = RUNTIME.lock().unwrap();
 
-        let context = rt.new_context().unwrap();
+        let mut context = rt.new_context().unwrap();
 
         let result = context.run(r#"
         console.log(Hello World!);

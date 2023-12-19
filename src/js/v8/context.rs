@@ -1,9 +1,11 @@
 use std::ptr::NonNull;
-use crate::js::v8::{V8Object, V8Value};
-use crate::js::{Context, JSContext, JSError};
-use crate::types::{Error, Result};
+
 use v8::{ContextScope, CreateParams, HandleScope, Isolate, OwnedIsolate, TryCatch};
+
+use crate::js::{Context, JSContext, JSError};
+use crate::js::v8::{V8Object, V8Value};
 use crate::js::v8::context_store::{Inner, Store};
+use crate::types::{Error, Result};
 
 pub struct V8Context<'a> {
     inner: &'static mut Inner<ContextScope<'static, HandleScope<'static>>>,
@@ -62,18 +64,17 @@ impl<'a> V8Context<'a> {
         }
     }
 
-    fn report_exception(try_catch: &mut TryCatch<HandleScope>)  -> Error {
+    fn report_exception(try_catch: &mut TryCatch<HandleScope>) -> Error {
         if let Some(exception) = try_catch.exception() {
             let e = exception.to_rust_string_lossy(try_catch);
 
-            return Error::JS(JSError::Compile(e))
+            return Error::JS(JSError::Compile(e));
         }
 
         if let Some(m) = try_catch.message() {
             let message = m.get(try_catch).to_rust_string_lossy(try_catch);
 
-            return Error::JS(JSError::Compile(message))
-
+            return Error::JS(JSError::Compile(message));
         }
 
         Error::JS(JSError::Compile("unknown error".to_owned()))
@@ -94,19 +95,17 @@ impl<'a> JSContext for V8Context<'a> {
         let script = v8::Script::compile(try_catch, code, None);
 
         let Some(script) = script else {
-            return Err(Self::report_exception(try_catch))
+            return Err(Self::report_exception(try_catch));
         };
 
         let Some(value) = script.run(try_catch) else {
-            return Err(Self::report_exception(try_catch))
+            return Err(Self::report_exception(try_catch));
         };
 
         Ok(V8Value::from(value))
     }
 
     fn compile(&mut self, code: &str) -> Result<()> {
-
-
         todo!()
     }
 
@@ -136,27 +135,54 @@ impl<'a> Test<'a> {
             init: false,
         }
     }
-    fn initialize(&mut self) {
-        unsafe {
-            self.isolate = NonNull::new(&mut Isolate::new(Default::default())).unwrap();
-            self.handle_scope = NonNull::new(&mut HandleScope::new(self.isolate.as_mut())).unwrap();
-            let ctx = v8::Context::new(self.handle_scope.as_mut());
-            self.context_scope = NonNull::new(&mut ContextScope::new(self.handle_scope.as_mut(), ctx)).unwrap();
+    fn initialize(&mut self) -> Result<()> {
+        let isolate = Box::new(Isolate::new(Default::default()));
 
-            self.init = true;
-        }
+        let Some(isolate) = NonNull::new(Box::into_raw(isolate)) else {
+            return Err(Error::JS(JSError::Compile("Failed to create isolate".to_owned())));
+        };
+        self.isolate = isolate;
+
+        let handle_scope = Box::new(HandleScope::new(unsafe {
+            self.isolate.as_mut()
+        }));
+
+        let Some(handle_scope) = NonNull::new(Box::into_raw(handle_scope)) else {
+            return Err(Error::JS(JSError::Compile("Failed to create handle scope".to_owned())));
+        };
+
+        self.handle_scope = handle_scope;
+
+        let ctx = v8::Context::new(unsafe {
+            self.handle_scope.as_mut()
+        });
+
+        let ctx_scope = Box::new(ContextScope::new(unsafe {
+            self.handle_scope.as_mut()
+        }, ctx));
+
+        let Some(ctx_scope) = NonNull::new(Box::into_raw(ctx_scope)) else {
+            return Err(Error::JS(JSError::Compile("Failed to create context scope".to_owned())));
+        };
+
+        self.context_scope = ctx_scope;
+
+        self.init = true;
+
+        Ok(())
     }
 
-    fn scope(&mut self) -> &'a mut ContextScope<'a, HandleScope<'a>> {
+    fn scope(&mut self) -> Result<&'a mut ContextScope<'a, HandleScope<'a>>> {
         if !self.init {
-            self.initialize();
+            self.initialize()?;
         }
 
-        unsafe {
+        Ok(unsafe {
             self.context_scope.as_mut()
-        }
+        })
     }
 }
+
 
 
 #[test]
@@ -168,7 +194,7 @@ fn t() {
     let mut t = Test::new();
     t.initialize();
 
-    let s = t.scope();
+    let s = t.scope().expect("Failed to get scope");
 
     let code = v8::String::new(s, "console.log(\"Hello World!\"); 1234").unwrap();
 
@@ -180,4 +206,23 @@ fn t() {
 
     println!("{}", value.to_string(s).unwrap().to_rust_string_lossy(s));
 
+    move_test(t);
+}
+
+fn move_test(mut t: Test) {
+    let mut closure = move || {
+        let s = t.scope().expect("Failed to get scope");
+
+        let code = v8::String::new(s, "console.log(\"Hello World!\"); 1234").unwrap();
+
+        let script = v8::Script::compile(s, code, None);
+
+        let script = script.unwrap();
+
+        let value = script.run(s).unwrap();
+
+        println!("{}", value.to_string(s).unwrap().to_rust_string_lossy(s));
+    };
+
+    closure();
 }
