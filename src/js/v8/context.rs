@@ -2,10 +2,12 @@ use alloc::rc::Rc;
 use std::cell::RefCell;
 use std::ptr::NonNull;
 
-use v8::{ContextScope, CreateParams, Handle, HandleScope, Isolate, OwnedIsolate, TryCatch};
+use v8::{ContextScope, CreateParams, HandleScope, Isolate, OwnedIsolate, TryCatch};
 
 use crate::js::{Context, JSContext, JSError};
+use crate::js::compile::JSCompiled;
 use crate::js::v8::{V8Object, V8Value};
+use crate::js::v8::compile::V8Compiled;
 use crate::types::{Error, Result};
 
 pub struct V8Context<'a> {
@@ -65,7 +67,7 @@ pub(super) fn default() -> Result<Context<Rc<RefCell<Self>>>> {
     Self::new(Default::default())
 }
 
-fn report_exception(try_catch: &mut TryCatch<HandleScope>) -> Error {
+pub(super) fn report_exception(try_catch: &mut TryCatch<HandleScope>) -> Error {
     if let Some(exception) = try_catch.exception() {
         let e = exception.to_rust_string_lossy(try_catch);
 
@@ -85,8 +87,13 @@ fn report_exception(try_catch: &mut TryCatch<HandleScope>) -> Error {
 impl<'a> JSContext for Rc<RefCell<V8Context<'a>>> {
     type Object = V8Object<'a>;
     type Value = V8Value<'a>;
+    type Compiled = V8Compiled<'a>;
 
     fn run(&mut self, code: &str) -> Result<Self::Value> {
+        self.compile(code)?.run()
+    }
+
+    fn compile(&mut self, code: &str) -> Result<Self::Compiled> {
         let s = self.borrow_mut().scope();
 
         let try_catch = &mut TryCatch::new(s);
@@ -98,21 +105,12 @@ impl<'a> JSContext for Rc<RefCell<V8Context<'a>>> {
         let Some(script) = script else {
             return Err(V8Context::report_exception(try_catch));
         };
-
-        let Some(value) = script.run(try_catch) else {
-            return Err(V8Context::report_exception(try_catch));
-        };
-
-        // Ok(V8Value::from(value)) //FIXME
-        todo!()
+        
+        Ok(V8Compiled::from_compiled(Rc::clone(self), script))
     }
 
-    fn compile(&mut self, code: &str) -> Result<()> {
-        todo!()
-    }
-
-    fn run_compiled(&mut self) -> Result<Self::Value> {
-        todo!()
+    fn run_compiled(&mut self, compiled: &mut Self::Compiled) -> Result<Self::Value> {
+        compiled.run()
     }
 
     fn new_global_object(&mut self, name: &str) -> Result<Self::Object> {

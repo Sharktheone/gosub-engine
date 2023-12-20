@@ -5,6 +5,7 @@ pub use context::*;
 pub use runtime::*;
 pub use value::*;
 pub use value_conversion::*;
+pub use compile::*;
 
 use crate::js::v8::V8Engine;
 use crate::types::Result;
@@ -14,6 +15,7 @@ mod runtime;
 pub mod v8;
 mod value;
 mod value_conversion;
+mod compile;
 
 #[derive(Error, Debug)]
 pub enum JSError {

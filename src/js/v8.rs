@@ -19,6 +19,7 @@ mod array;
 mod context;
 mod object;
 mod value;
+mod compile;
 
 static PLATFORM_INITIALIZED: AtomicBool = AtomicBool::new(false);
 static PLATFORM_INITIALIZING: AtomicBool = AtomicBool::new(false);

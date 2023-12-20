@@ -11,6 +11,15 @@ pub struct V8Value<'a>{
 }
 
 
+impl<'a> V8Value<'a> {
+    pub fn from_value(ctx: Ctx<'a>, value: Local<'a, Value>) -> Self {
+        Self {
+            context: ctx,
+            value
+        }
+    }
+}
+
 macro_rules! impl_is {
     ($name:ident) => {
         fn $name(&self) -> bool {
@@ -116,12 +125,3 @@ impl<'a> JSValue for V8Value<'a> {
         todo!()
     }
 }
-
-// impl<'a> From<Local<'a, Value>> for V8Value<'a> {
-//     fn from(value: Local<'a, Value>) -> Self {
-//         Self {
-//             context: Rc::new(RefCell::new(V8Context::default().unwrap())),
-//             value,
-//         }
-//     }
-// }
