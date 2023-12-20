@@ -1,13 +1,14 @@
 use alloc::rc::Rc;
-use std::cell::RefCell;
-use crate::js::v8::{Ctx, V8Array, V8Context, V8Object};
-use crate::js::{JSError, JSType, JSValue, ValueConversion};
-use crate::types::Error;
+
 use v8::{Local, Value};
 
-pub struct V8Value<'a>{
+use crate::js::{JSError, JSType, JSValue, ValueConversion};
+use crate::js::v8::{Ctx, V8Array, V8Object};
+use crate::types::Error;
+
+pub struct V8Value<'a> {
     context: Ctx<'a>,
-    value: Local<'a, Value>
+    value: Local<'a, Value>,
 }
 
 
@@ -15,7 +16,7 @@ impl<'a> V8Value<'a> {
     pub fn from_value(ctx: Ctx<'a>, value: Local<'a, Value>) -> Self {
         Self {
             context: ctx,
-            value
+            value,
         }
     }
 }
@@ -106,22 +107,45 @@ impl<'a> JSValue for V8Value<'a> {
     }
 
     fn new_number<N: Into<f64>>(ctx: Self::Context, value: N) -> crate::types::Result<Self> {
-        todo!()
+        let value = v8::Number::new(ctx.borrow_mut().scope(), value.into());
+        Ok(Self {
+            context: Rc::clone(&ctx),
+            value: Local::from(value),
+        })
     }
 
     fn new_bool(ctx: Self::Context, value: bool) -> crate::types::Result<Self> {
-        todo!()
+        let value = v8::Boolean::new(ctx.borrow_mut().scope(), value);
+        Ok(Self {
+            context: Rc::clone(&ctx),
+            value: Local::from(value),
+        })
     }
 
     fn new_null(ctx: Self::Context) -> crate::types::Result<Self> {
-        todo!()
+        let null = v8::null(ctx.borrow_mut().scope());
+
+        Ok(Self {
+            context: Rc::clone(&ctx),
+            value: Local::from(null),
+        })
     }
 
     fn new_undefined(ctx: Self::Context) -> crate::types::Result<Self> {
-        todo!()
+        let undefined = v8::undefined(ctx.borrow_mut().scope());
+
+        Ok(Self {
+            context: Rc::clone(&ctx),
+            value: Local::from(undefined),
+        })
     }
 
     fn new_function(ctx: Self::Context, func: &fn()) -> crate::types::Result<Self> {
-        todo!()
+        let function = v8::FunctionTemplate::new(ctx.borrow_mut().scope(), func);
+
+        Ok(Self {
+            context: Rc::clone(&ctx),
+            value: Local::from(function.into()),
+        })
     }
 }
