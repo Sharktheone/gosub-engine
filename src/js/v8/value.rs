@@ -3,17 +3,11 @@ use std::cell::RefCell;
 use crate::js::v8::{Ctx, V8Array, V8Context, V8Object};
 use crate::js::{JSError, JSType, JSValue, ValueConversion};
 use crate::types::Error;
-use v8::{HandleScope, Local, Value};
+use v8::{Local, Value};
 
 pub struct V8Value<'a>{
-    context: Rc<RefCell<V8Context<'a>>>,
+    context: Ctx<'a>,
     value: Local<'a, Value>
-}
-
-impl V8Value<'_> {
-    fn scope(&self) -> &mut HandleScope {
-        self.context.borrow_mut().scope()
-    }
 }
 
 
@@ -33,11 +27,11 @@ impl<'a> JSValue for V8Value<'a> {
     type Context = Ctx<'a>;
 
     fn as_string(&self) -> crate::types::Result<String> {
-        Ok(self.value.to_rust_string_lossy(self.scope()))
+        Ok(self.value.to_rust_string_lossy(self.context.borrow_mut().scope()))
     }
 
     fn as_number(&self) -> crate::types::Result<f64> {
-        if let Some(value) = self.value.number_value(self.scope()) {
+        if let Some(value) = self.value.number_value(self.context.borrow_mut().scope()) {
             Ok(value)
         } else {
             Err(Error::JS(JSError::Conversion(
@@ -47,11 +41,11 @@ impl<'a> JSValue for V8Value<'a> {
     }
 
     fn as_bool(&self) -> crate::types::Result<bool> {
-        Ok(self.value.boolean_value(self.scope()))
+        Ok(self.value.boolean_value(self.context.borrow_mut().scope()))
     }
 
     fn as_object(&self) -> crate::types::Result<Self::Object> {
-        if let Some(value) = self.value.to_object(self.scope()) {
+        if let Some(value) = self.value.to_object(self.context.borrow_mut().scope()) {
             Ok(V8Object::from(value))
         } else {
             Err(Error::JS(JSError::Conversion(
@@ -92,7 +86,7 @@ impl<'a> JSValue for V8Value<'a> {
     fn new_string(ctx: Self::Context, value: &str) -> crate::types::Result<Self> {
         if let Some(value) = v8::String::new(ctx.borrow_mut().scope(), value) {
             Ok(Self {
-                context: ctx,
+                context: Rc::clone(&ctx),
                 value: Local::from(value),
             })
         } else {
