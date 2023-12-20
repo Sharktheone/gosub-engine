@@ -1,21 +1,21 @@
 use lazy_static::lazy_static;
 use thiserror::Error;
 
+pub use compile::*;
 pub use context::*;
 pub use runtime::*;
 pub use value::*;
 pub use value_conversion::*;
-pub use compile::*;
 
 use crate::js::v8::V8Engine;
 use crate::types::Result;
 
+mod compile;
 mod context;
 mod runtime;
 pub mod v8;
 mod value;
 mod value_conversion;
-mod compile;
 
 #[derive(Error, Debug)]
 pub enum JSError {
@@ -42,27 +42,29 @@ lazy_static! {
 pub trait JSObject {
     type Value: JSValue;
 
-    fn set_property(&self, name: &str, value: &str) -> Result<()>;
+    fn set_property(&self, name: &str, value: &Self::Value) -> Result<()>;
 
     fn get_property(&self, name: &str) -> Result<Self::Value>;
 
-    fn call_method(&self, name: &str, args: &[&str]) -> Result<Self::Value>;
-
-    fn set_method(&self, name: &str, function: &str) -> Result<()>;
+    fn call_method(&self, name: &str, args: &[&Self::Value]) -> Result<Self::Value>;
 }
 
 pub trait JSArray {
     type Value: JSValue;
 
-    fn get(&self, index: usize) -> Result<Self::Value>;
+    type Index;
 
-    fn set(&self, index: usize, value: &str) -> Result<()>;
+    fn get<T: Into<Self::Index>>(&self, index: T) -> Result<Self::Value>;
 
-    fn push(&self, value: &str) -> Result<()>;
+    fn set<T: Into<Self::Index>>(&self, index: T, value: &Self::Value) -> Result<()>;
+
+    fn push(&self, value: Self::Value) -> Result<()>;
 
     fn pop(&self) -> Result<Self::Value>;
 
-    fn length(&self) -> Result<usize>;
+    fn remove<T: Into<Self::Index>>(&self, index: T) -> Result<()>;
+
+    fn length(&self) -> Result<Self::Index>;
 
     //TODO: implement other things when needed. Maybe also `Iterator`?
 }

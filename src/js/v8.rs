@@ -4,25 +4,28 @@ use std::cell::RefCell;
 use std::ops::{Deref, DerefMut};
 use std::sync::atomic::{AtomicBool, Ordering};
 
-pub use array::V8Array;
-pub use context::V8Context;
-pub use object::V8Object;
-pub use value::V8Value;
+pub use array::*;
+pub use compile::*;
+pub use context::*;
+pub use object::*;
+pub use value::*;
 
-use crate::js::{
-    JSArray, JSContext, JSObject, JSRuntime, JSValue, ValueConversion,
-};
 use crate::js::context::Context;
+use crate::js::{JSArray, JSContext, JSObject, JSRuntime, JSValue, ValueConversion};
 use crate::types::Result;
 
 mod array;
+mod compile;
 mod context;
 mod object;
 mod value;
-mod compile;
 
 static PLATFORM_INITIALIZED: AtomicBool = AtomicBool::new(false);
 static PLATFORM_INITIALIZING: AtomicBool = AtomicBool::new(false);
+
+trait FromContext<'a, T> {
+    fn from_ctx(ctx: Ctx<'a>, value: T) -> Self;
+}
 
 pub struct V8Engine<'a> {
     _marker: std::marker::PhantomData<&'a ()>,
@@ -59,7 +62,6 @@ impl V8Engine<'_> {
     }
 }
 
-
 type Ctx<'a> = Rc<RefCell<V8Context<'a>>>;
 
 impl<'a> JSRuntime for V8Engine<'a> {
@@ -80,8 +82,8 @@ mod tests {
 
     use lazy_static::lazy_static;
 
-    use crate::js::{JSContext, JSRuntime, JSValue, runtime, Runtime};
     use crate::js::v8::V8Engine;
+    use crate::js::{runtime, JSContext, JSRuntime, JSValue, Runtime};
     use crate::types::Error;
 
     lazy_static! {
@@ -112,12 +114,14 @@ mod tests {
 
         let mut context = rt.new_context().unwrap();
 
-        let value = context.run(
-            r#"
+        let value = context
+            .run(
+                r#"
             console.log("Hello World!");
             1234
         "#,
-        ).unwrap();
+            )
+            .unwrap();
 
         assert!(value.is_number());
         assert_eq!(value.as_number().unwrap(), 1234.0);
@@ -129,13 +133,18 @@ mod tests {
 
         let mut context = rt.new_context().unwrap();
 
-        let result = context.run(r#"
+        let result = context.run(
+            r#"
         console.log(Hello World!);
         1234
-        "#);
+        "#,
+        );
 
         assert!(result.is_err());
 
-        assert!(matches!(result, Err(Error::JS(crate::js::JSError::Compile(_)))));
+        assert!(matches!(
+            result,
+            Err(Error::JS(crate::js::JSError::Compile(_)))
+        ));
     }
 }

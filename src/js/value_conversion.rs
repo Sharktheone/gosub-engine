@@ -15,7 +15,6 @@ macro_rules! impl_value_conversion {
             type Value = V;
             type Context = C;
 
-
             fn to_js_value(&self, ctx: Self::Context) -> Result<Self::Value> {
                 Self::Value::new_number(ctx, *self as f64)
             }

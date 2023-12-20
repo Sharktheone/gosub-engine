@@ -1,16 +1,15 @@
 use alloc::rc::Rc;
 
-use v8::{Local, Value};
+use v8::{FunctionCallbackArguments, HandleScope, Local, ReturnValue, Value};
 
+use crate::js::v8::{Ctx, FromContext, V8Array, V8Object};
 use crate::js::{JSError, JSType, JSValue, ValueConversion};
-use crate::js::v8::{Ctx, V8Array, V8Object};
 use crate::types::Error;
 
 pub struct V8Value<'a> {
     context: Ctx<'a>,
-    value: Local<'a, Value>,
+    pub(super) value: Local<'a, Value>,
 }
-
 
 impl<'a> V8Value<'a> {
     pub fn from_value(ctx: Ctx<'a>, value: Local<'a, Value>) -> Self {
@@ -29,7 +28,6 @@ macro_rules! impl_is {
     };
 }
 
-
 impl<'a> JSValue for V8Value<'a> {
     type Object = V8Object<'a>;
     type Array = V8Array<'a>;
@@ -37,7 +35,9 @@ impl<'a> JSValue for V8Value<'a> {
     type Context = Ctx<'a>;
 
     fn as_string(&self) -> crate::types::Result<String> {
-        Ok(self.value.to_rust_string_lossy(self.context.borrow_mut().scope()))
+        Ok(self
+            .value
+            .to_rust_string_lossy(self.context.borrow_mut().scope()))
     }
 
     fn as_number(&self) -> crate::types::Result<f64> {
@@ -56,7 +56,7 @@ impl<'a> JSValue for V8Value<'a> {
 
     fn as_object(&self) -> crate::types::Result<Self::Object> {
         if let Some(value) = self.value.to_object(self.context.borrow_mut().scope()) {
-            Ok(V8Object::from(value))
+            Ok(V8Object::from_ctx(Rc::clone(&self.context), value))
         } else {
             Err(Error::JS(JSError::Conversion(
                 "could not convert to number".to_owned(),
@@ -79,7 +79,6 @@ impl<'a> JSValue for V8Value<'a> {
     fn is_bool(&self) -> bool {
         self.value.is_boolean()
     }
-
 
     fn type_of(&self) -> JSType {
         todo!()
@@ -141,11 +140,20 @@ impl<'a> JSValue for V8Value<'a> {
     }
 
     fn new_function(ctx: Self::Context, func: &fn()) -> crate::types::Result<Self> {
-        let function = v8::FunctionTemplate::new(ctx.borrow_mut().scope(), func);
+        let Some(function) = v8::Function::new(
+            ctx.borrow_mut().scope(),
+            |hs: &mut HandleScope, args: FunctionCallbackArguments, ret: ReturnValue| {
+                func() //TODO handle args somehow - needs research in how it's done in other engines (e.g. SpiderMonkey and JSC)
+            },
+        ) else {
+            return Err(Error::JS(JSError::Compile(
+                "could not create function".to_owned(),
+            )));
+        };
 
         Ok(Self {
             context: Rc::clone(&ctx),
-            value: Local::from(function.into()),
+            value: Local::from(function),
         })
     }
 }

@@ -4,10 +4,10 @@ use std::ptr::NonNull;
 
 use v8::{ContextScope, CreateParams, HandleScope, Isolate, OwnedIsolate, TryCatch};
 
-use crate::js::{Context, JSContext, JSError};
 use crate::js::compile::JSCompiled;
-use crate::js::v8::{V8Object, V8Value};
 use crate::js::v8::compile::V8Compiled;
+use crate::js::v8::{FromContext, V8Object, V8Value};
+use crate::js::{Context, JSContext, JSError};
 use crate::types::{Error, Result};
 
 pub struct V8Context<'a> {
@@ -27,30 +27,33 @@ impl<'a> V8Context<'a> {
         let isolate = Box::new(Isolate::new(params));
 
         let Some(isolate) = NonNull::new(Box::into_raw(isolate)) else {
-            return Err(Error::JS(JSError::Compile("Failed to create isolate".to_owned())));
+            return Err(Error::JS(JSError::Compile(
+                "Failed to create isolate".to_owned(),
+            )));
         };
         v8_ctx.isolate = isolate;
 
-        let handle_scope = Box::new(HandleScope::new(unsafe {
-            v8_ctx.isolate.as_mut()
-        }));
+        let handle_scope = Box::new(HandleScope::new(unsafe { v8_ctx.isolate.as_mut() }));
 
         let Some(handle_scope) = NonNull::new(Box::into_raw(handle_scope)) else {
-            return Err(Error::JS(JSError::Compile("Failed to create handle scope".to_owned())));
+            return Err(Error::JS(JSError::Compile(
+                "Failed to create handle scope".to_owned(),
+            )));
         };
 
         v8_ctx.handle_scope = handle_scope;
 
-        let ctx = v8::Context::new(unsafe {
-            v8_ctx.handle_scope.as_mut()
-        });
+        let ctx = v8::Context::new(unsafe { v8_ctx.handle_scope.as_mut() });
 
-        let ctx_scope = Box::new(ContextScope::new(unsafe {
-            v8_ctx.handle_scope.as_mut()
-        }, ctx));
+        let ctx_scope = Box::new(ContextScope::new(
+            unsafe { v8_ctx.handle_scope.as_mut() },
+            ctx,
+        ));
 
         let Some(ctx_scope) = NonNull::new(Box::into_raw(ctx_scope)) else {
-            return Err(Error::JS(JSError::Compile("Failed to create context scope".to_owned())));
+            return Err(Error::JS(JSError::Compile(
+                "Failed to create context scope".to_owned(),
+            )));
         };
 
         v8_ctx.context_scope = ctx_scope;
@@ -58,30 +61,28 @@ impl<'a> V8Context<'a> {
         Ok(Context(Rc::new(RefCell::new(v8_ctx))))
     }
     pub(super) fn scope(&mut self) -> &'a mut ContextScope<'a, HandleScope<'a>> {
-        unsafe {
-            self.context_scope.as_mut()
+        unsafe { self.context_scope.as_mut() }
+    }
+
+    pub(super) fn default() -> Result<Context<Rc<RefCell<Self>>>> {
+        Self::new(Default::default())
+    }
+
+    pub(super) fn report_exception(try_catch: &mut TryCatch<HandleScope>) -> Error {
+        if let Some(exception) = try_catch.exception() {
+            let e = exception.to_rust_string_lossy(try_catch);
+
+            return Error::JS(JSError::Compile(e));
         }
+
+        if let Some(m) = try_catch.message() {
+            let message = m.get(try_catch).to_rust_string_lossy(try_catch);
+
+            return Error::JS(JSError::Compile(message));
+        }
+
+        Error::JS(JSError::Compile("unknown error".to_owned()))
     }
-
-pub(super) fn default() -> Result<Context<Rc<RefCell<Self>>>> {
-    Self::new(Default::default())
-}
-
-pub(super) fn report_exception(try_catch: &mut TryCatch<HandleScope>) -> Error {
-    if let Some(exception) = try_catch.exception() {
-        let e = exception.to_rust_string_lossy(try_catch);
-
-        return Error::JS(JSError::Compile(e));
-    }
-
-    if let Some(m) = try_catch.message() {
-        let message = m.get(try_catch).to_rust_string_lossy(try_catch);
-
-        return Error::JS(JSError::Compile(message));
-    }
-
-    Error::JS(JSError::Compile("unknown error".to_owned()))
-}
 }
 
 impl<'a> JSContext for Rc<RefCell<V8Context<'a>>> {
@@ -105,8 +106,8 @@ impl<'a> JSContext for Rc<RefCell<V8Context<'a>>> {
         let Some(script) = script else {
             return Err(V8Context::report_exception(try_catch));
         };
-        
-        Ok(V8Compiled::from_compiled(Rc::clone(self), script))
+
+        Ok(V8Compiled::from_ctx(Rc::clone(self), script))
     }
 
     fn run_compiled(&mut self, compiled: &mut Self::Compiled) -> Result<Self::Value> {

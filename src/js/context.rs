@@ -1,5 +1,4 @@
-use crate::js::{JSObject, JSValue};
-use crate::js::compile::JSCompiled;
+use crate::js::{JSCompiled, JSObject, JSValue};
 
 pub trait JSContext {
     type Object: JSObject;

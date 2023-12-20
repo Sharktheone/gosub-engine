@@ -1,6 +1,5 @@
-use crate::js::context::Context;
 use crate::js::v8::V8Engine;
-use crate::js::JSContext;
+use crate::js::{Context, JSContext};
 use crate::types::Result;
 
 pub trait JSRuntime {
