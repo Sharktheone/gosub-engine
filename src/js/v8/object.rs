@@ -1,8 +1,9 @@
-use crate::js::v8::V8Value;
-use crate::js::{JSArray, JSObject};
-use v8::Local;
+use v8::{Handle, Local, Object};
 
-pub struct V8Object<'a>(Local<'a, v8::Object>);
+use crate::js::{JSArray, JSObject};
+use crate::js::v8::V8Value;
+
+pub struct V8Object<'a>(Local<'a, Object>);
 
 impl<'a> JSObject for V8Object<'a> {
     type Value = V8Value<'a>;
@@ -21,5 +22,12 @@ impl<'a> JSObject for V8Object<'a> {
 
     fn set_method(&self, name: &str, function: &str) -> crate::types::Result<()> {
         todo!()
+    }
+}
+
+
+impl<'a> From<Local<'a, Object>> for V8Object<'a> {
+    fn from(object: Local<'a, Object>) -> Self {
+        Self(object)
     }
 }

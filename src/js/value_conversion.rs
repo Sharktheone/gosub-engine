@@ -1,18 +1,23 @@
-use crate::js::JSValue;
+use crate::js::{JSContext, JSValue};
 use crate::types::Result;
 
-pub trait ValueConversion<V: JSValue> {
+pub trait ValueConversion<V: JSValue, C: JSContext> {
     type Value: JSValue;
-    fn to_js_value(&self) -> Result<Self::Value>;
+
+    type Context: JSContext;
+
+    fn to_js_value(&self, ctx: Self::Context) -> Result<Self::Value>;
 }
 
 macro_rules! impl_value_conversion {
     (number, $type:ty) => {
-        impl<V: JSValue> ValueConversion<V> for $type {
+        impl<V: JSValue<Context = C>, C: JSContext> ValueConversion<V, C> for $type {
             type Value = V;
+            type Context = C;
 
-            fn to_js_value(&self) -> Result<Self::Value> {
-                Self::Value::new_number(*self as f64)
+
+            fn to_js_value(&self, ctx: Self::Context) -> Result<Self::Value> {
+                Self::Value::new_number(ctx, *self as f64)
             }
         }
     };
@@ -34,21 +39,23 @@ macro_rules! impl_value_conversion {
     };
 
     ($func:ident, $type:ty, deref) => {
-        impl<V: JSValue> ValueConversion<V> for $type {
+        impl<V: JSValue<Context = C>, C: JSContext> ValueConversion<V, C> for $type {
             type Value = V;
+            type Context = C;
 
-            fn to_js_value(&self) -> Result<Self::Value> {
-                Self::Value::$func(*self)
+            fn to_js_value(&self, ctx: Self::Context) -> Result<Self::Value> {
+                Self::Value::$func(ctx, *self)
             }
         }
     };
 
     ($func:ident, $type:ty) => {
-        impl<V: JSValue> ValueConversion<V> for $type {
+        impl<V: JSValue<Context = C>, C: JSContext> ValueConversion<V, C> for $type {
             type Value = V;
+            type Context = C;
 
-            fn to_js_value(&self) -> Result<Self::Value> {
-                Self::Value::$func(self)
+            fn to_js_value(&self, ctx: Self::Context) -> Result<Self::Value> {
+                Self::Value::$func(ctx, self)
             }
         }
     };
@@ -73,11 +80,12 @@ impl_value_conversion!(bool, bool);
 
 impl_value_conversion!(function, fn());
 
-impl<V: JSValue> ValueConversion<V> for String {
+impl<V: JSValue<Context = C>, C: JSContext> ValueConversion<V, C> for String {
     type Value = V;
+    type Context = C;
 
-    fn to_js_value(&self) -> Result<Self::Value> {
-        Self::Value::new_string(self)
+    fn to_js_value(&self, ctx: Self::Context) -> Result<Self::Value> {
+        Self::Value::new_string(ctx, self)
     }
 }
 

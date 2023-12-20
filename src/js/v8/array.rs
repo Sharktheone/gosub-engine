@@ -1,7 +1,9 @@
-use crate::js::v8::V8Value;
 use crate::js::JSArray;
+use crate::js::v8::V8Value;
 
-pub struct V8Array<'a>(v8::Local<'a, v8::Array>);
+pub struct V8Array<'a> {
+    value: v8::Local<'a, v8::Array>,
+}
 
 impl<'a> JSArray for V8Array<'a> {
     type Value = V8Value<'a>;

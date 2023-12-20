@@ -1,6 +1,8 @@
+use alloc::rc::Rc;
+use std::cell::RefCell;
 use std::ptr::NonNull;
 
-use v8::{ContextScope, CreateParams, HandleScope, Isolate, OwnedIsolate, TryCatch};
+use v8::{ContextScope, CreateParams, Handle, HandleScope, Isolate, OwnedIsolate, TryCatch};
 
 use crate::js::{Context, JSContext, JSError};
 use crate::js::v8::{V8Object, V8Value};
@@ -13,14 +15,14 @@ pub struct V8Context<'a> {
 }
 
 impl<'a> V8Context<'a> {
-    fn new(params: CreateParams) -> Result<Context<Self>> {
+    fn new(params: CreateParams) -> Result<Context<Rc<RefCell<Self>>>> {
         let mut v8_ctx = Self {
             isolate: NonNull::dangling(),
             handle_scope: NonNull::dangling(),
             context_scope: NonNull::dangling(),
         };
 
-        let isolate = Box::new(Isolate::new(Default::default()));
+        let isolate = Box::new(Isolate::new(params));
 
         let Some(isolate) = NonNull::new(Box::into_raw(isolate)) else {
             return Err(Error::JS(JSError::Compile("Failed to create isolate".to_owned())));
@@ -51,15 +53,15 @@ impl<'a> V8Context<'a> {
 
         v8_ctx.context_scope = ctx_scope;
 
-        Ok(Context(v8_ctx))
+        Ok(Context(Rc::new(RefCell::new(v8_ctx))))
     }
-    fn scope(&mut self) -> &'a mut ContextScope<'a, HandleScope<'a>> {
+    pub(super) fn scope(&mut self) -> &'a mut ContextScope<'a, HandleScope<'a>> {
         unsafe {
             self.context_scope.as_mut()
         }
     }
 
-pub(super) fn default() -> Result<Context<Self>> {
+pub(super) fn default() -> Result<Context<Rc<RefCell<Self>>>> {
     Self::new(Default::default())
 }
 
@@ -80,12 +82,12 @@ fn report_exception(try_catch: &mut TryCatch<HandleScope>) -> Error {
 }
 }
 
-impl<'a> JSContext for V8Context<'a> {
+impl<'a> JSContext for Rc<RefCell<V8Context<'a>>> {
     type Object = V8Object<'a>;
     type Value = V8Value<'a>;
 
     fn run(&mut self, code: &str) -> Result<Self::Value> {
-        let s = self.scope();
+        let s = self.borrow_mut().scope();
 
         let try_catch = &mut TryCatch::new(s);
 
@@ -94,14 +96,15 @@ impl<'a> JSContext for V8Context<'a> {
         let script = v8::Script::compile(try_catch, code, None);
 
         let Some(script) = script else {
-            return Err(Self::report_exception(try_catch));
+            return Err(V8Context::report_exception(try_catch));
         };
 
         let Some(value) = script.run(try_catch) else {
-            return Err(Self::report_exception(try_catch));
+            return Err(V8Context::report_exception(try_catch));
         };
 
-        Ok(V8Value::from(value))
+        // Ok(V8Value::from(value)) //FIXME
+        todo!()
     }
 
     fn compile(&mut self, code: &str) -> Result<()> {

@@ -1,4 +1,6 @@
+use alloc::rc::Rc;
 use std::any::Any;
+use std::cell::RefCell;
 use std::ops::{Deref, DerefMut};
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -56,8 +58,11 @@ impl V8Engine<'_> {
     }
 }
 
+
+type Ctx<'a> = Rc<RefCell<V8Context<'a>>>;
+
 impl<'a> JSRuntime for V8Engine<'a> {
-    type Context = V8Context<'a>;
+    type Context = Ctx<'a>;
 
     //let isolate = &mut Isolate::new(Default::default());
     //let hs = &mut HandleScope::new(isolate);
@@ -65,7 +70,7 @@ impl<'a> JSRuntime for V8Engine<'a> {
     //let s = &mut ContextScope::new(hs, c);
 
     fn new_context(&mut self) -> Result<Context<Self::Context>> {
-        Self::Context::default()
+        V8Context::default()
     }
 }
 

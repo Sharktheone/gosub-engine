@@ -1,12 +1,14 @@
-use crate::js::{JSArray, JSObject, JSType, ValueConversion};
+use crate::js::{JSArray, JSContext, JSObject, JSType};
 use crate::types::Result;
 
 pub trait JSValue
-where
-    Self: Sized,
+    where
+        Self: Sized,
 {
     type Object: JSObject;
     type Array: JSArray;
+
+    type Context: JSContext;
 
     fn as_string(&self) -> Result<String>;
 
@@ -36,21 +38,22 @@ where
 
     fn type_of(&self) -> JSType;
 
-    fn new_object() -> Result<Self::Object>;
+    // fn new_object() -> Result<Self::Object>;
+    //
+    // fn new_array<T: ValueConversion<Self>>(value: &[T]) -> Result<Self::Array>;
 
-    fn new_array<T: ValueConversion<Self>>(value: &[T]) -> Result<Self::Array>;
+    fn new_string(ctx: Self::Context, value: &str) -> Result<Self>;
 
-    fn new_string(value: &str) -> Result<Self>;
+    fn new_number<N: Into<f64>>(context: Self::Context, value: N) -> Result<Self>;
 
-    fn new_number<N: Into<f64>>(value: N) -> Result<Self>;
+    fn new_bool(ctx: Self::Context, value: bool) -> Result<Self>;
 
-    fn new_bool(value: bool) -> Result<Self>;
+    fn new_null(ctx: Self::Context) -> Result<Self>;
 
-    fn new_null() -> Result<Self>;
-
-    fn new_undefined() -> Result<Self>;
+    fn new_undefined(ctx: Self::Context) -> Result<Self>;
 
     fn new_function(
+        ctx: Self::Context,
         func: &fn(/*Input arguments, return type, some kind of context (HandleScope for V8)*/),
     ) -> Result<Self>; //Is a function also a value? I think so, but I'm not sure.
 }
