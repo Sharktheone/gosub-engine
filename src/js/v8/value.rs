@@ -138,22 +138,4 @@ impl<'a> JSValue for V8Value<'a> {
             value: Local::from(undefined),
         })
     }
-
-    fn new_function(ctx: Self::Context, func: &fn()) -> crate::types::Result<Self> {
-        let Some(function) = v8::Function::new(
-            ctx.borrow_mut().scope(),
-            |hs: &mut HandleScope, args: FunctionCallbackArguments, ret: ReturnValue| {
-                func() //TODO handle args somehow - needs research in how it's done in other engines (e.g. SpiderMonkey and JSC)
-            },
-        ) else {
-            return Err(Error::JS(JSError::Compile(
-                "could not create function".to_owned(),
-            )));
-        };
-
-        Ok(Self {
-            context: Rc::clone(&ctx),
-            value: Local::from(function),
-        })
-    }
 }

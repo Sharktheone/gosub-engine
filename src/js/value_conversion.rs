@@ -33,10 +33,6 @@ macro_rules! impl_value_conversion {
         impl_value_conversion!(new_array, $type, deref);
     };
 
-    (function, $type:ty) => {
-        impl_value_conversion!(new_function, $type);
-    };
-
     ($func:ident, $type:ty, deref) => {
         impl<V: JSValue<Context = C>, C: JSContext> ValueConversion<V, C> for $type {
             type Value = V;
@@ -76,8 +72,6 @@ impl_value_conversion!(number, f64);
 impl_value_conversion!(string, &str);
 
 impl_value_conversion!(bool, bool);
-
-impl_value_conversion!(function, fn());
 
 impl<V: JSValue<Context = C>, C: JSContext> ValueConversion<V, C> for String {
     type Value = V;

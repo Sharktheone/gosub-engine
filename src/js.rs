@@ -16,6 +16,7 @@ mod runtime;
 pub mod v8;
 mod value;
 mod value_conversion;
+mod function;
 
 #[derive(Error, Debug)]
 pub enum JSError {
@@ -33,6 +34,9 @@ pub enum JSError {
 
     #[error("initialize error: {0}")]
     Initialize(String),
+
+    #[error("execution error: {0}")]
+    Execution(String),
 }
 
 lazy_static! {

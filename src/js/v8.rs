@@ -9,6 +9,7 @@ pub use compile::*;
 pub use context::*;
 pub use object::*;
 pub use value::*;
+pub use function::*;
 
 use crate::js::context::Context;
 use crate::js::{JSArray, JSContext, JSObject, JSRuntime, JSValue, ValueConversion};
@@ -19,6 +20,7 @@ mod compile;
 mod context;
 mod object;
 mod value;
+mod function;
 
 static PLATFORM_INITIALIZED: AtomicBool = AtomicBool::new(false);
 static PLATFORM_INITIALIZING: AtomicBool = AtomicBool::new(false);

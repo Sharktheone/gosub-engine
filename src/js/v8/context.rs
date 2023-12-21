@@ -6,7 +6,7 @@ use v8::{ContextScope, CreateParams, HandleScope, Isolate, OwnedIsolate, TryCatc
 
 use crate::js::compile::JSCompiled;
 use crate::js::v8::compile::V8Compiled;
-use crate::js::v8::{FromContext, V8Object, V8Value};
+use crate::js::v8::{Ctx, FromContext, V8Object, V8Value};
 use crate::js::{Context, JSContext, JSError};
 use crate::types::{Error, Result};
 
@@ -17,7 +17,7 @@ pub struct V8Context<'a> {
 }
 
 impl<'a> V8Context<'a> {
-    fn new(params: CreateParams) -> Result<Context<Rc<RefCell<Self>>>> {
+    fn new(params: CreateParams) -> Result<Context<Ctx>> {
         let mut v8_ctx = Self {
             isolate: NonNull::dangling(),
             handle_scope: NonNull::dangling(),
@@ -60,6 +60,7 @@ impl<'a> V8Context<'a> {
 
         Ok(Context(Rc::new(RefCell::new(v8_ctx))))
     }
+
     pub(super) fn scope(&mut self) -> &'a mut ContextScope<'a, HandleScope<'a>> {
         unsafe { self.context_scope.as_mut() }
     }

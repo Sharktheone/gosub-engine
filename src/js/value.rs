@@ -51,11 +51,6 @@ where
     fn new_null(ctx: Self::Context) -> Result<Self>;
 
     fn new_undefined(ctx: Self::Context) -> Result<Self>;
-
-    fn new_function(
-        ctx: Self::Context,
-        func: &fn(/*Input arguments, return type, some kind of context (HandleScope for V8)*/),
-    ) -> Result<Self>; //Is a function also a value? I think so, but I'm not sure.
 }
 
 //TODO: implement this for different rust types

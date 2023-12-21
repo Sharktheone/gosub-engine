@@ -6,7 +6,7 @@ use crate::types::{Error, Result};
 
 pub struct V8Object<'a> {
     ctx: Ctx<'a>,
-    value: Local<'a, Object>,
+    pub(crate) value: Local<'a, Object>,
 }
 
 impl<'a> JSObject for V8Object<'a> {
