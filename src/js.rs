@@ -6,6 +6,7 @@ pub use context::*;
 pub use runtime::*;
 pub use value::*;
 pub use value_conversion::*;
+pub use function::*;
 
 use crate::js::v8::V8Engine;
 use crate::types::Result;

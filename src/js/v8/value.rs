@@ -7,7 +7,7 @@ use crate::js::{JSError, JSType, JSValue, ValueConversion};
 use crate::types::Error;
 
 pub struct V8Value<'a> {
-    context: Ctx<'a>,
+    pub(super) context: Ctx<'a>,
     pub(super) value: Local<'a, Value>,
 }
 

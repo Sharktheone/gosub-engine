@@ -1,19 +1,13 @@
-use crate::js::{JSContext, JSObject, JSValue};
+use crate::js::{JSContext, JSError, JSObject, JSValue};
 use crate::types::Result;
-
 
 struct Function<T: JSFunction>(pub T);
 
 pub(super) trait JSFunction {
     type Context: JSContext;
+    type CB: JSFunctionCallBack;
 
-    type Value: JSValue;
-
-    type Object: JSObject;
-
-    fn new(ctx: Self::Context, f: impl FnMut(Self::Context, Self::Object, &[Self::Value]) -> Result<Self::Value>) -> Result<Self>;
-
-    fn call(&mut self, ctx: Self::Context, this: Self::Object, args: &[Self::Value]) -> Result<Self::Value>;
+    fn call(&mut self, callback: &mut Self::CB);
 }
 
 pub(super) trait JSFunctionCallBack {
@@ -21,38 +15,46 @@ pub(super) trait JSFunctionCallBack {
 
     type Value: JSValue;
 
-    fn scope(&mut self) -> Self::Context;
+    fn context(&mut self) -> Self::Context;
 
-    fn args(&mut self) -> &[Self::Value];
+    fn args(&mut self) -> Vec<Self::Value>;
 
     fn ret(&mut self, value: Self::Value);
+
 }
 
 
-pub(super) struct VariadicArgs<T: JSValue> {
-    args: Vec<T>,
-}
 
 
-impl<T: JSValue> VariadicArgs<T> {
-    pub fn new(args: Vec<T>) -> Self {
-        Self { args }
-    }
+pub(super) trait VariadicArgs: Iterator {
+    type Value: JSValue;
+
+    fn get(&self, index: usize) -> Option<Self::Value>;
+
+    fn len(&self) -> usize;
+
+    fn as_vec(&self) -> Vec<Self::Value>;
 }
+
+pub(super) trait Args: Iterator {
+    type Value: JSValue;
+
+    fn get(&self, index: usize) -> Option<Self::Value>;
+
+    fn len(&self) -> usize;
+
+    fn as_vec(&self) -> Vec<Self::Value>;
+}
+
 
 pub(super) struct VariadicFunction<T: JSFunctionVariadic>(pub T);
 
 pub(super) trait JSFunctionVariadic {
     type Context: JSContext;
 
-    type Value: JSValue;
+    type CB: JSFunctionCallBackVariadic;
 
-    type Object: JSObject;
-
-
-    fn new(ctx: Self::Context, f: impl FnMut(Self::Context, Self::Object, VariadicArgs<Self::Value>) -> Result<Self::Value>) -> Result<Self>;
-
-    fn call(&mut self, ctx: Self::Context, this: Self::Object, args: VariadicArgs<Self::Value>) -> Result<Self::Value>;
+    fn call(&mut self, callback: &mut Self::CB);
 }
 
 pub(super) trait JSFunctionCallBackVariadic {
@@ -60,9 +62,13 @@ pub(super) trait JSFunctionCallBackVariadic {
 
     type Value: JSValue;
 
+    type Args: VariadicArgs;
+
     fn scope(&mut self) -> Self::Context;
 
-    fn args(&mut self) -> VariadicArgs<Self::Value>;
+    fn args(&mut self) -> &Self::Args;
 
     fn ret(&mut self, value: Self::Value);
+
+    fn error(&mut self, error: JSError);
 }

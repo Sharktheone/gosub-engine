@@ -17,7 +17,7 @@ pub struct V8Context<'a> {
 }
 
 impl<'a> V8Context<'a> {
-    fn new(params: CreateParams) -> Result<Context<Ctx>> {
+    fn new(params: CreateParams) -> Result<Context<Ctx<'a>>> {
         let mut v8_ctx = Self {
             isolate: NonNull::dangling(),
             handle_scope: NonNull::dangling(),

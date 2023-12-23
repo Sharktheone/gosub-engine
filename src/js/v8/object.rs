@@ -76,7 +76,7 @@ impl<'a> JSObject for V8Object<'a> {
 }
 
 impl<'a> FromContext<'a, Local<'a, Object>> for V8Object<'a> {
-    fn from_ctx(ctx: Ctx<'a>, object: Local<Object>) -> Self {
+    fn from_ctx(ctx: Ctx<'a>, object: Local<'a, Object>) -> Self {
         Self { ctx, value: object }
     }
 }
