@@ -7,12 +7,12 @@ use std::sync::atomic::{AtomicBool, Ordering};
 pub use array::*;
 pub use compile::*;
 pub use context::*;
+pub use function::*;
 pub use object::*;
 pub use value::*;
-pub use function::*;
 
-use crate::js::context::Context;
 use crate::js::{JSArray, JSContext, JSObject, JSRuntime, JSValue, ValueConversion};
+use crate::js::context::Context;
 use crate::types::Result;
 
 mod array;
@@ -64,7 +64,7 @@ impl V8Engine<'_> {
     }
 }
 
-type Ctx<'a> = Rc<RefCell<V8Context<'a>>>;
+pub(crate) type Ctx<'a> = Rc<RefCell<V8Context<'a>>>;
 
 impl<'a> JSRuntime for V8Engine<'a> {
     type Context = Ctx<'a>;
@@ -79,42 +79,66 @@ impl<'a> JSRuntime for V8Engine<'a> {
     }
 }
 
+#[cfg(test)]
 mod tests {
-    use std::sync::Mutex;
+    use std::sync::atomic::Ordering;
 
-    use lazy_static::lazy_static;
+    use colored::Colorize;
 
-    use crate::js::v8::V8Engine;
-    use crate::js::{runtime, JSContext, JSRuntime, JSValue, Runtime};
+    use crate::js::{JSContext, JSRuntime, JSValue};
+    use crate::js::v8::PLATFORM_INITIALIZED;
     use crate::types::Error;
 
-    lazy_static! {
-        static ref RUNTIME: Mutex<Runtime<V8Engine<'static>>> = Mutex::new(runtime::Runtime::new());
+    #[test]
+    fn v8_test() {
+
+        //This is needed because the v8 engine is not thread safe - TODO: make it "thread safe"
+
+        println!("running 4 tests in one test function ...");
+
+        v8_engine_initialization();
+        println!("test js::v8::tests::v8_engine_initialization ... {}", "ok".green());
+
+        v8_context_creation();
+        println!("test js::v8::tests::v8_context_creation ... {}", "ok".green());
+
+        v8_js_execution();
+        println!("test js::v8::tests::v8_js_execution ... {}", "ok".green());
+
+
+        v8_run_invalid_syntax();
+        println!("test js::v8::tests::v8_run_invalid_syntax ... {}", "ok".green());
     }
 
-    #[test]
-    fn v8_bindings_test() {
-        let platform = v8::new_default_platform(0, false).make_shared();
-        v8::V8::initialize_platform(platform);
-        v8::V8::initialize();
+    fn v8_engine_initialization() {
+        let mut engine = crate::js::v8::V8Engine::new();
 
-        let isolate = &mut v8::Isolate::new(Default::default());
-        let hs = &mut v8::HandleScope::new(isolate);
-        let c = v8::Context::new(hs);
-        let s = &mut v8::ContextScope::new(hs, c);
-
-        let code = v8::String::new(s, "console.log(\"Hello World!\"); 1234").unwrap();
-
-        let value = v8::Script::compile(s, code, None).unwrap().run(s).unwrap();
-
-        println!("{}", value.to_rust_string_lossy(s));
+        assert!(PLATFORM_INITIALIZED.load(Ordering::SeqCst));
     }
 
-    #[test]
-    fn execution() {
-        let mut rt = RUNTIME.lock().unwrap();
+    // #[test]
+    // fn v8_bindings_test() {
+    //     let platform = v8::new_default_platform(0, false).make_shared();
+    //     v8::V8::initialize_platform(platform);
+    //     v8::V8::initialize();
+    //
+    //     let isolate = &mut v8::Isolate::new(Default::default());
+    //     let hs = &mut v8::HandleScope::new(isolate);
+    //     let c = v8::Context::new(hs);
+    //     let s = &mut v8::ContextScope::new(hs, c);
+    //
+    //     let code = v8::String::new(s, "console.log(\"Hello World!\"); 1234").unwrap();
+    //
+    //     let value = v8::Script::compile(s, code, None).unwrap().run(s).unwrap();
+    //
+    //     println!("{}", value.to_rust_string_lossy(s));
+    // }
 
-        let mut context = rt.new_context().unwrap();
+
+
+    fn v8_js_execution() {
+        let mut engine = crate::js::v8::V8Engine::new();
+        let mut context = engine.new_context().unwrap();
 
         let value = context
             .run(
@@ -129,11 +153,11 @@ mod tests {
         assert_eq!(value.as_number().unwrap(), 1234.0);
     }
 
-    #[test]
-    fn invalid_syntax() {
-        let mut rt = RUNTIME.lock().unwrap();
 
-        let mut context = rt.new_context().unwrap();
+    fn v8_run_invalid_syntax() {
+        let mut engine = crate::js::v8::V8Engine::new();
+
+        let mut context = engine.new_context().unwrap();
 
         let result = context.run(
             r#"
@@ -148,5 +172,12 @@ mod tests {
             result,
             Err(Error::JS(crate::js::JSError::Compile(_)))
         ));
+    }
+
+    fn v8_context_creation() {
+        let mut engine = crate::js::v8::V8Engine::new();
+
+        let context = engine.new_context();
+        assert!(context.is_ok());
     }
 }
