@@ -81,5 +81,3 @@ impl<V: JSValue<Context = C>, C: JSContext> ValueConversion<V, C> for String {
         Self::Value::new_string(ctx, self)
     }
 }
-
-//TODO: implement this for different rust types

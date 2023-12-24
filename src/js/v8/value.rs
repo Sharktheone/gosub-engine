@@ -1,9 +1,9 @@
 use alloc::rc::Rc;
 
-use v8::{FunctionCallbackArguments, HandleScope, Local, ReturnValue, Value};
+use v8::{Local, Value};
 
-use crate::js::v8::{Ctx, FromContext, V8Array, V8Object};
 use crate::js::{JSError, JSType, JSValue, ValueConversion};
+use crate::js::v8::{Ctx, FromContext, V8Array, V8Object};
 use crate::types::Error;
 
 pub struct V8Value<'a> {
@@ -30,7 +30,6 @@ macro_rules! impl_is {
 
 impl<'a> JSValue for V8Value<'a> {
     type Object = V8Object<'a>;
-    type Array = V8Array<'a>;
 
     type Context = Ctx<'a>;
 
@@ -64,10 +63,6 @@ impl<'a> JSValue for V8Value<'a> {
         }
     }
 
-    fn as_array(&self) -> crate::types::Result<Self::Array> {
-        todo!()
-    }
-
     impl_is!(is_string);
     impl_is!(is_number);
     impl_is!(is_object);
@@ -81,16 +76,32 @@ impl<'a> JSValue for V8Value<'a> {
     }
 
     fn type_of(&self) -> JSType {
-        todo!()
-    }
 
-    // fn new_object() -> crate::types::Result<Self::Object> {
-    //     todo!()
-    // }
-    //
-    // fn new_array<T: ValueConversion<Self>>(value: &[T]) -> crate::types::Result<Self::Array> {
-    //     todo!()
-    // }
+        //There is a v8::Value::type_of() method, but it returns a string, which is not what we want.
+        if self.is_string() {
+            JSType::String
+        } else if self.is_number() {
+            JSType::Number
+        } else if self.is_bool() {
+            JSType::Boolean
+        } else if self.is_object() {
+            JSType::Object
+        } else if self.is_array() {
+            JSType::Array
+        } else if self.is_null() {
+            JSType::Null
+        } else if self.is_undefined() {
+            JSType::Undefined
+        } else if self.is_function() {
+            JSType::Function
+        } else {
+            let ctx = self.context.borrow_mut().scope();
+
+            let t = self.value.type_of(ctx).to_rust_string_lossy(ctx);
+
+            JSType::Other(t)
+        }
+    }
 
     fn new_string(ctx: Self::Context, value: &str) -> crate::types::Result<Self> {
         if let Some(value) = v8::String::new(ctx.borrow_mut().scope(), value) {

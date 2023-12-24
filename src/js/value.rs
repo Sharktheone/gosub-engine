@@ -6,7 +6,6 @@ where
     Self: Sized,
 {
     type Object: JSObject;
-    type Array: JSArray;
 
     type Context: JSContext;
 
@@ -17,8 +16,6 @@ where
     fn as_bool(&self) -> Result<bool>;
 
     fn as_object(&self) -> Result<Self::Object>;
-
-    fn as_array(&self) -> Result<Self::Array>;
 
     fn is_string(&self) -> bool;
 
@@ -52,5 +49,3 @@ where
 
     fn new_undefined(ctx: Self::Context) -> Result<Self>;
 }
-
-//TODO: implement this for different rust types

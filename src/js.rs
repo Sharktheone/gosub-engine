@@ -83,4 +83,5 @@ pub enum JSType {
     Object,
     Array,
     Function,
+    Other(String),
 }
