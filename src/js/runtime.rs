@@ -2,6 +2,8 @@ use crate::js::v8::V8Engine;
 use crate::js::{Context, JSContext};
 use crate::types::Result;
 
+
+//trait around the main JS engine (e.g V8, SpiderMonkey, JSC, etc.)
 pub trait JSRuntime {
     type Context: JSContext;
 

@@ -1,5 +1,7 @@
 use crate::js::{JSCompiled, JSObject, JSValue};
 
+
+//main trait for JS context (can be implemented for different JS engines like V8, SpiderMonkey, JSC, etc.)
 pub trait JSContext {
     type Object: JSObject;
 
@@ -18,6 +20,7 @@ pub trait JSContext {
     fn new_global_object(&mut self, name: &str) -> crate::types::Result<Self::Object>;
 }
 
+//wrapper for JSContext to allow for multiple JS engines to be used - probably not needed TODO: remove
 pub struct Context<C: JSContext>(pub C);
 
 impl<T> JSContext for Context<T>

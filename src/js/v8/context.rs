@@ -10,6 +10,10 @@ use crate::js::v8::{Ctx, FromContext, V8Object, V8Value};
 use crate::js::{Context, JSContext, JSError};
 use crate::types::{Error, Result};
 
+
+
+/// SAFETY: This is NOT thread safe, as the rest of the engine is not thread safe.
+/// This struct uses `NonNull` internally to store pointers to the V8Context "values" in one struct.
 pub struct V8Context<'a> {
     isolate: NonNull<OwnedIsolate>,
     handle_scope: NonNull<HandleScope<'a, ()>>,

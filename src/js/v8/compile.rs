@@ -25,7 +25,7 @@ impl<'a> JSCompiled for V8Compiled<'a> {
         let try_catch = &mut v8::TryCatch::new(self.context.borrow_mut().scope());
 
         let Some(value) = self.compiled.run(try_catch) else {
-            return Err(V8Context::report_exception(try_catch));
+            return Err(V8Context::report_exception(try_catch)); //catch compile errors
         };
 
         Ok(V8Value::from_value(Rc::clone(&self.context), value))

@@ -3,7 +3,7 @@ use alloc::rc::Rc;
 use v8::{Local, Value};
 
 use crate::js::{JSError, JSType, JSValue, ValueConversion};
-use crate::js::v8::{Ctx, FromContext, V8Array, V8Object};
+use crate::js::v8::{Ctx, FromContext, V8Object};
 use crate::types::Error;
 
 pub struct V8Value<'a> {

@@ -22,6 +22,8 @@ mod object;
 mod value;
 mod function;
 
+
+// status of the V8 engine
 static PLATFORM_INITIALIZED: AtomicBool = AtomicBool::new(false);
 static PLATFORM_INITIALIZING: AtomicBool = AtomicBool::new(false);
 
@@ -29,6 +31,7 @@ trait FromContext<'a, T> {
     fn from_ctx(ctx: Ctx<'a>, value: T) -> Self;
 }
 
+//V8 keeps track of the state internally, so this is just a dummy struct for the wrapper
 pub struct V8Engine<'a> {
     _marker: std::marker::PhantomData<&'a ()>,
 }
@@ -64,6 +67,7 @@ impl V8Engine<'_> {
     }
 }
 
+//V8 context is stored in a Rc<RefCell<>>, so we can attach it to Values, ...
 pub(crate) type Ctx<'a> = Rc<RefCell<V8Context<'a>>>;
 
 impl<'a> JSRuntime for V8Engine<'a> {

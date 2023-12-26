@@ -1,8 +1,9 @@
 use crate::js::{JSContext, JSError, JSObject, JSValue};
-use crate::types::Result;
 
 struct Function<T: JSFunction>(pub T);
 
+
+//trait for JS functions (interopt between JS and Rust)
 pub(super) trait JSFunction {
     type Context: JSContext;
     type CB: JSFunctionCallBack;
@@ -49,6 +50,8 @@ pub(super) trait Args: Iterator {
 
 pub(super) struct VariadicFunction<T: JSFunctionVariadic>(pub T);
 
+
+//extra trait for variadic functions to mark them as such
 pub(super) trait JSFunctionVariadic {
     type Context: JSContext;
 
