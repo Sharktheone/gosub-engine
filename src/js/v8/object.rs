@@ -1,6 +1,6 @@
 use v8::{Local, Object};
 
-use crate::js::v8::{V8Context, FromContext, V8Ctx, V8Value};
+use crate::js::v8::{FromContext, V8Context, V8Ctx, V8Value};
 use crate::js::{JSArray, JSError, JSObject, JSValue};
 use crate::types::{Error, Result};
 

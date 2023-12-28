@@ -2,7 +2,7 @@ use alloc::rc::Rc;
 
 use v8::{Local, Value};
 
-use crate::js::v8::{V8Context, FromContext, V8Object};
+use crate::js::v8::{FromContext, V8Context, V8Object};
 use crate::js::{JSError, JSType, JSValue, ValueConversion};
 use crate::types::Error;
 

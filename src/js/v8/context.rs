@@ -6,7 +6,7 @@ use v8::{ContextScope, CreateParams, HandleScope, Isolate, OwnedIsolate, TryCatc
 
 use crate::js::compile::JSCompiled;
 use crate::js::v8::compile::V8Compiled;
-use crate::js::v8::{V8Context, FromContext, V8Object, V8Value};
+use crate::js::v8::{FromContext, V8Context, V8Object, V8Value};
 use crate::js::{Context, JSContext, JSError};
 use crate::types::{Error, Result};
 
