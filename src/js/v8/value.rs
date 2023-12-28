@@ -2,8 +2,8 @@ use alloc::rc::Rc;
 
 use v8::{Local, Value};
 
-use crate::js::{JSError, JSType, JSValue, ValueConversion};
 use crate::js::v8::{Ctx, FromContext, V8Object};
+use crate::js::{JSError, JSType, JSValue, ValueConversion};
 use crate::types::Error;
 
 pub struct V8Value<'a> {
@@ -76,7 +76,6 @@ impl<'a> JSValue for V8Value<'a> {
     }
 
     fn type_of(&self) -> JSType {
-
         //There is a v8::Value::type_of() method, but it returns a string, which is not what we want.
         if self.is_string() {
             JSType::String

@@ -11,17 +11,16 @@ pub use function::*;
 pub use object::*;
 pub use value::*;
 
-use crate::js::{JSArray, JSContext, JSObject, JSRuntime, JSValue, ValueConversion};
 use crate::js::context::Context;
+use crate::js::{JSArray, JSContext, JSObject, JSRuntime, JSValue, ValueConversion};
 use crate::types::Result;
 
 mod array;
 mod compile;
 mod context;
+mod function;
 mod object;
 mod value;
-mod function;
-
 
 // status of the V8 engine
 static PLATFORM_INITIALIZED: AtomicBool = AtomicBool::new(false);
@@ -34,6 +33,12 @@ trait FromContext<'a, T> {
 //V8 keeps track of the state internally, so this is just a dummy struct for the wrapper
 pub struct V8Engine<'a> {
     _marker: std::marker::PhantomData<&'a ()>,
+}
+
+impl Default for V8Engine<'_> {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl V8Engine<'_> {
@@ -89,29 +94,36 @@ mod tests {
 
     use colored::Colorize;
 
-    use crate::js::{JSContext, JSRuntime, JSValue};
     use crate::js::v8::PLATFORM_INITIALIZED;
+    use crate::js::{JSContext, JSRuntime, JSValue};
     use crate::types::Error;
 
     #[test]
     fn v8_test() {
-
         //This is needed because the v8 engine is not thread safe - TODO: make it "thread safe"
 
         println!("running 4 tests in one test function ...");
 
         v8_engine_initialization();
-        println!("test js::v8::tests::v8_engine_initialization ... {}", "ok".green());
+        println!(
+            "test js::v8::tests::v8_engine_initialization ... {}",
+            "ok".green()
+        );
 
         v8_context_creation();
-        println!("test js::v8::tests::v8_context_creation ... {}", "ok".green());
+        println!(
+            "test js::v8::tests::v8_context_creation ... {}",
+            "ok".green()
+        );
 
         v8_js_execution();
         println!("test js::v8::tests::v8_js_execution ... {}", "ok".green());
 
-
         v8_run_invalid_syntax();
-        println!("test js::v8::tests::v8_run_invalid_syntax ... {}", "ok".green());
+        println!(
+            "test js::v8::tests::v8_run_invalid_syntax ... {}",
+            "ok".green()
+        );
     }
 
     fn v8_engine_initialization() {
@@ -138,8 +150,6 @@ mod tests {
     //     println!("{}", value.to_rust_string_lossy(s));
     // }
 
-
-
     fn v8_js_execution() {
         let mut engine = crate::js::v8::V8Engine::new();
         let mut context = engine.new_context().unwrap();
@@ -156,7 +166,6 @@ mod tests {
         assert!(value.is_number());
         assert_eq!(value.as_number().unwrap(), 1234.0);
     }
-
 
     fn v8_run_invalid_syntax() {
         let mut engine = crate::js::v8::V8Engine::new();

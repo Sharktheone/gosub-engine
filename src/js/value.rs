@@ -1,7 +1,6 @@
 use crate::js::{JSArray, JSContext, JSObject, JSType};
 use crate::types::Result;
 
-
 pub trait JSValue
 where
     Self: Sized,

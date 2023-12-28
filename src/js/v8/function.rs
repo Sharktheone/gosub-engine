@@ -2,9 +2,9 @@ use alloc::rc::Rc;
 
 use v8::{Function, FunctionCallbackArguments, HandleScope, Local, ReturnValue};
 
-use crate::js::{Args, JSError, JSFunction, JSFunctionVariadic, JSValue, VariadicArgs};
 use crate::js::function::{JSFunctionCallBack, JSFunctionCallBackVariadic};
 use crate::js::v8::{Ctx, V8Value};
+use crate::js::{Args, JSError, JSFunction, JSFunctionVariadic, JSValue, VariadicArgs};
 use crate::types::{Error, Result};
 
 struct V8Function<'a> {
@@ -19,20 +19,15 @@ struct V8FunctionVariadic<'a> {
 
 impl<'a> V8FunctionVariadic<'a> {
     pub fn new(ctx: Ctx<'a>, function: Local<'a, Function>) -> Self {
-        Self {
-            ctx,
-            function,
-        }
+        Self { ctx, function }
     }
 }
-
 
 struct V8FunctionCallBack<'a, 'args> {
     ctx: Ctx<'a>,
     args: V8Args<'a, 'args>,
     ret: Result<V8Value<'a>>,
 }
-
 
 struct V8Args<'a, 'args> {
     ctx: Ctx<'a>,
@@ -116,7 +111,6 @@ impl<'a> JSFunctionCallBack for V8FunctionCallBack<'a, 'a> {
     }
 }
 
-
 impl<'a> V8Function<'a> {
     fn new(ctx: Ctx<'a>, f: impl Fn(&mut V8FunctionCallBack)) -> Result<V8Function> {
         let ctx = Rc::clone(&ctx);
@@ -139,7 +133,9 @@ impl<'a> V8Function<'a> {
                 let mut cb = V8FunctionCallBack {
                     ctx: Rc::clone(&ctx),
                     args,
-                    ret: Err(Error::JS(JSError::Execution("function was not called".to_owned()))),
+                    ret: Err(Error::JS(JSError::Execution(
+                        "function was not called".to_owned(),
+                    ))),
                 };
 
                 f(&mut cb);
@@ -149,7 +145,9 @@ impl<'a> V8Function<'a> {
                         ret.set(value.value);
                     }
                     Err(e) => {
-                        let excep = if let Some(exception) = v8::String::new(ctx.borrow_mut().scope(), &e.to_string()) {
+                        let excep = if let Some(exception) =
+                            v8::String::new(ctx.borrow_mut().scope(), &e.to_string())
+                        {
                             exception.into()
                         } else {
                             eprintln!("failed to create exception string\nexception was: {e}"); //TODO: replace with our own logger
@@ -163,12 +161,11 @@ impl<'a> V8Function<'a> {
         );
 
         if let Some(function) = function {
-            Ok(Self {
-                ctx,
-                function,
-            })
+            Ok(Self { ctx, function })
         } else {
-            Err(Error::JS(JSError::Compile("failed to create function".to_owned())))
+            Err(Error::JS(JSError::Compile(
+                "failed to create function".to_owned(),
+            )))
         }
     }
 }
@@ -181,10 +178,8 @@ impl<'a> JSFunction for V8Function<'a> {
     fn call(&mut self, cb: &mut V8FunctionCallBack) {
         let ret = self.function.call(
             cb.ctx.borrow_mut().scope(),
-            Local::from(
-                v8::undefined(cb.ctx.borrow_mut().scope())
-            ),
-            cb.args.v8()
+            Local::from(v8::undefined(cb.ctx.borrow_mut().scope())),
+            cb.args.v8(),
         );
 
         if let Some(value) = ret {
@@ -196,7 +191,6 @@ impl<'a> JSFunction for V8Function<'a> {
         };
     }
 }
-
 
 struct V8VariadicArgs<'a> {
     ctx: Ctx<'a>,
@@ -260,14 +254,12 @@ impl<'a> VariadicArgs for V8VariadicArgs<'a> {
             a.push(V8Value {
                 context: Rc::clone(&self.ctx),
                 value: self.args.get(i),
-
             });
         }
 
         a
     }
 }
-
 
 struct V8FunctionCallBackVariadic<'a> {
     ctx: Ctx<'a>,
@@ -307,9 +299,7 @@ impl<'a> JSFunctionVariadic for V8FunctionVariadic<'a> {
     fn call(&mut self, cb: &mut Self::CB) {
         let ret = self.function.call(
             cb.ctx.borrow_mut().scope(),
-            Local::from(
-                v8::undefined(cb.ctx.borrow_mut().scope())
-            ),
+            Local::from(v8::undefined(cb.ctx.borrow_mut().scope())),
             &cb.args.v8(),
         );
 

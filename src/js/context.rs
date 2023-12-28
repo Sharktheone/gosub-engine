@@ -1,6 +1,5 @@
 use crate::js::{JSCompiled, JSObject, JSValue};
 
-
 //main trait for JS context (can be implemented for different JS engines like V8, SpiderMonkey, JSC, etc.)
 pub trait JSContext {
     type Object: JSObject;

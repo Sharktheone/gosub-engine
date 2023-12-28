@@ -1,9 +1,9 @@
+use gosub_engine::js::v8::V8Context;
+use gosub_engine::js::{Context, JSContext, JSRuntime, JSValue, RUNTIME};
+use gosub_engine::types::Result;
 use std::cell::RefCell;
 use std::env::args;
 use std::rc::Rc;
-use gosub_engine::js::{JSRuntime, RUNTIME, JSContext, Context, JSValue};
-use gosub_engine::js::v8::V8Context;
-use gosub_engine::types::Result;
 
 fn main() -> Result<()> {
     let file = args().nth(1).expect("no file given");
@@ -15,7 +15,6 @@ fn main() -> Result<()> {
     let value = ctx.run(&code)?;
 
     println!("Got Value: {}", value.as_string()?);
-
 
     Ok(())
 }

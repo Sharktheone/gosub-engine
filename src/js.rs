@@ -1,24 +1,24 @@
-use std::sync::Mutex;
 use lazy_static::lazy_static;
+use std::sync::Mutex;
 use thiserror::Error;
 
+use crate::js::v8::V8Engine;
 pub use compile::*;
 pub use context::*;
+pub use function::*;
 pub use runtime::*;
 pub use value::*;
 pub use value_conversion::*;
-pub use function::*;
-use crate::js::v8::V8Engine;
 
 use crate::types::Result;
 
 mod compile;
 mod context;
+mod function;
 mod runtime;
 pub mod v8;
 mod value;
 mod value_conversion;
-mod function;
 
 #[derive(Error, Debug)]
 pub enum JSError {

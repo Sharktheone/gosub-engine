@@ -4,7 +4,6 @@ use crate::js::v8::{Ctx, V8Value};
 use crate::js::{JSArray, JSError};
 use crate::types::{Error, Result};
 
-
 pub struct V8Array<'a> {
     value: Local<'a, Array>,
     ctx: Ctx<'a>,

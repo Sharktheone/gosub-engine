@@ -2,7 +2,6 @@ use crate::js::{JSContext, JSError, JSObject, JSValue};
 
 struct Function<T: JSFunction>(pub T);
 
-
 //trait for JS functions (interopt between JS and Rust)
 pub(super) trait JSFunction {
     type Context: JSContext;
@@ -21,11 +20,7 @@ pub(super) trait JSFunctionCallBack {
     fn args(&mut self) -> Vec<Self::Value>;
 
     fn ret(&mut self, value: Self::Value);
-
 }
-
-
-
 
 pub(super) trait VariadicArgs: Iterator {
     type Value: JSValue;
@@ -47,9 +42,7 @@ pub(super) trait Args: Iterator {
     fn as_vec(&self) -> Vec<Self::Value>;
 }
 
-
 pub(super) struct VariadicFunction<T: JSFunctionVariadic>(pub T);
-
 
 //extra trait for variadic functions to mark them as such
 pub(super) trait JSFunctionVariadic {
