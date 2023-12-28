@@ -19,7 +19,7 @@ mod dns;
 #[allow(dead_code)]
 mod engine;
 #[allow(dead_code, unused)]
-mod js;
+pub mod js;
 #[allow(dead_code)]
 mod net;
 #[allow(dead_code)]
