@@ -1,14 +1,14 @@
-use crate::js::v8::{Ctx, FromContext, V8Context, V8Value};
+use crate::js::v8::{V8Context, FromContext, V8Ctx, V8Value};
 use crate::js::{Context, JSCompiled};
 use alloc::rc::Rc;
 use v8::{Local, Script};
 pub struct V8Compiled<'a> {
     compiled: Local<'a, Script>,
-    context: Ctx<'a>,
+    context: V8Context<'a>,
 }
 
 impl<'a> FromContext<'a, Local<'a, Script>> for V8Compiled<'a> {
-    fn from_ctx(ctx: Ctx<'a>, value: Local<'a, Script>) -> Self {
+    fn from_ctx(ctx: V8Context<'a>, value: Local<'a, Script>) -> Self {
         Self {
             context: ctx,
             compiled: value,
@@ -19,13 +19,13 @@ impl<'a> FromContext<'a, Local<'a, Script>> for V8Compiled<'a> {
 impl<'a> JSCompiled for V8Compiled<'a> {
     type Value = V8Value<'a>;
 
-    type Context = Context<Ctx<'a>>;
+    type Context = Context<V8Context<'a>>;
 
     fn run(&mut self) -> crate::types::Result<Self::Value> {
         let try_catch = &mut v8::TryCatch::new(self.context.borrow_mut().scope());
 
         let Some(value) = self.compiled.run(try_catch) else {
-            return Err(V8Context::report_exception(try_catch)); //catch compile errors
+            return Err(V8Ctx::report_exception(try_catch)); //catch compile errors
         };
 
         Ok(V8Value::from_value(Rc::clone(&self.context), value))

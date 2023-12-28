@@ -3,34 +3,34 @@ use alloc::rc::Rc;
 use v8::{Function, FunctionCallbackArguments, HandleScope, Local, ReturnValue};
 
 use crate::js::function::{JSFunctionCallBack, JSFunctionCallBackVariadic};
-use crate::js::v8::{Ctx, V8Value};
+use crate::js::v8::{V8Context, V8Value};
 use crate::js::{Args, JSError, JSFunction, JSFunctionVariadic, JSValue, VariadicArgs};
 use crate::types::{Error, Result};
 
 struct V8Function<'a> {
-    ctx: Ctx<'a>,
+    ctx: V8Context<'a>,
     function: Local<'a, Function>,
 }
 
 struct V8FunctionVariadic<'a> {
-    ctx: Ctx<'a>,
+    ctx: V8Context<'a>,
     function: Local<'a, Function>,
 }
 
 impl<'a> V8FunctionVariadic<'a> {
-    pub fn new(ctx: Ctx<'a>, function: Local<'a, Function>) -> Self {
+    pub fn new(ctx: V8Context<'a>, function: Local<'a, Function>) -> Self {
         Self { ctx, function }
     }
 }
 
 struct V8FunctionCallBack<'a, 'args> {
-    ctx: Ctx<'a>,
+    ctx: V8Context<'a>,
     args: V8Args<'a, 'args>,
     ret: Result<V8Value<'a>>,
 }
 
 struct V8Args<'a, 'args> {
-    ctx: Ctx<'a>,
+    ctx: V8Context<'a>,
     next: usize,
     args: Vec<Local<'args, v8::Value>>,
 }
@@ -94,7 +94,7 @@ impl<'a> Args for V8Args<'a, 'a> {
 }
 
 impl<'a> JSFunctionCallBack for V8FunctionCallBack<'a, 'a> {
-    type Context = Ctx<'a>;
+    type Context = V8Context<'a>;
 
     type Value = V8Value<'a>;
 
@@ -112,7 +112,7 @@ impl<'a> JSFunctionCallBack for V8FunctionCallBack<'a, 'a> {
 }
 
 impl<'a> V8Function<'a> {
-    fn new(ctx: Ctx<'a>, f: impl Fn(&mut V8FunctionCallBack)) -> Result<V8Function> {
+    fn new(ctx: V8Context<'a>, f: impl Fn(&mut V8FunctionCallBack)) -> Result<V8Function> {
         let ctx = Rc::clone(&ctx);
 
         let function = Function::new(
@@ -171,7 +171,7 @@ impl<'a> V8Function<'a> {
 }
 
 impl<'a> JSFunction for V8Function<'a> {
-    type Context = Ctx<'a>;
+    type Context = V8Context<'a>;
 
     type CB = V8FunctionCallBack<'a, 'a>;
 
@@ -193,7 +193,7 @@ impl<'a> JSFunction for V8Function<'a> {
 }
 
 struct V8VariadicArgs<'a> {
-    ctx: Ctx<'a>,
+    ctx: V8Context<'a>,
     next: i32,
     args: FunctionCallbackArguments<'a>,
 }
@@ -262,13 +262,13 @@ impl<'a> VariadicArgs for V8VariadicArgs<'a> {
 }
 
 struct V8FunctionCallBackVariadic<'a> {
-    ctx: Ctx<'a>,
+    ctx: V8Context<'a>,
     args: V8VariadicArgs<'a>,
     ret: Result<V8Value<'a>>,
 }
 
 impl<'a> JSFunctionCallBackVariadic for V8FunctionCallBackVariadic<'a> {
-    type Context = Ctx<'a>;
+    type Context = V8Context<'a>;
 
     type Value = V8Value<'a>;
 
@@ -292,7 +292,7 @@ impl<'a> JSFunctionCallBackVariadic for V8FunctionCallBackVariadic<'a> {
 }
 
 impl<'a> JSFunctionVariadic for V8FunctionVariadic<'a> {
-    type Context = Ctx<'a>;
+    type Context = V8Context<'a>;
 
     type CB = V8FunctionCallBackVariadic<'a>;
 

@@ -27,7 +27,7 @@ static PLATFORM_INITIALIZED: AtomicBool = AtomicBool::new(false);
 static PLATFORM_INITIALIZING: AtomicBool = AtomicBool::new(false);
 
 trait FromContext<'a, T> {
-    fn from_ctx(ctx: Ctx<'a>, value: T) -> Self;
+    fn from_ctx(ctx: V8Context<'a>, value: T) -> Self;
 }
 
 //V8 keeps track of the state internally, so this is just a dummy struct for the wrapper
@@ -73,10 +73,10 @@ impl V8Engine<'_> {
 }
 
 //V8 context is stored in a Rc<RefCell<>>, so we can attach it to Values, ...
-pub(crate) type Ctx<'a> = Rc<RefCell<V8Context<'a>>>;
+pub type V8Context<'a> = Rc<RefCell<V8Ctx<'a>>>;
 
 impl<'a> JSRuntime for V8Engine<'a> {
-    type Context = Ctx<'a>;
+    type Context = V8Context<'a>;
 
     //let isolate = &mut Isolate::new(Default::default());
     //let hs = &mut HandleScope::new(isolate);
@@ -84,7 +84,7 @@ impl<'a> JSRuntime for V8Engine<'a> {
     //let s = &mut ContextScope::new(hs, c);
 
     fn new_context(&mut self) -> Result<Context<Self::Context>> {
-        V8Context::default()
+        V8Ctx::default()
     }
 }
 

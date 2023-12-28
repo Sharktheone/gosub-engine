@@ -1,11 +1,11 @@
 use v8::{Local, Object};
 
-use crate::js::v8::{Ctx, FromContext, V8Context, V8Value};
+use crate::js::v8::{V8Context, FromContext, V8Ctx, V8Value};
 use crate::js::{JSArray, JSError, JSObject, JSValue};
 use crate::types::{Error, Result};
 
 pub struct V8Object<'a> {
-    ctx: Ctx<'a>,
+    ctx: V8Context<'a>,
     pub(crate) value: Local<'a, Object>,
 }
 
@@ -68,7 +68,7 @@ impl<'a> JSObject for V8Object<'a> {
             .call(try_catch, self.value.into(), &args)
             .map(|v| V8Value::from_value(self.ctx.clone(), v))
         else {
-            return Err(V8Context::report_exception(try_catch));
+            return Err(V8Ctx::report_exception(try_catch));
         };
 
         Ok(ret)
@@ -76,7 +76,7 @@ impl<'a> JSObject for V8Object<'a> {
 }
 
 impl<'a> FromContext<'a, Local<'a, Object>> for V8Object<'a> {
-    fn from_ctx(ctx: Ctx<'a>, object: Local<'a, Object>) -> Self {
+    fn from_ctx(ctx: V8Context<'a>, object: Local<'a, Object>) -> Self {
         Self { ctx, value: object }
     }
 }

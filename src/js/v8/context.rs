@@ -6,20 +6,20 @@ use v8::{ContextScope, CreateParams, HandleScope, Isolate, OwnedIsolate, TryCatc
 
 use crate::js::compile::JSCompiled;
 use crate::js::v8::compile::V8Compiled;
-use crate::js::v8::{Ctx, FromContext, V8Object, V8Value};
+use crate::js::v8::{V8Context, FromContext, V8Object, V8Value};
 use crate::js::{Context, JSContext, JSError};
 use crate::types::{Error, Result};
 
 /// SAFETY: This is NOT thread safe, as the rest of the engine is not thread safe.
 /// This struct uses `NonNull` internally to store pointers to the V8Context "values" in one struct.
-pub struct V8Context<'a> {
+pub struct V8Ctx<'a> {
     isolate: NonNull<OwnedIsolate>,
     handle_scope: NonNull<HandleScope<'a, ()>>,
     context_scope: NonNull<ContextScope<'a, HandleScope<'a>>>,
 }
 
-impl<'a> V8Context<'a> {
-    fn new(params: CreateParams) -> Result<Context<Ctx<'a>>> {
+impl<'a> V8Ctx<'a> {
+    fn new(params: CreateParams) -> Result<Context<V8Context<'a>>> {
         let mut v8_ctx = Self {
             isolate: NonNull::dangling(),
             handle_scope: NonNull::dangling(),
@@ -88,7 +88,7 @@ impl<'a> V8Context<'a> {
     }
 }
 
-impl<'a> JSContext for Rc<RefCell<V8Context<'a>>> {
+impl<'a> JSContext for V8Context<'a> {
     type Object = V8Object<'a>;
     type Value = V8Value<'a>;
     type Compiled = V8Compiled<'a>;
@@ -107,7 +107,7 @@ impl<'a> JSContext for Rc<RefCell<V8Context<'a>>> {
         let script = v8::Script::compile(try_catch, code, None);
 
         let Some(script) = script else {
-            return Err(V8Context::report_exception(try_catch));
+            return Err(V8Ctx::report_exception(try_catch));
         };
 
         Ok(V8Compiled::from_ctx(Rc::clone(self), script))

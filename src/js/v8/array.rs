@@ -1,12 +1,12 @@
 use v8::{Array, Local};
 
-use crate::js::v8::{Ctx, V8Value};
+use crate::js::v8::{V8Context, V8Value};
 use crate::js::{JSArray, JSError};
 use crate::types::{Error, Result};
 
 pub struct V8Array<'a> {
     value: Local<'a, Array>,
-    ctx: Ctx<'a>,
+    ctx: V8Context<'a>,
 }
 
 impl<'a> JSArray for V8Array<'a> {
