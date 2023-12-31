@@ -2,11 +2,18 @@ extern crate proc_macro;
 
 use proc_macro::TokenStream;
 
+use syn::{ItemStruct, LitStr};
 use syn::__private::ToTokens;
-use syn::{ItemStruct};
+
+use crate::items::{Executor, Field, Function, PropertyOptions};
+
+mod items;
 
 #[proc_macro_attribute]
 pub fn web_interop(attr: TokenStream, item: TokenStream) -> TokenStream {
+    let mut fields: Vec<Field> = Vec::new();
+    let mut functions: Vec<Function> = Vec::new();
+
     let mut input: ItemStruct = syn::parse_macro_input!(item);
 
     for field in &mut input.fields {
@@ -14,6 +21,38 @@ pub fn web_interop(attr: TokenStream, item: TokenStream) -> TokenStream {
 
         for (index, attr) in field.attrs.iter().enumerate() {
             if attr.path().is_ident("property") {
+                let mut options = PropertyOptions {
+                    executor: Executor::Both,
+                    rename: None,
+                };
+
+                //rename = "____", js => rename to name and it is a js only property
+                //rename = "____", wasm => rename to name and it is a wasm only property
+                //rename = "____" => rename to name and it is a property for both, js and wasm
+                //js => name is the same and it is a js only property
+                //wasm => name is the same and it is a wasm only property
+                //<nothing> => name is the same and it is a property for both, js and wasm
+
+                attr.parse_nested_meta(|meta| {
+                    match &meta.path {
+                        path if path.is_ident("rename") => {
+                            let lit: LitStr = meta.value()?.parse()?;
+
+                            options.rename = Some(lit.value());
+                        }
+                        path if path.is_ident("js") => {
+                            options.executor = Executor::JS;
+                        }
+                        path if path.is_ident("wasm") => {
+                            options.executor = Executor::WASM;
+                        }
+                        _ => {}
+                    }
+
+                    Ok(())
+                }).unwrap();
+
+
                 remove_attrs.push(index);
             }
         }
