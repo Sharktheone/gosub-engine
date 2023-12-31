@@ -12,7 +12,7 @@ keywords = ["html5", "parser", "browser", "Rust", "DOM"]
 
 [workspace]
 members = [
-  "crates/*"
+  "crates/*",
 ]
 
 [[example]]
