@@ -9,7 +9,7 @@ mod tests {
     #[web_interop]
     struct TestStruct {
 
-        #[property(rename = "field")]
+        #[property]
         field: i32,
     }
 
