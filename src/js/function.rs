@@ -3,14 +3,14 @@ use crate::js::{JSContext, JSError, JSObject, JSValue};
 struct Function<T: JSFunction>(pub T);
 
 //trait for JS functions (interopt between JS and Rust)
-pub(super) trait JSFunction {
+pub trait JSFunction {
     type Context: JSContext;
     type CB: JSFunctionCallBack;
 
     fn call(&mut self, callback: &mut Self::CB);
 }
 
-pub(super) trait JSFunctionCallBack {
+pub trait JSFunctionCallBack {
     type Context: JSContext;
 
     type Value: JSValue;
@@ -22,7 +22,7 @@ pub(super) trait JSFunctionCallBack {
     fn ret(&mut self, value: Self::Value);
 }
 
-pub(super) trait VariadicArgs: Iterator {
+pub trait VariadicArgs: Iterator {
     type Value: JSValue;
 
     fn get(&self, index: usize) -> Option<Self::Value>;
@@ -32,7 +32,7 @@ pub(super) trait VariadicArgs: Iterator {
     fn as_vec(&self) -> Vec<Self::Value>;
 }
 
-pub(super) trait Args: Iterator {
+pub trait Args: Iterator {
     type Value: JSValue;
 
     fn get(&self, index: usize) -> Option<Self::Value>;
@@ -42,10 +42,10 @@ pub(super) trait Args: Iterator {
     fn as_vec(&self) -> Vec<Self::Value>;
 }
 
-pub(super) struct VariadicFunction<T: JSFunctionVariadic>(pub T);
+pub struct VariadicFunction<T: JSFunctionVariadic>(pub T);
 
 //extra trait for variadic functions to mark them as such
-pub(super) trait JSFunctionVariadic {
+pub trait JSFunctionVariadic {
     type Context: JSContext;
 
     type CB: JSFunctionCallBackVariadic;
@@ -53,7 +53,7 @@ pub(super) trait JSFunctionVariadic {
     fn call(&mut self, callback: &mut Self::CB);
 }
 
-pub(super) trait JSFunctionCallBackVariadic {
+pub trait JSFunctionCallBackVariadic {
     type Context: JSContext;
 
     type Value: JSValue;

@@ -1,9 +1,10 @@
-use syn::{ReturnType, Type};
+use syn::{Path, Type};
+use crate::types::{FunctionArg, TypeT};
 
 pub(crate) struct Function {
     pub(crate) name: String,
-    pub(crate) arguments: Vec<Type>,
-    pub(crate) return_type: ReturnType,
+    pub(crate) arguments: Vec<FunctionArg>,
+    pub(crate) return_type: TypeT,
     pub(crate) executor: Executor,
 
 }
@@ -21,7 +22,3 @@ pub(crate) enum Executor {
     Both,
 }
 
-pub(crate) struct PropertyOptions {
-    pub(crate) executor: Executor,
-    pub(crate) rename: Option<String>,
-}
