@@ -1,10 +1,10 @@
 use syn::{Path, Type};
-use crate::types::{FunctionArg, TypeT};
+use crate::types::{FunctionArg, ReturnType};
 
 pub(crate) struct Function {
     pub(crate) name: String,
     pub(crate) arguments: Vec<FunctionArg>,
-    pub(crate) return_type: TypeT,
+    pub(crate) return_type: ReturnType,
     pub(crate) executor: Executor,
 
 }

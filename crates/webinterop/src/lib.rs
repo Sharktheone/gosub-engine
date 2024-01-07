@@ -8,9 +8,10 @@ use std::env;
 
 use syn::{FnArg, ItemImpl, ItemStruct, LitStr, Meta, Path};
 use syn::__private::ToTokens;
+use syn::token::Return;
 
 use crate::items::{Executor, Field, Function,};
-use crate::types::{FunctionArg, Reference, SelfType, Type, TypeT};
+use crate::types::{FunctionArg, Reference, ReturnType, SelfType, Type, TypeT};
 
 mod items;
 mod types;
@@ -18,12 +19,8 @@ mod types;
 #[proc_macro_attribute]
 pub fn web_interop(attr: TokenStream, item: TokenStream) -> TokenStream {
     let mut fields: Vec<Field> = Vec::new();
-    let mut functions: Vec<Function> = Vec::new();
 
-
-    let item2 = item.clone();
-    let mut input: ItemStruct = syn::parse_macro_input!(item2);
-
+    let mut input: ItemStruct = syn::parse_macro_input!(item);
 
     for field in &mut input.fields {
         let mut remove_attrs = Vec::new();
@@ -83,10 +80,7 @@ pub fn web_interop(attr: TokenStream, item: TokenStream) -> TokenStream {
         }
     }
 
-    // let impls: ItemImpl = syn::parse_macro_input!(item);
-    //
-    // dbg!(impls);
-
+    //TODO: do something with the parsed fields
 
     input.into_token_stream().into()
 }
@@ -94,12 +88,10 @@ pub fn web_interop(attr: TokenStream, item: TokenStream) -> TokenStream {
 
 #[proc_macro_attribute]
 pub fn web_fns(attr: TokenStream, item: TokenStream) -> TokenStream {
-    let item2 = item.clone();
-
-    dbg!(&item);
-
-
-    let mut input: ItemImpl = syn::parse_macro_input!(item2);
+    let mut input: ItemImpl = {
+        let item = item.clone();
+        syn::parse_macro_input!(item)
+    };
     let mut functions: Vec<Function> = Vec::new();
 
     for func in input.items {
@@ -110,39 +102,9 @@ pub fn web_fns(attr: TokenStream, item: TokenStream) -> TokenStream {
             let mut func = Function {
                 name: method.sig.ident.to_string(),
                 arguments: vec![],
-                return_type: TypeT::None,
+                return_type: parse_return(method.sig.output).unwrap(),
                 executor: Executor::Both, //TODO
             };
-
-            // if let syn::ReturnType::Type(.., ty) =  method.sig.output {
-            //     match *ty {
-            //         syn::Type::Reference(_) => {
-            //             panic!("Can't return a reference")
-            //         }
-            //         syn::Type::Array(a) => {
-            //             func.return_type = ReturnType::Array(*a.elem);
-            //         }
-            //         syn::Type::Slice(s) => {
-            //             func.return_type = ReturnType::Array(*s.elem);
-            //         }
-            //         syn::Type::Tuple(t) => {
-            //             let mut elems = Vec::with_capacity(t.elems.len());
-            //             for elem in t.elems {
-            //                 elems.push(elem);
-            //             }
-            //
-            //             func.return_type = ReturnType::Tuple(elems);
-            //         }
-            //         syn::Type::Path(p) => {
-            //             func.return_type = ReturnType::Type(p.path);
-            //         }
-            //         _ => {
-            //             panic!("Invalid return type");
-            //         }
-            //     }
-            // }
-
-            dbg!(&args);
 
             if let Some(FnArg::Receiver(self_arg)) =  args.first() {
                 if self_arg.reference.is_none() {
@@ -162,13 +124,10 @@ pub fn web_fns(attr: TokenStream, item: TokenStream) -> TokenStream {
                     arg_types.push(parse_type(*arg.ty, true))
                 }
             }
-
-            //dbg!(arg_types[0]);
-
-            // dbg!(output);
-            // dbg!(name);
         }
     }
+
+    //TODO: do something with the functions
 
     item
 }
@@ -232,4 +191,12 @@ fn parse_type(ty: syn::Type, allow_ref: bool) -> Result<Type, &'static str> {
             panic!("Invalid argument type");
         }
     }
+}
+
+
+fn parse_return(ret: syn::ReturnType) -> Result<ReturnType, &'static str> {
+    Ok(match ret {
+        syn::ReturnType::Default => ReturnType::Undefined,
+        syn::ReturnType::Type(_, ty) => ReturnType::Type(parse_type(*ty, false).map_err(|_| "return type can't be a reference")?.ty)
+    })
 }

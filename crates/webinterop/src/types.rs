@@ -4,7 +4,12 @@ use crate::items::Executor;
 pub(crate) struct Type {
     pub(crate) reference: Reference,
     pub(crate) ty: TypeT,
+}
 
+
+pub(crate) enum ReturnType {
+    Undefined,
+    Type(TypeT)
 }
 
 
