@@ -11,9 +11,8 @@ pub(crate) struct Type {
 pub(crate) enum TypeT {
     None,
     Type(Path),
-    Slice(Path, usize),
-    Array(Path),
-    Tuple(Vec<Path>), //Array on the JS side
+    Array(Box<Type>),
+    Tuple(Vec<Type>), //Array on the JS side
 }
 
 pub(crate) enum SelfType {

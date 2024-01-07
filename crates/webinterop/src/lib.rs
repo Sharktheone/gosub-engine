@@ -10,7 +10,7 @@ use syn::{FnArg, ItemImpl, ItemStruct, LitStr, Meta, Path};
 use syn::__private::ToTokens;
 
 use crate::items::{Executor, Field, Function,};
-use crate::types::{FunctionArg, Reference, SelfType, TypeT};
+use crate::types::{FunctionArg, Reference, SelfType, Type, TypeT};
 
 mod items;
 mod types;
@@ -159,30 +159,7 @@ pub fn web_fns(attr: TokenStream, item: TokenStream) -> TokenStream {
 
             for arg in args {
                 if let FnArg::Typed(arg) = arg {
-                    match *arg.ty {
-                        syn::Type::Reference(_) => {
-                            unimplemented!("References are not supported yet!")
-                        }
-                        syn::Type::Array(_) => {
-                            unimplemented!("Arrays are not supported yet!")
-                        }
-                        syn::Type::Slice(_) => {
-                            unimplemented!("Slices are not supported yet!")
-                        }
-                        syn::Type::Tuple(_) => {
-                            unimplemented!("Tuples are not supported yet!")
-                        }
-                        syn::Type::Path(p) => {
-                            arg_types.push(FunctionArg {
-                                reference: Reference::None,
-                                ty: p.path, //TODO
-                            })
-
-                        }
-                        _ => {
-                            panic!("Invalid argument type");
-                        }
-                    }
+                    arg_types.push(parse_type(*arg.ty, true))
                 }
             }
 
@@ -208,6 +185,51 @@ fn get_crate() -> Path {
 }
 
 
-// fn parse_type(ty: &syn::Type) -> Type {
-//
-// }
+fn parse_type(ty: syn::Type, allow_ref: bool) -> Result<Type, &'static str> {
+    match ty {
+        syn::Type::Reference(r) => {
+            if !allow_ref {
+                return Err("type can't be a reference here")
+            }
+
+            Ok(Type {
+                reference: if r.mutability.is_none() {Reference::Ref} else {Reference::MutRef},
+                ty: parse_type(*r.elem, false).map_err(|_| "double references not supported!")?.ty,
+            })
+        }
+        syn::Type::Array(a) => {
+            Ok(Type {
+                reference: Reference::None,
+                ty: TypeT::Array(Box::new(parse_type(*a.elem, allow_ref)?))
+            })
+        }
+        syn::Type::Slice(s) => {
+            Ok(Type {
+                reference: Reference::None,
+                ty: TypeT::Array(Box::new(parse_type(*s.elem, allow_ref)?))
+            })
+        }
+        syn::Type::Tuple(t) => {
+            let mut elements = Vec::with_capacity(t.elems.len());
+
+            for elem in t.elems {
+                elements.push(parse_type(elem, allow_ref)?)
+            }
+
+            Ok(Type {
+                reference: Reference::None,
+                ty: TypeT::Tuple(elements)
+            })
+        }
+        syn::Type::Path(p) => {
+            Ok(Type {
+                reference: Reference::None,
+                ty: TypeT::Type(p.path), //TODO
+            })
+
+        }
+        _ => {
+            panic!("Invalid argument type");
+        }
+    }
+}
