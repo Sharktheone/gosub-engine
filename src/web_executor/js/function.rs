@@ -2,7 +2,7 @@ use crate::web_executor::js::{JSContext, JSError, JSObject, JSRuntime, JSValue};
 
 struct Function<T: JSFunction>(pub T);
 
-//trait for JS functions (interopt between JS and Rust)
+//trait for JS functions (interop between JS and Rust)
 pub trait JSFunction {
     type Runtime: JSRuntime;
 

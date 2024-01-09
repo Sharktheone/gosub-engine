@@ -1,22 +1,31 @@
 #![allow(unused, unused_imports, unused_variables, dead_code)]
 
-
 extern crate proc_macro;
 
 use proc_macro::TokenStream;
-use std::env;
+use std::cell::RefCell;
+use std::collections::HashMap;
 
-use syn::{FnArg, ItemImpl, ItemStruct, LitStr, Meta, Path};
+use proc_macro2::Ident;
+use syn::{FnArg, ItemImpl, ItemStruct};
 use syn::__private::ToTokens;
-use syn::token::Return;
+use crate::implement::implement;
 
-use crate::items::{Executor, Field, Function};
+use crate::items::{Field, Function};
 use crate::property::parse_property;
-use crate::types::{FunctionArg, parse_return, parse_type, Reference, ReturnType, SelfType, Type, TypeT};
+use crate::types::{parse_return, parse_type, SelfType};
 
 mod items;
 mod types;
 mod property;
+mod impl_function;
+mod utils;
+mod implement;
+
+
+thread_local!(
+    static STATE: RefCell<HashMap<String, (Vec<Field>, Vec<Function>)>> = RefCell::new(HashMap::new());
+);
 
 #[proc_macro_attribute]
 pub fn web_interop(attr: TokenStream, item: TokenStream) -> TokenStream {
@@ -29,9 +38,21 @@ pub fn web_interop(attr: TokenStream, item: TokenStream) -> TokenStream {
             let mut f = Field {
                 name: property.rename.unwrap_or(field.ident.as_ref().unwrap().to_string()),
                 executor: property.executor,
-                field_type: field.ty.clone(),
+                field_type: parse_type(field.ty.clone(), true).unwrap(),
             };
         }
+    }
+
+    let name = input.ident.clone().into_token_stream().to_string();
+
+    if STATE.with(|state| state.borrow().contains_key(&name)) {
+        let (_, functions) = STATE.with(|state| state.borrow().get(&name).unwrap());
+
+        implement(&fields, functions)
+    } else {
+        STATE.with_borrow_mut(|state| {
+            state.insert(name, (fields, Vec::new()));
+        });
     }
 
     //TODO: do something with the parsed fields
@@ -48,6 +69,8 @@ pub fn web_fns(attr: TokenStream, item: TokenStream) -> TokenStream {
     };
     let mut functions: Vec<Function> = Vec::new();
 
+    let name = input.self_ty.clone().into_token_stream().to_string();
+
     for mut func in input.items {
         if let syn::ImplItem::Fn(mut method) = func {
             let args = method.sig.inputs;
@@ -62,7 +85,7 @@ pub fn web_fns(attr: TokenStream, item: TokenStream) -> TokenStream {
                 executor: property.executor,
             };
 
-            if let Some(FnArg::Receiver(self_arg)) =  args.first() {
+            if let Some(FnArg::Receiver(self_arg)) = args.first() {
                 if self_arg.reference.is_none() {
                     panic!("Self must be a reference");
                 }
@@ -83,18 +106,15 @@ pub fn web_fns(attr: TokenStream, item: TokenStream) -> TokenStream {
         }
     }
 
-    //TODO: do something with the functions
+    if STATE.with(|state| state.borrow().contains_key(&name)) {
+        let (fields, _) = STATE.with(|state| state.borrow().get(&name).unwrap());
 
-    item
-}
-
-fn get_crate() -> Path {
-    let mut name = env::var("CARGO_PKG_NAME").unwrap();
-    if name == "gosub-engine" {
-        name = "crate".to_string();
+        implement(&fields, &functions)
+    } else {
+        STATE.with_borrow_mut(|state| {
+            state.insert(name, (Vec::new(), functions));
+        });
     }
 
-    let name = name.replace('-', "_");
-
-    syn::parse_str::<Path>(&name).unwrap()
+    item
 }

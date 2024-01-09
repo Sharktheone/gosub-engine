@@ -1,5 +1,5 @@
-use syn::{Path, Type};
-use crate::types::{FunctionArg, ReturnType};
+use syn::{Path};
+use crate::types::{FunctionArg, ReturnType, Type};
 
 pub(crate) struct Function {
     pub(crate) name: String,
@@ -15,7 +15,7 @@ pub(crate) struct Field {
     pub(crate) executor: Executor,
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug)]
 #[allow(clippy::upper_case_acronyms)]
 pub(crate) enum Executor {
     JS,

@@ -1,3 +1,5 @@
+use proc_macro2::TokenStream;
+use quote::ToTokens;
 use syn::Path;
 use crate::items::Executor;
 
@@ -79,10 +81,11 @@ pub(crate) fn parse_type(ty: syn::Type, allow_ref: bool) -> Result<Type, &'stati
                 ty: TypeT::Tuple(elements)
             })
         }
+
         syn::Type::Path(p) => {
             Ok(Type {
                 reference: Reference::None,
-                ty: TypeT::Type(p.path), //TODO
+                ty: TypeT::Type(p.path),
             })
 
         }
