@@ -15,6 +15,7 @@ use crate::types::{FunctionArg, Reference, ReturnType, SelfType, Type, TypeT};
 
 mod items;
 mod types;
+mod property;
 
 #[proc_macro_attribute]
 pub fn web_interop(attr: TokenStream, item: TokenStream) -> TokenStream {
@@ -23,56 +24,12 @@ pub fn web_interop(attr: TokenStream, item: TokenStream) -> TokenStream {
     let mut input: ItemStruct = syn::parse_macro_input!(item);
 
     for field in &mut input.fields {
-        let mut remove_attrs = Vec::new();
-
-        for (index, attr) in field.attrs.iter().enumerate() {
-            if attr.path().is_ident("property") {
-                let mut f = Field {
-                    name: field.ident.as_ref().unwrap().to_string(),
-                    executor: Executor::Both,
-                    field_type: field.ty.clone(),
-                };
-
-
-                //rename = "____", js => rename to name and it is a js only property
-                //rename = "____", wasm => rename to name and it is a wasm only property
-                //rename = "____" => rename to name and it is a property for both, js and wasm
-                //js => name is the same and it is a js only property
-                //wasm => name is the same and it is a wasm only property
-                //<nothing> => name is the same and it is a property for both, js and wasm
-
-                match &attr.meta {
-                    Meta::Path(_) => {}
-                    Meta::List(_) => {
-                        attr.parse_nested_meta(|meta| {
-                            match &meta.path {
-                                path if path.is_ident("rename") => {
-                                    let lit: LitStr = meta.value()?.parse()?;
-
-                                    f.name = lit.value();
-                                }
-                                path if path.is_ident("js") => {
-                                    f.executor = Executor::JS;
-                                }
-                                path if path.is_ident("wasm") => {
-                                    f.executor = Executor::WASM;
-                                }
-                                _ => Err(syn::Error::new_spanned(attr, "Unknown attribute in property attribute"))?
-                            }
-
-                            Ok(())
-                        }).unwrap();
-                    }
-                    Meta::NameValue(_) => {
-                        panic!("Unexpected NameValue in property attribute");
-                    }
-                }
-
-
-                remove_attrs.push(index);
-
-                fields.push(f);
-            }
+        if let Some(property) = parse_property(&mut field.attrs) {
+            let mut f = Field {
+                name: property.rename.unwrap_or(field.ident.as_ref().unwrap().to_string()),
+                executor: property.executor,
+                field_type: field.ty.clone(),
+            };
         }
 
         for index in remove_attrs {
@@ -94,10 +51,12 @@ pub fn web_fns(attr: TokenStream, item: TokenStream) -> TokenStream {
     };
     let mut functions: Vec<Function> = Vec::new();
 
-    for func in input.items {
-        if let syn::ImplItem::Fn(method) = func {
+    for mut func in input.items {
+        if let syn::ImplItem::Fn(mut method) = func {
             let args = method.sig.inputs;
             let mut self_type = SelfType::NoSelf;
+
+            let property = parse_property(&mut method.attrs);
 
             let mut func = Function {
                 name: method.sig.ident.to_string(),

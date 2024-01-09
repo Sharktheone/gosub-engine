@@ -15,10 +15,12 @@ pub(crate) struct Field {
     pub(crate) executor: Executor,
 }
 
-
+#[derive(PartialEq)]
+#[allow(clippy::upper_case_acronyms)]
 pub(crate) enum Executor {
     JS,
     WASM,
     Both,
+    None,
 }
 
