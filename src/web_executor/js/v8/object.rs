@@ -1,7 +1,7 @@
 use v8::{Local, Object};
 
-use crate::js::v8::{FromContext, V8Context, V8Ctx, V8Value};
-use crate::js::{JSArray, JSError, JSObject, JSValue};
+use crate::web_executor::js::v8::{FromContext, V8Context, V8Ctx, V8Value};
+use crate::web_executor::js::{JSArray, JSError, JSObject, JSValue};
 use crate::types::{Error, Result};
 
 pub struct V8Object<'a> {

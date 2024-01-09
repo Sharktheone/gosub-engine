@@ -4,10 +4,10 @@ use std::ptr::NonNull;
 
 use v8::{ContextScope, CreateParams, HandleScope, Isolate, OwnedIsolate, TryCatch};
 
-use crate::js::compile::JSCompiled;
-use crate::js::v8::compile::V8Compiled;
-use crate::js::v8::{FromContext, V8Context, V8Object, V8Value};
-use crate::js::{Context, JSContext, JSError};
+use crate::web_executor::js::compile::JSCompiled;
+use crate::web_executor::js::v8::compile::V8Compiled;
+use crate::web_executor::js::v8::{FromContext, V8Context, V8Engine, V8Object, V8Value};
+use crate::web_executor::js::{JSContext, JSError, JSRuntime};
 use crate::types::{Error, Result};
 
 /// SAFETY: This is NOT thread safe, as the rest of the engine is not thread safe.
@@ -19,7 +19,7 @@ pub struct V8Ctx<'a> {
 }
 
 impl<'a> V8Ctx<'a> {
-    fn new(params: CreateParams) -> Result<Context<V8Context<'a>>> {
+    fn new(params: CreateParams) -> Result<V8Context<'a>> {
         let mut v8_ctx = Self {
             isolate: NonNull::dangling(),
             handle_scope: NonNull::dangling(),
@@ -60,18 +60,18 @@ impl<'a> V8Ctx<'a> {
 
         v8_ctx.context_scope = ctx_scope;
 
-        Ok(Context(Rc::new(RefCell::new(v8_ctx))))
+        Ok(Rc::new(RefCell::new(v8_ctx)))
     }
 
-    pub(super) fn scope(&mut self) -> &'a mut ContextScope<'a, HandleScope<'a>> {
+    pub(crate) fn scope(&mut self) -> &'a mut ContextScope<'a, HandleScope<'a>> {
         unsafe { self.context_scope.as_mut() }
     }
 
-    pub(super) fn default() -> Result<Context<Rc<RefCell<Self>>>> {
+    pub(crate) fn default() -> Result<Rc<RefCell<Self>>> {
         Self::new(Default::default())
     }
 
-    pub(super) fn report_exception(try_catch: &mut TryCatch<HandleScope>) -> Error {
+    pub(crate) fn report_exception(try_catch: &mut TryCatch<HandleScope>) -> Error {
         if let Some(exception) = try_catch.exception() {
             let e = exception.to_rust_string_lossy(try_catch);
 
@@ -89,15 +89,13 @@ impl<'a> V8Ctx<'a> {
 }
 
 impl<'a> JSContext for V8Context<'a> {
-    type Object = V8Object<'a>;
-    type Value = V8Value<'a>;
-    type Compiled = V8Compiled<'a>;
+    type Runtime = V8Engine<'a>;
 
-    fn run(&mut self, code: &str) -> Result<Self::Value> {
+    fn run(&mut self, code: &str) -> Result<<Self::Runtime as JSRuntime>::Value> {
         self.compile(code)?.run()
     }
 
-    fn compile(&mut self, code: &str) -> Result<Self::Compiled> {
+    fn compile(&mut self, code: &str) -> Result<<Self::Runtime as JSRuntime>::Compiled> {
         let s = self.borrow_mut().scope();
 
         let try_catch = &mut TryCatch::new(s);
@@ -113,11 +111,11 @@ impl<'a> JSContext for V8Context<'a> {
         Ok(V8Compiled::from_ctx(Rc::clone(self), script))
     }
 
-    fn run_compiled(&mut self, compiled: &mut Self::Compiled) -> Result<Self::Value> {
+    fn run_compiled(&mut self, compiled: &mut <Self::Runtime as JSRuntime>::Compiled) -> Result<<Self::Runtime as JSRuntime>::Value> {
         compiled.run()
     }
 
-    fn new_global_object(&mut self, name: &str) -> Result<Self::Object> {
+    fn new_global_object(&mut self, name: &str) -> Result<<Self::Runtime as JSRuntime>::Object> {
         todo!()
     }
 }

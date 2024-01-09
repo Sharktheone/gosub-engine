@@ -2,13 +2,13 @@ use alloc::rc::Rc;
 
 use v8::{Local, Value};
 
-use crate::js::v8::{FromContext, V8Context, V8Object};
-use crate::js::{JSError, JSType, JSValue, ValueConversion};
+use crate::web_executor::js::v8::{FromContext, V8Context, V8Engine, V8Object};
+use crate::web_executor::js::{JSError, JSRuntime, JSType, JSValue, ValueConversion};
 use crate::types::Error;
 
 pub struct V8Value<'a> {
-    pub(super) context: V8Context<'a>,
-    pub(super) value: Local<'a, Value>,
+    pub(crate) context: V8Context<'a>,
+    pub(crate) value: Local<'a, Value>,
 }
 
 impl<'a> V8Value<'a> {
@@ -29,9 +29,7 @@ macro_rules! impl_is {
 }
 
 impl<'a> JSValue for V8Value<'a> {
-    type Object = V8Object<'a>;
-
-    type Context = V8Context<'a>;
+    type Runtime = V8Engine<'a>;
 
     fn as_string(&self) -> crate::types::Result<String> {
         Ok(self
@@ -53,7 +51,7 @@ impl<'a> JSValue for V8Value<'a> {
         Ok(self.value.boolean_value(self.context.borrow_mut().scope()))
     }
 
-    fn as_object(&self) -> crate::types::Result<Self::Object> {
+    fn as_object(&self) -> crate::types::Result<<Self::Runtime as JSRuntime>::Object> {
         if let Some(value) = self.value.to_object(self.context.borrow_mut().scope()) {
             Ok(V8Object::from_ctx(Rc::clone(&self.context), value))
         } else {
@@ -102,7 +100,7 @@ impl<'a> JSValue for V8Value<'a> {
         }
     }
 
-    fn new_string(ctx: Self::Context, value: &str) -> crate::types::Result<Self> {
+    fn new_string(ctx: <Self::Runtime as JSRuntime>::Context, value: &str) -> crate::types::Result<Self> {
         if let Some(value) = v8::String::new(ctx.borrow_mut().scope(), value) {
             Ok(Self {
                 context: Rc::clone(&ctx),
@@ -115,7 +113,7 @@ impl<'a> JSValue for V8Value<'a> {
         }
     }
 
-    fn new_number<N: Into<f64>>(ctx: Self::Context, value: N) -> crate::types::Result<Self> {
+    fn new_number<N: Into<f64>>(ctx: <Self::Runtime as JSRuntime>::Context, value: N) -> crate::types::Result<Self> {
         let value = v8::Number::new(ctx.borrow_mut().scope(), value.into());
         Ok(Self {
             context: Rc::clone(&ctx),
@@ -123,7 +121,7 @@ impl<'a> JSValue for V8Value<'a> {
         })
     }
 
-    fn new_bool(ctx: Self::Context, value: bool) -> crate::types::Result<Self> {
+    fn new_bool(ctx: <Self::Runtime as JSRuntime>::Context, value: bool) -> crate::types::Result<Self> {
         let value = v8::Boolean::new(ctx.borrow_mut().scope(), value);
         Ok(Self {
             context: Rc::clone(&ctx),
@@ -131,7 +129,7 @@ impl<'a> JSValue for V8Value<'a> {
         })
     }
 
-    fn new_null(ctx: Self::Context) -> crate::types::Result<Self> {
+    fn new_null(ctx: <Self::Runtime as JSRuntime>::Context) -> crate::types::Result<Self> {
         let null = v8::null(ctx.borrow_mut().scope());
 
         Ok(Self {
@@ -140,7 +138,7 @@ impl<'a> JSValue for V8Value<'a> {
         })
     }
 
-    fn new_undefined(ctx: Self::Context) -> crate::types::Result<Self> {
+    fn new_undefined(ctx: <Self::Runtime as JSRuntime>::Context) -> crate::types::Result<Self> {
         let undefined = v8::undefined(ctx.borrow_mut().scope());
 
         Ok(Self {

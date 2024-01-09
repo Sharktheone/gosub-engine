@@ -23,10 +23,8 @@ mod dns;
 
 #[allow(dead_code)]
 mod engine;
-#[allow(dead_code, unused)]
-pub mod js;
 #[allow(dead_code)]
 mod net;
 #[allow(dead_code)]
 mod timing;
-mod webinterop; //temporary for testing
+pub mod web_executor;

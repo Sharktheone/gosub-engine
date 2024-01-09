@@ -2,7 +2,7 @@ use lazy_static::lazy_static;
 use std::sync::Mutex;
 use thiserror::Error;
 
-use crate::js::v8::V8Engine;
+use crate::web_executor::js::v8::V8Engine;
 pub use compile::*;
 pub use context::*;
 pub use function::*;
@@ -42,7 +42,7 @@ pub enum JSError {
 }
 
 lazy_static! {
-    pub static ref RUNTIME: Mutex<Runtime<V8Engine<'static>>> = Mutex::new(runtime::Runtime::new());
+    pub static ref RUNTIME: Mutex<V8Engine<'static>> = Mutex::new(V8Engine::new());
 }
 
 pub trait JSObject {
