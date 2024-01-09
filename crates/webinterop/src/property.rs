@@ -6,6 +6,16 @@ pub(crate) struct Property {
     pub(crate) executor: Executor,
 }
 
+impl Default for Property {
+    fn default() -> Self {
+        Self {
+            rename: None,
+            executor: Executor::Both,
+        }
+    }
+
+}
+
 pub(crate) fn parse_property(attrs: &mut Vec<Attribute>) -> Option<Property> {
     let mut remove_attrs = None;
     let mut property = None;

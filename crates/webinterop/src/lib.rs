@@ -53,13 +53,13 @@ pub fn web_fns(attr: TokenStream, item: TokenStream) -> TokenStream {
             let args = method.sig.inputs;
             let mut self_type = SelfType::NoSelf;
 
-            let property = parse_property(&mut method.attrs);
+            let property = parse_property(&mut method.attrs).unwrap_or_default();
 
             let mut func = Function {
-                name: method.sig.ident.to_string(),
+                name: property.rename.unwrap_or(method.sig.ident.to_string()),
                 arguments: vec![],
                 return_type: parse_return(method.sig.output).unwrap(),
-                executor: Executor::Both, //TODO
+                executor: property.executor,
             };
 
             if let Some(FnArg::Receiver(self_arg)) =  args.first() {
