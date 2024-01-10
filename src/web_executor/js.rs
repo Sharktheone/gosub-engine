@@ -58,17 +58,17 @@ pub trait JSObject {
 }
 
 pub trait JSArray {
-    type Value: JSValue;
+    type Runtime: JSRuntime;
 
     type Index;
 
-    fn get<T: Into<Self::Index>>(&self, index: T) -> Result<Self::Value>;
+    fn get<T: Into<Self::Index>>(&self, index: T) -> Result<<Self::Runtime as JSRuntime>::Value>;
 
-    fn set<T: Into<Self::Index>>(&self, index: T, value: &Self::Value) -> Result<()>;
+    fn set<T: Into<Self::Index>>(&self, index: T, value: &<Self::Runtime as JSRuntime>::Value) -> Result<()>;
 
-    fn push(&self, value: Self::Value) -> Result<()>;
+    fn push(&self, value: <Self::Runtime as JSRuntime>::Value) -> Result<()>;
 
-    fn pop(&self) -> Result<Self::Value>;
+    fn pop(&self) -> Result<<Self::Runtime as JSRuntime>::Value>;
 
     fn remove<T: Into<Self::Index>>(&self, index: T) -> Result<()>;
 

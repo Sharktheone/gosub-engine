@@ -1,7 +1,7 @@
 use v8::{Array, Local};
 
-use crate::web_executor::js::v8::{V8Context, V8Value};
-use crate::web_executor::js::{JSArray, JSError};
+use crate::web_executor::js::v8::{V8Context, V8Engine, V8Value};
+use crate::web_executor::js::{JSArray, JSError, JSRuntime};
 use crate::types::{Error, Result};
 
 pub struct V8Array<'a> {
@@ -10,11 +10,11 @@ pub struct V8Array<'a> {
 }
 
 impl<'a> JSArray for V8Array<'a> {
-    type Value = V8Value<'a>;
+    type Runtime = V8Engine<'a>;
 
     type Index = u32;
 
-    fn get<T: Into<Self::Index>>(&self, index: T) -> Result<Self::Value> {
+    fn get<T: Into<Self::Index>>(&self, index: T) -> Result<<Self::Runtime as JSRuntime>::Value> {
         let Some(value) = self
             .value
             .get_index(self.ctx.borrow_mut().scope(), index.into())
@@ -27,7 +27,7 @@ impl<'a> JSArray for V8Array<'a> {
         Ok(V8Value::from_value(self.ctx.clone(), value))
     }
 
-    fn set<T: Into<Self::Index>>(&self, index: T, value: &Self::Value) -> Result<()> {
+    fn set<T: Into<Self::Index>>(&self, index: T, value: &<Self::Runtime as JSRuntime>::Value) -> Result<()> {
         match self
             .value
             .set_index(self.ctx.borrow_mut().scope(), index.into(), value.value)
@@ -39,7 +39,7 @@ impl<'a> JSArray for V8Array<'a> {
         }
     }
 
-    fn push(&self, value: Self::Value) -> Result<()> {
+    fn push(&self, value: <Self::Runtime as JSRuntime>::Value) -> Result<()> {
         let index = self.value.length();
 
         match self
@@ -53,7 +53,7 @@ impl<'a> JSArray for V8Array<'a> {
         }
     }
 
-    fn pop(&self) -> Result<Self::Value> {
+    fn pop(&self) -> Result<<Self::Runtime as JSRuntime>::Value> {
         let index = self.value.length() - 1;
 
         let Some(value) = self.value.get_index(self.ctx.borrow_mut().scope(), index) else {
