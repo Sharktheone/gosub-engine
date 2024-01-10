@@ -46,13 +46,15 @@ lazy_static! {
 }
 
 pub trait JSObject {
-    type Value: JSValue;
+    type Runtime: JSRuntime;
 
-    fn set_property(&self, name: &str, value: &Self::Value) -> Result<()>;
+    fn set_property(&self, name: &str, value: &<Self::Runtime as JSRuntime>::Value) -> Result<()>;
 
-    fn get_property(&self, name: &str) -> Result<Self::Value>;
+    fn get_property(&self, name: &str) -> Result<<Self::Runtime as JSRuntime>::Value>;
 
-    fn call_method(&self, name: &str, args: &[&Self::Value]) -> Result<Self::Value>;
+    fn call_method(&self, name: &str, args: &[&<Self::Runtime as JSRuntime>::Value]) -> Result<<Self::Runtime as JSRuntime>::Value>;
+
+    fn set_method(&self, name: &str, func: &<Self::Runtime as JSRuntime>::Function) -> Result<()>;
 }
 
 pub trait JSArray {

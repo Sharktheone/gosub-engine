@@ -8,13 +8,13 @@ use crate::web_executor::js::{Args, JSError, JSFunction, JSFunctionVariadic, JSR
 use crate::types::{Error, Result};
 
 pub struct V8Function<'a> {
-    ctx: V8Context<'a>,
-    function: Local<'a, Function>,
+    pub(super) ctx: V8Context<'a>,
+    pub(super) function: Local<'a, Function>,
 }
 
 pub struct V8FunctionVariadic<'a> {
-    ctx: V8Context<'a>,
-    function: Local<'a, Function>,
+    pub(super) ctx: V8Context<'a>,
+    pub(super) function: Local<'a, Function>,
 }
 
 impl<'a> V8FunctionVariadic<'a> {
