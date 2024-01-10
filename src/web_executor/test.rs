@@ -1,9 +1,11 @@
+use alloc::rc::Rc;
 use std::collections::HashMap;
+use libc::IPV6_JOIN_ANYCAST;
 
 use webinterop::{web_fns, web_interop};
 use crate::web_executor::interop::JSInterop;
-use crate::web_executor::js::{JSContext, JSObject, VariadicArgs};
-use crate::web_executor::js::v8::V8Value;
+use crate::web_executor::js::{JSContext, JSFunctionCallBack, JSObject, JSRuntime, ValueConversion, VariadicArgs};
+use crate::web_executor::js::v8::{V8Context, V8Engine, V8Function, V8Value};
 use crate::types::Result;
 
 #[web_interop]
@@ -100,15 +102,53 @@ impl Test2 {
     fn concat(&self, other: String) -> String {
         self.other_field.clone() + &other
     }
+
+    fn takes_ref(&self, other: &String) -> String {
+        self.other_field.clone() + other
+    }
+
+    fn variadic<T: VariadicArgs>(nums: T) {
+        for _ in nums {
+            println!("got an arg...");
+        }
+    }
 }
 
 
-impl JSInterop for Test2 {
-    fn implement<C: JSContext>(mut ctx: &mut C) -> Result<()> {
-        let obj = ctx.new_global_object("Test2")?;
-        
-        obj
-        
+struct TestStorage {
+    test: Test2,
+}
+
+
+impl Test2 {
+    fn implement(&mut self, mut ctx: V8Context) -> Result<()> {
+        let obj = ctx.new_global_object("Test2")?; //#name
+
+
+        let cool_fn = {
+            V8Function::new(ctx.clone(), |cb| {  //TODO: add R::Function::new
+                let ctx = cb.context(); //hmmm
+            let num_args = 0; //function.arguments.len();
+            if num_args != cb.args().len() {
+                // cb.error("wrong number of arguments"); //TODO
+                return;
+            }
+
+            let ret = match  <i32 as ValueConversion<V8Engine>>::to_js_value(&self.cool_fn(), ctx.clone()) {
+                Ok(ret) => ret,
+                Err(e) => {
+                    // cb.error(e); //TODO
+                    return;
+                }
+            };
+
+            cb.ret(ret);
+        })?
+        };
+
+        obj.set_method("cool_fn", &cool_fn)?;
+
         Ok(())
     }
 }
+

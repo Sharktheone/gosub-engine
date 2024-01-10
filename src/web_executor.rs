@@ -3,5 +3,5 @@
 pub mod js;
 pub mod interop;
 
-#[cfg(test)]
+// #[cfg(test)]
 mod test;

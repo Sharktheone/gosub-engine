@@ -37,7 +37,7 @@ pub fn web_interop(attr: TokenStream, item: TokenStream) -> TokenStream {
             let mut f = Field {
                 name: property.rename.unwrap_or(field.ident.as_ref().unwrap().to_string()),
                 executor: property.executor,
-                field_type: parse_type(field.ty.clone(), true).unwrap(),
+                field_type: parse_type(field.ty.clone(), false).unwrap(),
             };
         }
     }

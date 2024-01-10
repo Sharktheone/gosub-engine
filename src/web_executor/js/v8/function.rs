@@ -110,7 +110,7 @@ impl<'a> JSFunctionCallBack for V8FunctionCallBack<'a, 'a> {
 }
 
 impl<'a> V8Function<'a> {
-    fn new(ctx: V8Context<'a>, f: impl Fn(&mut V8FunctionCallBack)) -> Result<V8Function> {
+    pub fn new(ctx: V8Context<'a>, f: impl Fn(&mut V8FunctionCallBack)) -> Result<V8Function> {
         let ctx = Rc::clone(&ctx);
 
         let function = Function::new(
