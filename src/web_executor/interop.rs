@@ -1,17 +1,10 @@
 use crate::web_executor::js::JSContext;
+use crate::types::Result;
 
-pub trait JSFunctionInterop {
-    fn implement<C: JSContext>(ctx: C);
+pub trait JSInterop {
+    fn implement<C: JSContext>(ctx: &mut C) -> Result<()>;
 }
 
-pub trait WASMFunctionInterop {
-    fn implement<C: >(ctx: C);
-}
-
-pub trait JSPropertyInterop {
-    fn implement<C: JSContext>(ctx: C);
-}
-
-pub trait WASMPropertyInterop {
-    fn implement<C: >(ctx: C);
+pub trait WASMInterop {
+    fn implement<C: >(ctx: &mut C) -> Result<()>;
 }

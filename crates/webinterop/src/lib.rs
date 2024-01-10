@@ -6,11 +6,10 @@ use proc_macro::TokenStream;
 use std::cell::RefCell;
 use std::collections::HashMap;
 
-use proc_macro2::Ident;
 use syn::{FnArg, ItemImpl, ItemStruct};
 use syn::__private::ToTokens;
-use crate::implement::implement;
 
+use crate::implement::implement;
 use crate::items::{Field, Function};
 use crate::property::parse_property;
 use crate::types::{parse_return, parse_type, SelfType};
@@ -46,9 +45,12 @@ pub fn web_interop(attr: TokenStream, item: TokenStream) -> TokenStream {
     let name = input.ident.clone().into_token_stream().to_string();
 
     if STATE.with(|state| state.borrow().contains_key(&name)) {
-        let (_, functions) = STATE.with(|state| state.borrow().get(&name).unwrap());
+        STATE.with(|state| {
+            let state = state.borrow();
+            let (_, functions) = state.get(&name).unwrap();
 
-        implement(&fields, functions)
+            implement(&fields, functions)
+        });
     } else {
         STATE.with_borrow_mut(|state| {
             state.insert(name, (fields, Vec::new()));
@@ -107,9 +109,12 @@ pub fn web_fns(attr: TokenStream, item: TokenStream) -> TokenStream {
     }
 
     if STATE.with(|state| state.borrow().contains_key(&name)) {
-        let (fields, _) = STATE.with(|state| state.borrow().get(&name).unwrap());
+        STATE.with(|state| {
+            let state = state.borrow();
+            let (fields, _) = state.get(&name).unwrap();
 
-        implement(&fields, &functions)
+            implement(&fields, &functions)
+        });
     } else {
         STATE.with_borrow_mut(|state| {
             state.insert(name, (Vec::new(), functions));
