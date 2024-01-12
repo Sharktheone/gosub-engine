@@ -1,12 +1,10 @@
-use alloc::rc::Rc;
 use std::collections::HashMap;
-use libc::IPV6_JOIN_ANYCAST;
 
 use webinterop::{web_fns, web_interop};
-use crate::web_executor::interop::JSInterop;
+
+use crate::types::Result;
 use crate::web_executor::js::{JSContext, JSFunctionCallBack, JSObject, JSRuntime, ValueConversion, VariadicArgs};
 use crate::web_executor::js::v8::{V8Context, V8Engine, V8Function, V8Value};
-use crate::types::Result;
 
 #[web_interop]
 struct TestStruct {
@@ -83,7 +81,6 @@ fn ref_size_slice(slice: &[i32; 3]) {}
 fn mut_size_slice(slice: &mut [i32; 3]) {}
 
 
-
 struct Test2 {
     field: i32,
     other_field: String,
@@ -127,23 +124,24 @@ impl Test2 {
 
         let cool_fn = {
             V8Function::new(ctx.clone(), |cb| {  //TODO: add R::Function::new
-                let ctx = cb.context(); //hmmm
-            let num_args = 0; //function.arguments.len();
-            if num_args != cb.args().len() {
-                // cb.error("wrong number of arguments"); //TODO
-                return;
-            }
-
-            let ret = match  <i32 as ValueConversion<V8Engine>>::to_js_value(&self.cool_fn(), ctx.clone()) {
-                Ok(ret) => ret,
-                Err(e) => {
-                    // cb.error(e); //TODO
+                let num_args = 0; //function.arguments.len();
+                if num_args != cb.len() {
+                    // cb.error("wrong number of arguments"); //TODO
                     return;
                 }
-            };
 
-            cb.ret(ret);
-        })?
+                let ctx = cb.context(); //hmmm
+
+                let ret = match <i32 as ValueConversion<V8Value, V8Context>>::to_js_value(&self.cool_fn(), ctx.clone()) {
+                    Ok(ret) => ret,
+                    Err(e) => {
+                        // cb.error(e); //TODO
+                        return;
+                    }
+                };
+
+                cb.ret(ret);
+            })?
         };
 
         obj.set_method("cool_fn", &cool_fn)?;
