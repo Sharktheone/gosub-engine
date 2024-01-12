@@ -75,17 +75,7 @@ impl V8Engine<'_> {
 pub type V8Context<'a> = Rc<RefCell<V8Ctx<'a>>>;
 
 impl<'a> JSRuntime for V8Engine<'a> {
-    type Array = V8Array<'a>;
-    type Function = V8Function<'a>;
-    type FunctionVariadic = V8FunctionVariadic<'a>;
-    type CB = V8FunctionCallBack<'a, 'a>;
-    type VariadicCB = V8FunctionCallBackVariadic<'a>;
-    type Compiled = V8Compiled<'a>;
     type Context = V8Context<'a>;
-    type Value = V8Value<'a>;
-    type Object = V8Object<'a>;
-    type Args = V8Args<'a, 'a>;
-    type VariadicArgs = V8VariadicArgs<'a>;
 
     //let isolate = &mut Isolate::new(Default::default());
     //let hs = &mut HandleScope::new(isolate);

@@ -1,19 +1,24 @@
-use crate::web_executor::js::{JSContext, JSRuntime, JSValue};
 use crate::types::Result;
+use crate::web_executor::js::{JSContext, JSValue};
+
 
 //trait to easily convert Rust types to JS values (just call .to_js_value() on the type)
-pub trait ValueConversion<R: JSRuntime> {
-    type Runtime: JSRuntime;
-    fn to_js_value(&self, ctx: <<<Self::Runtime as JSRuntime>::Value as JSValue>::Runtime as JSRuntime>::Context) -> Result<<Self::Runtime as JSRuntime>::Value>;
+pub trait ValueConversion<V: JSValue, C: JSContext> {
+    type Value: JSValue;
+
+    type Context: JSContext;
+
+    fn to_js_value(&self, ctx: Self::Context) -> Result<Self::Value>;
 }
 
 macro_rules! impl_value_conversion {
     (number, $type:ty) => {
-        impl<R: JSRuntime> ValueConversion<R> for $type {
-            type Runtime = R;
+        impl<V: JSValue<Context = C>, C: JSContext> ValueConversion<V, C> for $type {
+            type Value = V;
+            type Context = C;
 
-            fn to_js_value(&self, ctx: <<<Self::Runtime as JSRuntime>::Value as JSValue>::Runtime as JSRuntime>::Context) -> Result<<Self::Runtime as JSRuntime>::Value> {
-                <Self::Runtime as JSRuntime>::Value::new_number(ctx, *self as f64)
+            fn to_js_value(&self, ctx: Self::Context) -> Result<Self::Value> {
+                Self::Value::new_number(ctx, *self as f64)
             }
         }
     };
@@ -31,20 +36,22 @@ macro_rules! impl_value_conversion {
     };
 
     ($func:ident, $type:ty, deref) => {
-        impl<R: JSRuntime> ValueConversion<R> for $type {
-            type Runtime = R;
+        impl<V: JSValue<Context = C>, C: JSContext> ValueConversion<V, C> for $type {
+            type Value = V;
+            type Context = C;
 
-            fn to_js_value(&self, ctx: <<<Self::Runtime as JSRuntime>::Value as JSValue>::Runtime as JSRuntime>::Context) -> Result<<Self::Runtime as JSRuntime>::Value> {
-                <Self::Runtime as JSRuntime>::Value::$func(ctx, *self)
+            fn to_js_value(&self, ctx: Self::Context) -> Result<Self::Value> {
+                Self::Value::$func(ctx, *self)
             }
         }
     };
 
     ($func:ident, $type:ty) => {
-        impl<R: JSRuntime> ValueConversion<R> for $type {
-            type Runtime = R;
+        impl<V: JSValue<Context = C>, C: JSContext> ValueConversion<V, C> for $type {
+            type Value = V;
+            type Context = C;
 
-            fn to_js_value(&self, ctx: <<<Self::Runtime as JSRuntime>::Value as JSValue>::Runtime as JSRuntime>::Context) -> Result<<Self::Runtime as JSRuntime>::Value> {
+            fn to_js_value(&self, ctx: Self::Context) -> Result<Self::Value> {
                 Self::Value::$func(ctx, self)
             }
         }
@@ -68,10 +75,11 @@ impl_value_conversion!(string, &str);
 
 impl_value_conversion!(bool, bool);
 
-impl<R: JSRuntime> ValueConversion<R> for String {
+impl<V: JSValue<Context = C>, C: JSContext> ValueConversion<V, C> for String {
+    type Value = V;
+    type Context = C;
 
-    type Runtime = R;
-    fn to_js_value(&self, ctx: <<<Self::Runtime as JSRuntime>::Value as JSValue>::Runtime as JSRuntime>::Context) -> Result<<Self::Runtime as JSRuntime>::Value> {
-        <Self::Runtime as JSRuntime>::Value::new_string(ctx, self)
+    fn to_js_value(&self, ctx: Self::Context) -> Result<Self::Value> {
+        Self::Value::new_string(ctx, self)
     }
 }

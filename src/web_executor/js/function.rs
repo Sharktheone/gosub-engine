@@ -4,58 +4,65 @@ struct Function<T: JSFunction>(pub T);
 
 //trait for JS functions (interop between JS and Rust)
 pub trait JSFunction {
-    type Runtime: JSRuntime;
+    type CB: JSFunctionCallBack;
 
-    fn call(&mut self, callback: &mut <Self::Runtime as JSRuntime>::CB);
+    fn call(&mut self, callback: &mut Self::CB);
 }
 
 pub trait JSFunctionCallBack {
-    type Runtime: JSRuntime;
+    type Args: Args;
+    type Context: JSContext;
+    type Value: JSValue;
 
-    fn context(&mut self) -> <Self::Runtime as JSRuntime>::Context;
+    fn context(&mut self) -> Self::Context;
 
-    fn args(&mut self) -> Vec<<Self::Runtime as JSRuntime>::Value>;
+    fn args(&mut self) -> &Self::Args;
 
-    fn ret(&mut self, value: <Self::Runtime as JSRuntime>::Value);
+    fn len(&self) -> usize;
+
+    fn ret(&mut self, value: Self::Value);
 }
 
 pub trait VariadicArgs: Iterator {
-    type Runtime: JSRuntime;
+    type Value: JSValue;
 
-    fn get(&self, index: usize) -> Option<<Self::Runtime as JSRuntime>::Value>;
+    fn get(&self, index: usize) -> Option<Self::Value>;
 
     fn len(&self) -> usize;
 
-    fn as_vec(&self) -> Vec<<Self::Runtime as JSRuntime>::Value>;
+    fn as_vec(&self) -> Vec<Self::Value>;
 }
 
 pub trait Args: Iterator {
-    type Runtime: JSRuntime;
+    type Context: JSContext;
+    type Value: JSValue;
 
-    fn get(&self, index: usize) -> Option<<Self::Runtime as JSRuntime>::Value>;
+    fn get(&self, index: usize, ctx: Self::Context) -> Option<Self::Value>;
 
     fn len(&self) -> usize;
 
-    fn as_vec(&self) -> Vec<<Self::Runtime as JSRuntime>::Value>;
+    fn as_vec(&self, ctx: Self::Context) -> Vec<Self::Value>;
 }
 
 pub struct VariadicFunction<T: JSFunctionVariadic>(pub T);
 
 //extra trait for variadic functions to mark them as such
 pub trait JSFunctionVariadic {
-    type Runtime: JSRuntime;
+    type VariadicCB: JSFunctionCallBackVariadic;
 
-    fn call(&mut self, callback: &mut <Self::Runtime as JSRuntime>::VariadicCB);
+    fn call(&mut self, callback: &mut Self::VariadicCB);
 }
 
 pub trait JSFunctionCallBackVariadic {
-    type Runtime: JSRuntime;
+    type Context: JSContext;
+    type Value: JSValue;
+    type VariadicArgs: VariadicArgs;
 
-    fn scope(&mut self) -> <Self::Runtime as JSRuntime>::Context;
+    fn scope(&mut self) -> Self::Context;
 
-    fn args(&mut self) -> &<Self::Runtime as JSRuntime>::VariadicArgs;
+    fn args(&mut self) -> &Self::VariadicArgs;
 
-    fn ret(&mut self, value: <Self::Runtime as JSRuntime>::Value);
+    fn ret(&mut self, value: Self::Value);
 
     fn error(&mut self, error: JSError);
 }

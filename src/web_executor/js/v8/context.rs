@@ -89,13 +89,15 @@ impl<'a> V8Ctx<'a> {
 }
 
 impl<'a> JSContext for V8Context<'a> {
-    type Runtime = V8Engine<'a>;
+    type Value = V8Value<'a>;
+    type Compiled = V8Compiled<'a>;
+    type Object = V8Object<'a>;
 
-    fn run(&mut self, code: &str) -> Result<<Self::Runtime as JSRuntime>::Value> {
+    fn run(&mut self, code: &str) -> Result<Self::Value> {
         self.compile(code)?.run()
     }
 
-    fn compile(&mut self, code: &str) -> Result<<Self::Runtime as JSRuntime>::Compiled> {
+    fn compile(&mut self, code: &str) -> Result<Self::Compiled> {
         let s = self.borrow_mut().scope();
 
         let try_catch = &mut TryCatch::new(s);
@@ -111,11 +113,11 @@ impl<'a> JSContext for V8Context<'a> {
         Ok(V8Compiled::from_ctx(Rc::clone(self), script))
     }
 
-    fn run_compiled(&mut self, compiled: &mut <Self::Runtime as JSRuntime>::Compiled) -> Result<<Self::Runtime as JSRuntime>::Value> {
+    fn run_compiled(&mut self, compiled: &mut Self::Compiled) -> Result<Self::Value> {
         compiled.run()
     }
 
-    fn new_global_object(&mut self, name: &str) -> Result<<Self::Runtime as JSRuntime>::Object> {
+    fn new_global_object(&mut self, name: &str) -> Result<Self::Object> {
         todo!()
     }
 }

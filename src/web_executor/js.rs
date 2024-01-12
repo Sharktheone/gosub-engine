@@ -46,29 +46,30 @@ lazy_static! {
 }
 
 pub trait JSObject {
-    type Runtime: JSRuntime;
+    type Value: JSValue;
+    type Function: JSFunction;
 
-    fn set_property(&self, name: &str, value: &<Self::Runtime as JSRuntime>::Value) -> Result<()>;
+    fn set_property(&self, name: &str, value: &Self::Value) -> Result<()>;
 
-    fn get_property(&self, name: &str) -> Result<<Self::Runtime as JSRuntime>::Value>;
+    fn get_property(&self, name: &str) -> Result<Self::Value>;
 
-    fn call_method(&self, name: &str, args: &[&<Self::Runtime as JSRuntime>::Value]) -> Result<<Self::Runtime as JSRuntime>::Value>;
+    fn call_method(&self, name: &str, args: &[&Self::Value]) -> Result<Self::Value>;
 
-    fn set_method(&self, name: &str, func: &<Self::Runtime as JSRuntime>::Function) -> Result<()>;
+    fn set_method(&self, name: &str, func: &Self::Function) -> Result<()>;
 }
 
 pub trait JSArray {
-    type Runtime: JSRuntime;
+    type Value: JSValue;
 
     type Index;
 
-    fn get<T: Into<Self::Index>>(&self, index: T) -> Result<<Self::Runtime as JSRuntime>::Value>;
+    fn get<T: Into<Self::Index>>(&self, index: T) -> Result<Self::Value>;
 
-    fn set<T: Into<Self::Index>>(&self, index: T, value: &<Self::Runtime as JSRuntime>::Value) -> Result<()>;
+    fn set<T: Into<Self::Index>>(&self, index: T, value: &Self::Value) -> Result<()>;
 
-    fn push(&self, value: <Self::Runtime as JSRuntime>::Value) -> Result<()>;
+    fn push(&self, value: Self::Value) -> Result<()>;
 
-    fn pop(&self) -> Result<<Self::Runtime as JSRuntime>::Value>;
+    fn pop(&self) -> Result<Self::Value>;
 
     fn remove<T: Into<Self::Index>>(&self, index: T) -> Result<()>;
 

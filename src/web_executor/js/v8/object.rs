@@ -2,7 +2,7 @@ use v8::{Local, Object};
 
 use crate::types::{Error, Result};
 use crate::web_executor::js::{JSArray, JSError, JSObject, JSRuntime, JSValue};
-use crate::web_executor::js::v8::{FromContext, V8Context, V8Ctx, V8Engine, V8Value};
+use crate::web_executor::js::v8::{FromContext, V8Context, V8Ctx, V8Engine, V8Function, V8Value};
 
 pub struct V8Object<'a> {
     ctx: V8Context<'a>,
@@ -10,9 +10,9 @@ pub struct V8Object<'a> {
 }
 
 impl<'a> JSObject for V8Object<'a> {
-    type Runtime = V8Engine<'a>;
-
-    fn set_property(&self, name: &str, value: &<Self::Runtime as JSRuntime>::Value) -> Result<()> {
+    type Value = V8Value<'a>;
+    type Function = V8Function<'a, 'a>;
+    fn set_property(&self, name: &str, value: &Self::Value) -> Result<()> {
         let Some(name) = v8::String::new(self.ctx.borrow_mut().scope(), name) else {
             return Err(Error::JS(JSError::Generic(
                 "failed to create a string".to_owned(),
@@ -32,7 +32,7 @@ impl<'a> JSObject for V8Object<'a> {
         }
     }
 
-    fn get_property(&self, name: &str) -> Result<<Self::Runtime as JSRuntime>::Value> {
+    fn get_property(&self, name: &str) -> Result<Self::Value> {
         let Some(name) = v8::String::new(self.ctx.borrow_mut().scope(), name) else {
             return Err(Error::JS(JSError::Generic(
                 "failed to create a string".to_owned(),
@@ -49,7 +49,7 @@ impl<'a> JSObject for V8Object<'a> {
             .map(|value| V8Value::from_value(self.ctx.clone(), value))
     }
 
-    fn call_method(&self, name: &str, args: &[&<Self::Runtime as JSRuntime>::Value]) -> Result<<Self::Runtime as JSRuntime>::Value> {
+    fn call_method(&self, name: &str, args: &[&Self::Value]) -> Result<Self::Value> {
         let func = self.get_property(name)?.value;
 
         if !func.is_function() {
@@ -74,7 +74,7 @@ impl<'a> JSObject for V8Object<'a> {
         Ok(ret)
     }
 
-    fn set_method(&self, name: &str, func: &<Self::Runtime as JSRuntime>::Function) -> Result<()> {
+    fn set_method(&self, name: &str, func: &Self::Function) -> Result<()> {
         let Some(name) = v8::String::new(self.ctx.borrow_mut().scope(), name) else {
             return Err(Error::JS(JSError::Generic(
                 "failed to create a string".to_owned(),
