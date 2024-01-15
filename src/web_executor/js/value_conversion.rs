@@ -3,7 +3,7 @@ use crate::web_executor::js::{JSContext, JSValue};
 
 
 //trait to easily convert Rust types to JS values (just call .to_js_value() on the type)
-pub trait ValueConversion<V: JSValue, C: JSContext> {
+pub trait ValueConversion<V: JSValue<Context = Self::Context>> {
     type Value: JSValue;
 
     type Context: JSContext;
@@ -13,9 +13,9 @@ pub trait ValueConversion<V: JSValue, C: JSContext> {
 
 macro_rules! impl_value_conversion {
     (number, $type:ty) => {
-        impl<V: JSValue<Context = C>, C: JSContext> ValueConversion<V, C> for $type {
+        impl<V: JSValue> ValueConversion<V> for $type {
             type Value = V;
-            type Context = C;
+            type Context = V::Context;
 
             fn to_js_value(&self, ctx: Self::Context) -> Result<Self::Value> {
                 Self::Value::new_number(ctx, *self as f64)
@@ -36,9 +36,9 @@ macro_rules! impl_value_conversion {
     };
 
     ($func:ident, $type:ty, deref) => {
-        impl<V: JSValue<Context = C>, C: JSContext> ValueConversion<V, C> for $type {
+        impl<V: JSValue> ValueConversion<V> for $type {
             type Value = V;
-            type Context = C;
+            type Context = V::Context;
 
             fn to_js_value(&self, ctx: Self::Context) -> Result<Self::Value> {
                 Self::Value::$func(ctx, *self)
@@ -47,9 +47,9 @@ macro_rules! impl_value_conversion {
     };
 
     ($func:ident, $type:ty) => {
-        impl<V: JSValue<Context = C>, C: JSContext> ValueConversion<V, C> for $type {
+        impl<V: JSValue> ValueConversion<V> for $type {
             type Value = V;
-            type Context = C;
+            type Context = V::Context;
 
             fn to_js_value(&self, ctx: Self::Context) -> Result<Self::Value> {
                 Self::Value::$func(ctx, self)
@@ -75,9 +75,9 @@ impl_value_conversion!(string, &str);
 
 impl_value_conversion!(bool, bool);
 
-impl<V: JSValue<Context = C>, C: JSContext> ValueConversion<V, C> for String {
+impl<V: JSValue> ValueConversion<V> for String {
     type Value = V;
-    type Context = C;
+    type Context = V::Context;
 
     fn to_js_value(&self, ctx: Self::Context) -> Result<Self::Value> {
         Self::Value::new_string(ctx, self)
