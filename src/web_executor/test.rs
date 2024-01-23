@@ -1,10 +1,13 @@
+use alloc::rc::Rc;
+use std::cell::RefCell;
 use std::collections::HashMap;
+use std::ops::Add;
 
 use webinterop::{web_fns, web_interop};
 
 use crate::types::Result;
-use crate::web_executor::js::{JSContext, JSFunctionCallBack, JSObject, JSRuntime, ValueConversion, VariadicArgs};
-use crate::web_executor::js::v8::{V8Context, V8Engine, V8Function, V8Value};
+use crate::web_executor::js::{Args, JSContext, JSFunction, JSFunctionCallBack, JSObject, JSValue, ValueConversion, VariadicArgs};
+use crate::web_executor::js::v8::{V8Context, V8Function, V8Value};
 
 #[web_interop]
 struct TestStruct {
@@ -118,26 +121,24 @@ struct TestStorage {
 
 
 impl Test2 {
-    fn implement(&mut self, mut ctx: V8Context) -> Result<()> {
+    fn implement(s: Rc<RefCell<Self>>, mut ctx: V8Context) -> Result<()> {
         let obj = ctx.new_global_object("Test2")?; //#name
 
 
         let cool_fn = {
-            V8Function::new(ctx.clone(), |cb| {  //TODO: add R::Function::new
+            let s = Rc::clone(&s);
+            V8Function::new(ctx.clone(), move |cb| {  //TODO: add R::Function::new
                 let num_args = 0; //function.arguments.len();
                 if num_args != cb.len() {
                     // cb.error("wrong number of arguments"); //TODO
                     return;
                 }
 
-                let ctx = cb.context(); //hmmm
+                let ctx = cb.context();
 
-                let ret = match <i32 as ValueConversion<V8Value, V8Context>>::to_js_value(&self.cool_fn(), ctx.clone()) {
-                    Ok(ret) => ret,
-                    Err(e) => {
-                        // cb.error(e); //TODO
-                        return;
-                    }
+                let Ok(ret) = s.borrow().cool_fn().to_js_value(ctx.clone()) else {
+                    // cb.error(e); //TODO
+                    return;
                 };
 
                 cb.ret(ret);
@@ -146,6 +147,42 @@ impl Test2 {
 
         obj.set_method("cool_fn", &cool_fn)?;
 
+
+        let add = {
+            let s = Rc::clone(&s);
+            V8Function::new(ctx.clone(), move |cb| {
+            let num_args = 1; //function.arguments.len();
+            if num_args != cb.len() {
+                // cb.error("wrong number of arguments"); //TODO
+                return;
+            }
+
+            let ctx = cb.context();
+
+            let args = cb.args();
+
+            // let Some(arg0) = cb.args().get(0, ctx.clone()). else {
+            //     // cb.error("failed to get argument"); //TODO
+            //     return;
+            // };
+
+            let num = cb.args().get(0, ctx.clone()).unwrap().as_number().unwrap();
+
+            // let Ok(arg0) = arg0.as_number() else {
+            //     // cb.error("failed to convert argument"); //TODO
+            //     return;
+            // };
+
+            // let arg0 = arg0 as i32;
+
+            // let arg0 = arg0.clone().add(0);
+
+            let ret = s.borrow_mut().add(num as i32).to_js_value(ctx.clone()).unwrap();
+
+
+            cb.ret(ret);
+        })?
+        };
         Ok(())
     }
 }

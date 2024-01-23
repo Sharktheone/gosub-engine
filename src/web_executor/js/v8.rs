@@ -20,6 +20,7 @@ mod context;
 mod function;
 mod object;
 mod value;
+mod utils;
 
 // status of the V8 engine
 static PLATFORM_INITIALIZED: AtomicBool = AtomicBool::new(false);

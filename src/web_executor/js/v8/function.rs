@@ -1,11 +1,12 @@
 use alloc::rc::Rc;
 
-use v8::{Function, FunctionCallbackArguments, HandleScope, Local, ReturnValue};
+use v8::{CallbackScope, Function, FunctionCallback, FunctionCallbackArguments, FunctionCallbackInfo, HandleScope, Local, ReturnValue};
 
 use crate::types::{Error, Result};
 use crate::web_executor::js::{Args, JSError, JSFunction, JSFunctionVariadic, JSRuntime, JSValue, VariadicArgs};
 use crate::web_executor::js::function::{JSFunctionCallBack, JSFunctionCallBackVariadic};
-use crate::web_executor::js::v8::{V8Context, V8Engine, V8Value};
+use crate::web_executor::js::v8::{V8Context, V8Value};
+use crate::web_executor::js::v8::utils::ToCFn;
 
 pub struct V8Function<'a, 'b> {
     pub(super) ctx: V8Context<'a>,
@@ -23,9 +24,9 @@ impl<'a> V8FunctionVariadic<'a> {
     }
 }
 
-pub struct V8FunctionCallBack<'a, 'args> {
+pub struct V8FunctionCallBack<'a> {
     ctx: V8Context<'a>,
-    args: &'args V8Args<'args>,
+    args: V8Args<'a>,
     ret: Result<Local<'a, v8::Value>>,
 }
 
@@ -91,8 +92,8 @@ impl<'a> Args for V8Args<'a> {
 }
 
 
-impl<'a, 'args> JSFunctionCallBack for V8FunctionCallBack<'a, 'args> {
-    type Args = V8Args<'args>;
+impl<'a> JSFunctionCallBack for V8FunctionCallBack<'a> {
+    type Args = V8Args<'a>;
     type Context = V8Context<'a>;
     type Value = V8Value<'a>;
 
@@ -101,7 +102,7 @@ impl<'a, 'args> JSFunctionCallBack for V8FunctionCallBack<'a, 'args> {
     }
 
     fn args(&mut self) -> &Self::Args {
-        self.args
+        &self.args
     }
 
     fn len(&self) -> usize {
@@ -114,67 +115,89 @@ impl<'a, 'args> JSFunctionCallBack for V8FunctionCallBack<'a, 'args> {
 }
 
 impl<'a> V8Function<'a, 'a> {
-    pub fn new(ctx: V8Context<'a>, f: impl Fn(&mut V8FunctionCallBack)) -> Result<V8Function> {
+    fn callback(ctx: &V8Context<'a>, scope: &mut HandleScope, args: FunctionCallbackArguments<'a>, mut ret: ReturnValue, f: impl Fn(&mut V8FunctionCallBack<'a>)) {
+        let mut a = Vec::with_capacity(args.length() as usize);
+
+        for i in 0..args.length() {
+            a.push(args.get(i));
+        }
+
+        let args = V8Args {
+            next: 0,
+            args: a,
+        };
+
+        let mut cb = V8FunctionCallBack {
+            ctx: Rc::clone(&ctx),
+            args: args,
+            ret: Err(Error::JS(JSError::Execution(
+                "function was not called".to_owned(),
+            ))),
+        };
+
+        let t = cb.args().len();
+
+        f(&mut cb);
+
+        match cb.ret {
+            Ok(value) => {
+                ret.set(value);
+            }
+            Err(e) => {
+                let excep = if let Some(exception) =
+                    v8::String::new(ctx.borrow_mut().scope(), &e.to_string())
+                {
+                    exception.into()
+                } else {
+                    eprintln!("failed to create exception string\nexception was: {e}"); //TODO: replace with our own logger
+                    v8::undefined(ctx.borrow_mut().scope()).into()
+                };
+
+                ret.set(ctx.borrow_mut().scope().throw_exception(excep));
+            }
+        }
+    }
+
+    fn callback_builder(ctx: V8Context<'a>, f: impl Fn(&mut V8FunctionCallBack<'a>)) -> FunctionCallback {
+        let c = |info: *const FunctionCallbackInfo| {
+            let info = unsafe { &*info };
+            let scope = &mut unsafe { CallbackScope::new(info) };
+            let args = FunctionCallbackArguments::from_function_callback_info(info);
+            let rv = ReturnValue::from_function_callback_info(info);
+
+            V8Function::callback(&ctx, scope, args, rv, &f);
+        };
+
+        c.to_c_fn()
+    }
+}
+
+impl<'a> JSFunction for V8Function<'a, 'a> {
+    type CB = V8FunctionCallBack<'a>;
+    type Context = V8Context<'a>;
+    type Value = V8Value<'a>;
+
+    fn new(ctx: Self::Context, f: impl Fn(&mut Self::CB) ) -> Result<Self> {
         let ctx = Rc::clone(&ctx);
 
-        let function = Function::new(
+        let k= V8Function::callback_builder(ctx.clone(), f);
+
+        let function = Function::new_raw(
             ctx.borrow_mut().scope(),
-            |scope: &mut HandleScope, args: FunctionCallbackArguments, mut ret: ReturnValue| {
-                let mut a = Vec::with_capacity(args.length() as usize);
-
-                for i in 0..args.length() {
-                    a.push(args.get(i));
-                }
-
-                let args = &V8Args {
-                    next: 0,
-                    args: a,
-                };
-
-                let mut cb = V8FunctionCallBack {
-                    ctx: Rc::clone(&ctx),
-                    args,
-                    ret: Err(Error::JS(JSError::Execution(
-                        "function was not called".to_owned(),
-                    ))),
-                };
-
-                let t = cb.args().len();
-
-                f(&mut cb);
-
-                match cb.ret {
-                    Ok(value) => {
-                        ret.set(value);
-                    }
-                    Err(e) => {
-                        let excep = if let Some(exception) =
-                            v8::String::new(ctx.borrow_mut().scope(), &e.to_string())
-                        {
-                            exception.into()
-                        } else {
-                            eprintln!("failed to create exception string\nexception was: {e}"); //TODO: replace with our own logger
-                            v8::undefined(ctx.borrow_mut().scope()).into()
-                        };
-
-                        ret.set(ctx.borrow_mut().scope().throw_exception(excep));
-                    }
-                }
-            },
+            k
         );
 
         if let Some(function) = function {
-            Ok(Self { ctx, function })
+            Ok(Self {
+                ctx,
+                function,
+            })
         } else {
             Err(Error::JS(JSError::Compile(
                 "failed to create function".to_owned(),
             )))
         }
     }
-}
-
-impl<'a, 'b> JSFunction for V8Function<'a, 'b> {
-    type CB = V8FunctionCallBack<'a, 'b>;
 
     fn call(&mut self, cb: &mut V8FunctionCallBack) {
         let ret = self.function.call(

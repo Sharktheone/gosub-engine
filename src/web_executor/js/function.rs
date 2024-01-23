@@ -1,3 +1,4 @@
+use crate::types::Result;
 use crate::web_executor::js::{JSContext, JSError, JSObject, JSRuntime, JSValue};
 
 struct Function<T: JSFunction>(pub T);
@@ -5,6 +6,10 @@ struct Function<T: JSFunction>(pub T);
 //trait for JS functions (interop between JS and Rust)
 pub trait JSFunction {
     type CB: JSFunctionCallBack;
+    type Context: JSContext;
+    type Value: JSValue;
+
+    fn new(ctx: Self::Context, func: impl Fn(&mut Self::CB) + 'static) -> Result<Self> where Self: Sized;
 
     fn call(&mut self, callback: &mut Self::CB);
 }
