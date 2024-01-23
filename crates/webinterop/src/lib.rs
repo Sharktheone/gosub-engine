@@ -23,6 +23,7 @@ mod implement;
 
 
 thread_local!(
+    #[allow(clippy::type_complexity)]
     static STATE: RefCell<HashMap<String, (Vec<Field>, Vec<Function>)>> = RefCell::new(HashMap::new());
 );
 
@@ -113,7 +114,7 @@ pub fn web_fns(attr: TokenStream, item: TokenStream) -> TokenStream {
             let state = state.borrow();
             let (fields, _) = state.get(&name).unwrap();
 
-            implement(&fields, &functions)
+            implement(fields, &functions)
         });
     } else {
         STATE.with_borrow_mut(|state| {

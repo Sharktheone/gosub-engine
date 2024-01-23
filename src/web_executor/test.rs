@@ -1,3 +1,5 @@
+#![allow(clippy::ptr_arg, clippy::needless_borrow)]
+
 use alloc::rc::Rc;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -151,37 +153,32 @@ impl Test2 {
         let add = {
             let s = Rc::clone(&s);
             V8Function::new(ctx.clone(), move |cb| {
-            let num_args = 1; //function.arguments.len();
-            if num_args != cb.len() {
-                // cb.error("wrong number of arguments"); //TODO
-                return;
-            }
+                let num_args = 1; //function.arguments.len();
+                if num_args != cb.len() {
+                    // cb.error("wrong number of arguments"); //TODO
+                    return;
+                }
 
-            let ctx = cb.context();
+                let ctx = cb.context();
 
-            let args = cb.args();
+                let args = cb.args();
 
-            // let Some(arg0) = cb.args().get(0, ctx.clone()). else {
-            //     // cb.error("failed to get argument"); //TODO
-            //     return;
-            // };
+                let Some(arg0) = cb.args().get(0, ctx.clone()) else {
+                    // cb.error("failed to get argument"); //TODO
+                    return;
+                };
 
-            let num = cb.args().get(0, ctx.clone()).unwrap().as_number().unwrap();
+                let Ok(arg0) = arg0.as_number() else {
+                    // cb.error("failed to convert argument"); //TODO
+                    return;
+                };
 
-            // let Ok(arg0) = arg0.as_number() else {
-            //     // cb.error("failed to convert argument"); //TODO
-            //     return;
-            // };
-
-            // let arg0 = arg0 as i32;
-
-            // let arg0 = arg0.clone().add(0);
-
-            let ret = s.borrow_mut().add(num as i32).to_js_value(ctx.clone()).unwrap();
+                #[allow(clippy::unit_arg)]
+                    let ret = s.borrow_mut().add(arg0 as i32).to_js_value(ctx.clone()).unwrap();
 
 
-            cb.ret(ret);
-        })?
+                cb.ret(ret);
+            })?
         };
         Ok(())
     }

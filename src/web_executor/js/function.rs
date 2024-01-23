@@ -25,6 +25,10 @@ pub trait JSFunctionCallBack {
 
     fn len(&self) -> usize;
 
+    fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     fn ret(&mut self, value: Self::Value);
 }
 
@@ -34,6 +38,10 @@ pub trait VariadicArgs: Iterator {
     fn get(&self, index: usize) -> Option<Self::Value>;
 
     fn len(&self) -> usize;
+
+    fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
 
     fn as_vec(&self) -> Vec<Self::Value>;
 }
@@ -45,6 +53,10 @@ pub trait Args: Iterator {
     fn get(&self, index: usize, ctx: Self::Context) -> Option<Self::Value>;
 
     fn len(&self) -> usize;
+
+    fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
 
     fn as_vec(&self, ctx: Self::Context) -> Vec<Self::Value>;
 }

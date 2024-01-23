@@ -128,8 +128,8 @@ impl<'a> V8Function<'a, 'a> {
         };
 
         let mut cb = V8FunctionCallBack {
-            ctx: Rc::clone(&ctx),
-            args: args,
+            ctx: Rc::clone(ctx),
+            args,
             ret: Err(Error::JS(JSError::Execution(
                 "function was not called".to_owned(),
             ))),
