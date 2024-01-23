@@ -1,8 +1,8 @@
 use v8::{Local, Object};
 
 use crate::types::{Error, Result};
-use crate::web_executor::js::{JSArray, JSError, JSObject, JSRuntime, JSValue};
 use crate::web_executor::js::v8::{FromContext, V8Context, V8Ctx, V8Engine, V8Function, V8Value};
+use crate::web_executor::js::{JSArray, JSError, JSObject, JSRuntime, JSValue};
 
 pub struct V8Object<'a> {
     ctx: V8Context<'a>,
@@ -67,9 +67,9 @@ impl<'a> JSObject for V8Object<'a> {
         let Some(ret) = function
             .call(try_catch, self.value.into(), &args)
             .map(|v| V8Value::from_value(self.ctx.clone(), v))
-            else {
-                return Err(V8Ctx::report_exception(try_catch));
-            };
+        else {
+            return Err(V8Ctx::report_exception(try_catch));
+        };
 
         Ok(ret)
     }
@@ -89,7 +89,11 @@ impl<'a> JSObject for V8Object<'a> {
 
         if self
             .value
-            .set(self.ctx.borrow_mut().scope(), name.into(), func.function.into())
+            .set(
+                self.ctx.borrow_mut().scope(),
+                name.into(),
+                func.function.into(),
+            )
             .is_none()
         {
             Err(Error::JS(JSError::Generic(

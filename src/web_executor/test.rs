@@ -8,8 +8,11 @@ use std::ops::Add;
 use webinterop::{web_fns, web_interop};
 
 use crate::types::Result;
-use crate::web_executor::js::{Args, JSContext, JSFunction, JSFunctionCallBack, JSObject, JSValue, ValueConversion, VariadicArgs};
 use crate::web_executor::js::v8::{V8Context, V8Function, V8Value};
+use crate::web_executor::js::{
+    Args, JSContext, JSFunction, JSFunctionCallBack, JSObject, JSValue, ValueConversion,
+    VariadicArgs,
+};
 
 #[web_interop]
 struct TestStruct {
@@ -48,7 +51,6 @@ impl TestStruct {
 //     let k = test.add(5);
 // }
 
-
 fn array_test() {
     let mut test_vec = vec![1, 2, 3];
 
@@ -85,12 +87,10 @@ fn ref_size_slice(slice: &[i32; 3]) {}
 
 fn mut_size_slice(slice: &mut [i32; 3]) {}
 
-
 struct Test2 {
     field: i32,
     other_field: String,
 }
-
 
 impl Test2 {
     fn cool_fn(&self) -> i32 {
@@ -116,20 +116,18 @@ impl Test2 {
     }
 }
 
-
 struct TestStorage {
     test: Test2,
 }
-
 
 impl Test2 {
     fn implement(s: Rc<RefCell<Self>>, mut ctx: V8Context) -> Result<()> {
         let obj = ctx.new_global_object("Test2")?; //#name
 
-
         let cool_fn = {
             let s = Rc::clone(&s);
-            V8Function::new(ctx.clone(), move |cb| {  //TODO: add R::Function::new
+            V8Function::new(ctx.clone(), move |cb| {
+                //TODO: add R::Function::new
                 let num_args = 0; //function.arguments.len();
                 if num_args != cb.len() {
                     // cb.error("wrong number of arguments"); //TODO
@@ -148,7 +146,6 @@ impl Test2 {
         };
 
         obj.set_method("cool_fn", &cool_fn)?;
-
 
         let add = {
             let s = Rc::clone(&s);
@@ -174,8 +171,11 @@ impl Test2 {
                 };
 
                 #[allow(clippy::unit_arg)]
-                    let ret = s.borrow_mut().add(arg0 as i32).to_js_value(ctx.clone()).unwrap();
-
+                let ret = s
+                    .borrow_mut()
+                    .add(arg0 as i32)
+                    .to_js_value(ctx.clone())
+                    .unwrap();
 
                 cb.ret(ret);
             })?
@@ -183,4 +183,3 @@ impl Test2 {
         Ok(())
     }
 }
-

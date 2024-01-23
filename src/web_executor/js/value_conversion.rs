@@ -1,8 +1,7 @@
-use clap::builder::Str;
 use crate::css3::parser_config::Context;
 use crate::types::Result;
 use crate::web_executor::js::{JSContext, JSValue};
-
+use clap::builder::Str;
 
 //trait to easily convert Rust types to JS values (just call .to_js_value() on the type)
 pub trait ValueConversion<V: JSValue> {
@@ -13,7 +12,7 @@ pub trait ValueConversion<V: JSValue> {
 
 macro_rules! impl_value_conversion {
     (number, $type:ty) => {
-        impl<V: JSValue> ValueConversion<V> for $type{
+        impl<V: JSValue> ValueConversion<V> for $type {
             type Value = V;
 
             fn to_js_value(&self, ctx: V::Context) -> Result<Self::Value> {
@@ -35,7 +34,7 @@ macro_rules! impl_value_conversion {
     };
 
     ($func:ident, $type:ty, deref) => {
-        impl<V: JSValue> ValueConversion<V> for $type{
+        impl<V: JSValue> ValueConversion<V> for $type {
             type Value = V;
             fn to_js_value(&self, ctx: V::Context) -> Result<Self::Value> {
                 Self::Value::$func(ctx, *self)
@@ -81,6 +80,6 @@ impl<V: JSValue> ValueConversion<V> for String {
 impl<V: JSValue> ValueConversion<V> for () {
     type Value = V;
     fn to_js_value(&self, ctx: V::Context) -> Result<Self::Value> {
-    Self::Value::new_undefined(ctx)
+        Self::Value::new_undefined(ctx)
     }
 }

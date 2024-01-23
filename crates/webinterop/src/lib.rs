@@ -6,25 +6,25 @@ use proc_macro::TokenStream;
 use std::cell::RefCell;
 use std::collections::HashMap;
 
-use syn::{FnArg, ItemImpl, ItemStruct};
 use syn::__private::ToTokens;
+use syn::{FnArg, ItemImpl, ItemStruct};
 
 use crate::implement::implement;
 use crate::items::{Field, Function};
 use crate::property::parse_property;
 use crate::types::{parse_return, parse_type, SelfType};
 
-mod items;
-mod types;
-mod property;
 mod impl_function;
-mod utils;
 mod implement;
-
+mod items;
+mod property;
+mod types;
+mod utils;
 
 thread_local!(
     #[allow(clippy::type_complexity)]
-    static STATE: RefCell<HashMap<String, (Vec<Field>, Vec<Function>)>> = RefCell::new(HashMap::new());
+    static STATE: RefCell<HashMap<String, (Vec<Field>, Vec<Function>)>> =
+        RefCell::new(HashMap::new());
 );
 
 #[proc_macro_attribute]
@@ -36,7 +36,9 @@ pub fn web_interop(attr: TokenStream, item: TokenStream) -> TokenStream {
     for field in &mut input.fields {
         if let Some(property) = parse_property(&mut field.attrs) {
             let mut f = Field {
-                name: property.rename.unwrap_or(field.ident.as_ref().unwrap().to_string()),
+                name: property
+                    .rename
+                    .unwrap_or(field.ident.as_ref().unwrap().to_string()),
                 executor: property.executor,
                 field_type: parse_type(field.ty.clone(), false).unwrap(),
             };
@@ -62,7 +64,6 @@ pub fn web_interop(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     input.into_token_stream().into()
 }
-
 
 #[proc_macro_attribute]
 pub fn web_fns(attr: TokenStream, item: TokenStream) -> TokenStream {

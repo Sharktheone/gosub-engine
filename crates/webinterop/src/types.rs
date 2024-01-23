@@ -1,19 +1,17 @@
+use crate::items::Executor;
 use proc_macro2::TokenStream;
 use quote::ToTokens;
 use syn::Path;
-use crate::items::Executor;
 
 pub(crate) struct Type {
     pub(crate) reference: Reference,
     pub(crate) ty: TypeT,
 }
 
-
 pub(crate) enum ReturnType {
     Undefined,
-    Type(TypeT)
+    Type(TypeT),
 }
-
 
 pub(crate) enum TypeT {
     None,
@@ -44,31 +42,32 @@ pub(crate) struct FunctionArg {
     pub(crate) ty: TypeT,
 }
 
-
 pub(crate) fn parse_type(ty: syn::Type, allow_ref: bool) -> Result<Type, &'static str> {
     match ty {
         syn::Type::Reference(r) => {
             if !allow_ref {
-                return Err("type can't be a reference here")
+                return Err("type can't be a reference here");
             }
 
             Ok(Type {
-                reference: if r.mutability.is_none() {Reference::Ref} else {Reference::MutRef},
-                ty: parse_type(*r.elem, false).map_err(|_| "double references not supported!")?.ty,
+                reference: if r.mutability.is_none() {
+                    Reference::Ref
+                } else {
+                    Reference::MutRef
+                },
+                ty: parse_type(*r.elem, false)
+                    .map_err(|_| "double references not supported!")?
+                    .ty,
             })
         }
-        syn::Type::Array(a) => {
-            Ok(Type {
-                reference: Reference::None,
-                ty: TypeT::Array(Box::new(parse_type(*a.elem, allow_ref)?))
-            })
-        }
-        syn::Type::Slice(s) => {
-            Ok(Type {
-                reference: Reference::None,
-                ty: TypeT::Array(Box::new(parse_type(*s.elem, allow_ref)?))
-            })
-        }
+        syn::Type::Array(a) => Ok(Type {
+            reference: Reference::None,
+            ty: TypeT::Array(Box::new(parse_type(*a.elem, allow_ref)?)),
+        }),
+        syn::Type::Slice(s) => Ok(Type {
+            reference: Reference::None,
+            ty: TypeT::Array(Box::new(parse_type(*s.elem, allow_ref)?)),
+        }),
         syn::Type::Tuple(t) => {
             let mut elements = Vec::with_capacity(t.elems.len());
 
@@ -78,27 +77,27 @@ pub(crate) fn parse_type(ty: syn::Type, allow_ref: bool) -> Result<Type, &'stati
 
             Ok(Type {
                 reference: Reference::None,
-                ty: TypeT::Tuple(elements)
+                ty: TypeT::Tuple(elements),
             })
         }
 
-        syn::Type::Path(p) => {
-            Ok(Type {
-                reference: Reference::None,
-                ty: TypeT::Type(p.path),
-            })
-
-        }
+        syn::Type::Path(p) => Ok(Type {
+            reference: Reference::None,
+            ty: TypeT::Type(p.path),
+        }),
         _ => {
             panic!("Invalid argument type");
         }
     }
 }
 
-
 pub(crate) fn parse_return(ret: syn::ReturnType) -> Result<ReturnType, &'static str> {
     Ok(match ret {
         syn::ReturnType::Default => ReturnType::Undefined,
-        syn::ReturnType::Type(_, ty) => ReturnType::Type(parse_type(*ty, false).map_err(|_| "return type can't be a reference")?.ty)
+        syn::ReturnType::Type(_, ty) => ReturnType::Type(
+            parse_type(*ty, false)
+                .map_err(|_| "return type can't be a reference")?
+                .ty,
+        ),
     })
 }

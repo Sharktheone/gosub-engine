@@ -9,7 +9,9 @@ pub trait JSFunction {
     type Context: JSContext;
     type Value: JSValue;
 
-    fn new(ctx: Self::Context, func: impl Fn(&mut Self::CB)) -> Result<Self> where Self: Sized;
+    fn new(ctx: Self::Context, func: impl Fn(&mut Self::CB)) -> Result<Self>
+    where
+        Self: Sized;
 
     fn call(&mut self, callback: &mut Self::CB);
 }
@@ -47,14 +49,15 @@ pub trait Args: Iterator {
     fn as_vec(&self, ctx: Self::Context) -> Vec<Self::Value>;
 }
 
-
 //extra trait for variadic functions to mark them as such
 pub trait JSFunctionVariadic {
     type CB: JSFunctionCallBackVariadic;
     type Context: JSContext;
     type Value: JSValue;
 
-    fn new(ctx: Self::Context, func: impl Fn(&mut Self::CB)) -> Result<Self> where Self: Sized;
+    fn new(ctx: Self::Context, func: impl Fn(&mut Self::CB)) -> Result<Self>
+    where
+        Self: Sized;
 
     fn call(&mut self, callback: &mut Self::CB);
 }

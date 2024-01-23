@@ -11,16 +11,18 @@ pub use function::*;
 pub use object::*;
 pub use value::*;
 
-use crate::web_executor::js::{JSArray, JSContext, JSFunction, JSObject, JSRuntime, JSValue, ValueConversion};
 use crate::types::Result;
+use crate::web_executor::js::{
+    JSArray, JSContext, JSFunction, JSObject, JSRuntime, JSValue, ValueConversion,
+};
 
 mod array;
 mod compile;
 mod context;
 mod function;
 mod object;
-mod value;
 mod utils;
+mod value;
 
 // status of the V8 engine
 static PLATFORM_INITIALIZED: AtomicBool = AtomicBool::new(false);
@@ -94,9 +96,9 @@ mod tests {
 
     use colored::Colorize;
 
+    use crate::types::Error;
     use crate::web_executor::js::v8::PLATFORM_INITIALIZED;
     use crate::web_executor::js::{JSContext, JSRuntime, JSValue};
-    use crate::types::Error;
 
     #[test]
     fn v8_test() {

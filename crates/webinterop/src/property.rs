@@ -1,5 +1,5 @@
-use syn::{Attribute, LitStr, Meta};
 use crate::items::{Executor, Field};
+use syn::{Attribute, LitStr, Meta};
 
 pub(crate) struct Property {
     pub(crate) rename: Option<String>,
@@ -13,7 +13,6 @@ impl Default for Property {
             executor: Executor::Both,
         }
     }
-
 }
 
 pub(crate) fn parse_property(attrs: &mut Vec<Attribute>) -> Option<Property> {
@@ -26,7 +25,6 @@ pub(crate) fn parse_property(attrs: &mut Vec<Attribute>) -> Option<Property> {
                 rename: None,
                 executor: Executor::Both,
             });
-
 
             //rename = "____", js => rename to name and it is a js only property
             //rename = "____", wasm => rename to name and it is a wasm only property
@@ -63,21 +61,22 @@ pub(crate) fn parse_property(attrs: &mut Vec<Attribute>) -> Option<Property> {
                                 }
                                 property.as_mut().unwrap().executor = Executor::None;
                             }
-                            _ => Err(syn::Error::new_spanned(attr, "Unknown attribute in property attribute"))?
+                            _ => Err(syn::Error::new_spanned(
+                                attr,
+                                "Unknown attribute in property attribute",
+                            ))?,
                         }
 
                         Ok(())
-                    }).unwrap();
+                    })
+                    .unwrap();
                 }
                 Meta::NameValue(_) => {
                     panic!("Unexpected NameValue in property attribute");
                 }
             }
 
-
             remove_attrs = Some(index);
-
-
         }
     }
 

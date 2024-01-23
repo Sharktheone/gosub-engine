@@ -1,12 +1,11 @@
-use syn::{Path};
 use crate::types::{FunctionArg, ReturnType, Type};
+use syn::Path;
 
 pub(crate) struct Function {
     pub(crate) name: String,
     pub(crate) arguments: Vec<FunctionArg>,
     pub(crate) return_type: ReturnType,
     pub(crate) executor: Executor,
-
 }
 
 pub(crate) struct Field {
@@ -23,4 +22,3 @@ pub(crate) enum Executor {
     Both,
     None,
 }
-

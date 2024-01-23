@@ -1,10 +1,7 @@
+use crate::items::{Executor, Function};
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::ItemImpl;
-use crate::items::{Executor, Function};
-
-
-
 
 pub fn impl_js_functions(functions: Vec<Function>) -> TokenStream {
     let mut impls = Vec::new();
@@ -16,21 +13,15 @@ pub fn impl_js_functions(functions: Vec<Function>) -> TokenStream {
     quote! {
         #(#impls)*
     }
-
 }
 fn impl_js_function(function: Function) -> TokenStream {
     assert_eq!(function.executor, Executor::JS);
 
     let name = function.name;
-    
 
     quote! {
-        
-        let 
+
+        let
 
     }
-
-
-
-
 }

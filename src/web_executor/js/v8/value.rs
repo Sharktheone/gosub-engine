@@ -2,9 +2,9 @@ use alloc::rc::Rc;
 
 use v8::{Local, Value};
 
+use crate::types::Error;
 use crate::web_executor::js::v8::{FromContext, V8Context, V8Engine, V8Object};
 use crate::web_executor::js::{JSError, JSRuntime, JSType, JSValue, ValueConversion};
-use crate::types::Error;
 
 pub struct V8Value<'a> {
     pub(crate) context: V8Context<'a>,

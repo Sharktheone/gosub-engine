@@ -1,12 +1,17 @@
 use alloc::rc::Rc;
 
-use v8::{CallbackScope, Function, FunctionCallback, FunctionCallbackArguments, FunctionCallbackInfo, HandleScope, Local, ReturnValue};
+use v8::{
+    CallbackScope, Function, FunctionCallback, FunctionCallbackArguments, FunctionCallbackInfo,
+    HandleScope, Local, ReturnValue,
+};
 
 use crate::types::{Error, Result};
-use crate::web_executor::js::{Args, JSError, JSFunction, JSFunctionVariadic, JSRuntime, JSValue, VariadicArgs};
 use crate::web_executor::js::function::{JSFunctionCallBack, JSFunctionCallBackVariadic};
-use crate::web_executor::js::v8::{V8Context, V8Value};
 use crate::web_executor::js::v8::utils::ToCFn;
+use crate::web_executor::js::v8::{V8Context, V8Value};
+use crate::web_executor::js::{
+    Args, JSError, JSFunction, JSFunctionVariadic, JSRuntime, JSValue, VariadicArgs,
+};
 
 pub struct V8Function<'a> {
     pub(super) ctx: V8Context<'a>,
@@ -80,7 +85,6 @@ impl<'a> Args for V8Args<'a> {
     }
 }
 
-
 impl<'a> JSFunctionCallBack for V8FunctionCallBack<'a> {
     type Args = V8Args<'a>;
     type Context = V8Context<'a>;
@@ -104,17 +108,20 @@ impl<'a> JSFunctionCallBack for V8FunctionCallBack<'a> {
 }
 
 impl<'a> V8Function<'a> {
-    fn callback(ctx: &V8Context<'a>, scope: &mut HandleScope, args: FunctionCallbackArguments<'a>, mut ret: ReturnValue, f: impl Fn(&mut V8FunctionCallBack<'a>)) {
+    fn callback(
+        ctx: &V8Context<'a>,
+        scope: &mut HandleScope,
+        args: FunctionCallbackArguments<'a>,
+        mut ret: ReturnValue,
+        f: impl Fn(&mut V8FunctionCallBack<'a>),
+    ) {
         let mut a = Vec::with_capacity(args.length() as usize);
 
         for i in 0..args.length() {
             a.push(args.get(i));
         }
 
-        let args = V8Args {
-            next: 0,
-            args: a,
-        };
+        let args = V8Args { next: 0, args: a };
 
         let mut cb = V8FunctionCallBack {
             ctx: Rc::clone(ctx),
@@ -147,7 +154,10 @@ impl<'a> V8Function<'a> {
         }
     }
 
-    fn callback_builder(ctx: V8Context<'a>, f: impl Fn(&mut V8FunctionCallBack<'a>)) -> FunctionCallback {
+    fn callback_builder(
+        ctx: V8Context<'a>,
+        f: impl Fn(&mut V8FunctionCallBack<'a>),
+    ) -> FunctionCallback {
         let c = |info: *const FunctionCallbackInfo| {
             let info = unsafe { &*info };
             let scope = &mut unsafe { CallbackScope::new(info) };
@@ -166,19 +176,16 @@ impl<'a> JSFunction for V8Function<'a> {
     type Context = V8Context<'a>;
     type Value = V8Value<'a>;
 
-    fn new(ctx: Self::Context, f: impl Fn(&mut Self::CB) ) -> Result<Self> {
+    fn new(ctx: Self::Context, f: impl Fn(&mut Self::CB)) -> Result<Self> {
         let ctx = Rc::clone(&ctx);
 
         let function = Function::new_raw(
             ctx.borrow_mut().scope(),
-            V8Function::callback_builder(ctx.clone(), f)
+            V8Function::callback_builder(ctx.clone(), f),
         );
 
         if let Some(function) = function {
-            Ok(Self {
-                ctx,
-                function,
-            })
+            Ok(Self { ctx, function })
         } else {
             Err(Error::JS(JSError::Compile(
                 "failed to create function".to_owned(),
@@ -202,7 +209,6 @@ impl<'a> JSFunction for V8Function<'a> {
         };
     }
 }
-
 
 //TODO: maybe move both implementations into a macro, so we have less code duplication
 
@@ -300,19 +306,21 @@ impl<'a> JSFunctionCallBackVariadic for V8FunctionCallBackVariadic<'a> {
     }
 }
 
-
 impl<'a> V8FunctionVariadic<'a> {
-    fn callback(ctx: &V8Context<'a>, scope: &mut HandleScope, args: FunctionCallbackArguments<'a>, mut ret: ReturnValue, f: impl Fn(&mut V8FunctionCallBackVariadic<'a>)) {
+    fn callback(
+        ctx: &V8Context<'a>,
+        scope: &mut HandleScope,
+        args: FunctionCallbackArguments<'a>,
+        mut ret: ReturnValue,
+        f: impl Fn(&mut V8FunctionCallBackVariadic<'a>),
+    ) {
         let mut a = Vec::with_capacity(args.length() as usize);
 
         for i in 0..args.length() {
             a.push(args.get(i));
         }
 
-        let args = V8VariadicArgs {
-            next: 0,
-            args: a,
-        };
+        let args = V8VariadicArgs { next: 0, args: a };
 
         let mut cb = V8FunctionCallBackVariadic {
             ctx: Rc::clone(ctx),
@@ -345,7 +353,10 @@ impl<'a> V8FunctionVariadic<'a> {
         }
     }
 
-    fn callback_builder(ctx: V8Context<'a>, f: impl Fn(&mut V8FunctionCallBackVariadic<'a>)) -> FunctionCallback {
+    fn callback_builder(
+        ctx: V8Context<'a>,
+        f: impl Fn(&mut V8FunctionCallBackVariadic<'a>),
+    ) -> FunctionCallback {
         let c = |info: *const FunctionCallbackInfo| {
             let info = unsafe { &*info };
             let scope = &mut unsafe { CallbackScope::new(info) };
@@ -364,19 +375,16 @@ impl<'a> JSFunctionVariadic for V8FunctionVariadic<'a> {
     type Context = V8Context<'a>;
     type Value = V8Value<'a>;
 
-    fn new(ctx: Self::Context, f: impl Fn(&mut Self::CB) ) -> Result<Self> {
+    fn new(ctx: Self::Context, f: impl Fn(&mut Self::CB)) -> Result<Self> {
         let ctx = Rc::clone(&ctx);
 
         let function = Function::new_raw(
             ctx.borrow_mut().scope(),
-            V8FunctionVariadic::callback_builder(ctx.clone(), f)
+            V8FunctionVariadic::callback_builder(ctx.clone(), f),
         );
 
         if let Some(function) = function {
-            Ok(Self {
-                ctx,
-                function,
-            })
+            Ok(Self { ctx, function })
         } else {
             Err(Error::JS(JSError::Compile(
                 "failed to create function".to_owned(),

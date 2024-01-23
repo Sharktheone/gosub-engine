@@ -1,11 +1,10 @@
 use std::marker::PhantomData;
 use std::mem::size_of;
 
-
 // --- https://github.com/denoland/rusty_v8/blob/ff2a50ccdf7d5f7091e2bfbdedf0927101e2844c/src/support.rs#L562 ---
 pub trait UnitType
-    where
-        Self: Copy + Sized,
+where
+    Self: Copy + Sized,
 {
     #[inline(always)]
     fn get() -> Self {
@@ -17,12 +16,12 @@ impl<T> UnitType for T where T: Copy + Sized {}
 
 #[derive(Copy, Clone, Debug)]
 struct UnitValue<T>(PhantomData<T>)
-    where
-        Self: Sized;
+where
+    Self: Sized;
 
 impl<T> UnitValue<T>
-    where
-        Self: Copy + Sized,
+where
+    Self: Copy + Sized,
 {
     const SELF: Self = Self::new_checked();
 
@@ -56,9 +55,9 @@ pub struct DefaultTag;
 pub struct IdenticalConversionTag;
 
 pub trait MapFnFrom<F, Tag = DefaultTag>
-    where
-        F: UnitType,
-        Self: Sized,
+where
+    F: UnitType,
+    Self: Sized,
 {
     fn mapping() -> Self;
 
@@ -69,8 +68,8 @@ pub trait MapFnFrom<F, Tag = DefaultTag>
 }
 
 impl<F> MapFnFrom<F, IdenticalConversionTag> for F
-    where
-        Self: UnitType,
+where
+    Self: UnitType,
 {
     #[inline(always)]
     fn mapping() -> Self {
@@ -79,9 +78,9 @@ impl<F> MapFnFrom<F, IdenticalConversionTag> for F
 }
 
 pub trait MapFnTo<T, Tag = DefaultTag>
-    where
-        Self: UnitType,
-        T: Sized,
+where
+    Self: UnitType,
+    T: Sized,
 {
     fn mapping() -> T;
 
@@ -92,9 +91,9 @@ pub trait MapFnTo<T, Tag = DefaultTag>
 }
 
 impl<F, T, Tag> MapFnTo<T, Tag> for F
-    where
-        Self: UnitType,
-        T: MapFnFrom<F, Tag>,
+where
+    Self: UnitType,
+    T: MapFnFrom<F, Tag>,
 {
     #[inline(always)]
     fn mapping() -> T {
@@ -103,9 +102,9 @@ impl<F, T, Tag> MapFnTo<T, Tag> for F
 }
 
 pub trait CFnFrom<F>
-    where
-        Self: Sized,
-        F: UnitType,
+where
+    Self: Sized,
+    F: UnitType,
 {
     fn mapping() -> Self;
 
@@ -145,9 +144,9 @@ impl_c_fn_from!(a0: A0, a1: A1, a2: A2, a3: A3, a4: A4, a5: A5);
 impl_c_fn_from!(a0: A0, a1: A1, a2: A2, a3: A3, a4: A4, a5: A5, a6: A6);
 
 pub trait ToCFn<T>
-    where
-        Self: UnitType,
-        T: Sized,
+where
+    Self: UnitType,
+    T: Sized,
 {
     fn mapping() -> T;
 
@@ -158,9 +157,9 @@ pub trait ToCFn<T>
 }
 
 impl<F, T> ToCFn<T> for F
-    where
-        Self: UnitType,
-        T: CFnFrom<F>,
+where
+    Self: UnitType,
+    T: CFnFrom<F>,
 {
     #[inline(always)]
     fn mapping() -> T {
