@@ -1,7 +1,7 @@
 use crate::web_executor::js::{JSArray, JSCompiled, JSFunction, JSObject, JSRuntime, JSValue};
 
 //main trait for JS context (can be implemented for different JS engines like V8, SpiderMonkey, JSC, etc.)
-pub trait JSContext {
+pub trait JSContext: Clone {
     type Value: JSValue;
     type Compiled: JSCompiled;
     type Object: JSObject;

@@ -9,7 +9,7 @@ pub trait JSFunction {
     type Context: JSContext;
     type Value: JSValue;
 
-    fn new(ctx: Self::Context, func: impl Fn(&mut Self::CB) + 'static) -> Result<Self> where Self: Sized;
+    fn new(ctx: Self::Context, func: impl Fn(&mut Self::CB)) -> Result<Self> where Self: Sized;
 
     fn call(&mut self, callback: &mut Self::CB);
 }
@@ -32,20 +32,6 @@ pub trait JSFunctionCallBack {
     fn ret(&mut self, value: Self::Value);
 }
 
-pub trait VariadicArgs: Iterator {
-    type Value: JSValue;
-
-    fn get(&self, index: usize) -> Option<Self::Value>;
-
-    fn len(&self) -> usize;
-
-    fn is_empty(&self) -> bool {
-        self.len() == 0
-    }
-
-    fn as_vec(&self) -> Vec<Self::Value>;
-}
-
 pub trait Args: Iterator {
     type Context: JSContext;
     type Value: JSValue;
@@ -61,25 +47,47 @@ pub trait Args: Iterator {
     fn as_vec(&self, ctx: Self::Context) -> Vec<Self::Value>;
 }
 
-pub struct VariadicFunction<T: JSFunctionVariadic>(pub T);
 
 //extra trait for variadic functions to mark them as such
 pub trait JSFunctionVariadic {
-    type VariadicCB: JSFunctionCallBackVariadic;
+    type CB: JSFunctionCallBackVariadic;
+    type Context: JSContext;
+    type Value: JSValue;
 
-    fn call(&mut self, callback: &mut Self::VariadicCB);
+    fn new(ctx: Self::Context, func: impl Fn(&mut Self::CB)) -> Result<Self> where Self: Sized;
+
+    fn call(&mut self, callback: &mut Self::CB);
 }
 
 pub trait JSFunctionCallBackVariadic {
+    type Args: VariadicArgs;
     type Context: JSContext;
     type Value: JSValue;
-    type VariadicArgs: VariadicArgs;
 
-    fn scope(&mut self) -> Self::Context;
+    fn context(&mut self) -> Self::Context;
 
-    fn args(&mut self) -> &Self::VariadicArgs;
+    fn args(&mut self) -> &Self::Args;
+
+    fn len(&self) -> usize;
+
+    fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
 
     fn ret(&mut self, value: Self::Value);
+}
 
-    fn error(&mut self, error: JSError);
+pub trait VariadicArgs: Iterator {
+    type Context: JSContext;
+    type Value: JSValue;
+
+    fn get(&self, index: usize, ctx: Self::Context) -> Option<Self::Value>;
+
+    fn len(&self) -> usize;
+
+    fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    fn as_vec(&self, ctx: Self::Context) -> Vec<Self::Value>;
 }

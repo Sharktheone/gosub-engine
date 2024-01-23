@@ -11,7 +11,7 @@ pub struct V8Object<'a> {
 
 impl<'a> JSObject for V8Object<'a> {
     type Value = V8Value<'a>;
-    type Function = V8Function<'a, 'a>;
+    type Function = V8Function<'a>;
     fn set_property(&self, name: &str, value: &Self::Value) -> Result<()> {
         let Some(name) = v8::String::new(self.ctx.borrow_mut().scope(), name) else {
             return Err(Error::JS(JSError::Generic(
