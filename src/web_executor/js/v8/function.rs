@@ -1,17 +1,11 @@
 use alloc::rc::Rc;
 
-use v8::{
-    CallbackScope, Function, FunctionCallback, FunctionCallbackArguments, FunctionCallbackInfo,
-    HandleScope, Local, ReturnValue,
-};
+use v8::{CallbackScope, External, Function, FunctionBuilder, FunctionCallbackArguments, FunctionCallbackInfo, HandleScope, Local, ReturnValue};
 
 use crate::types::{Error, Result};
+use crate::web_executor::js::{Args, JSError, JSFunction, JSFunctionVariadic, JSRuntime, JSValue, VariadicArgs, VariadicArgsInternal};
 use crate::web_executor::js::function::{JSFunctionCallBack, JSFunctionCallBackVariadic};
-use crate::web_executor::js::v8::utils::ToCFn;
 use crate::web_executor::js::v8::{V8Context, V8Value};
-use crate::web_executor::js::{
-    Args, JSError, JSFunction, JSFunctionVariadic, JSRuntime, JSValue, VariadicArgs,
-};
 
 pub struct V8Function<'a> {
     pub(super) ctx: V8Context<'a>,
@@ -108,7 +102,7 @@ impl<'a> JSFunctionCallBack for V8FunctionCallBack<'a> {
 }
 
 impl<'a> V8Function<'a> {
-    fn callback(
+    pub(crate) fn callback(
         ctx: &V8Context<'a>,
         scope: &mut HandleScope,
         args: FunctionCallbackArguments<'a>,
@@ -153,22 +147,51 @@ impl<'a> V8Function<'a> {
             }
         }
     }
+}
 
-    fn callback_builder(
-        ctx: V8Context<'a>,
-        f: impl Fn(&mut V8FunctionCallBack<'a>),
-    ) -> FunctionCallback {
-        let c = |info: *const FunctionCallbackInfo| {
-            let info = unsafe { &*info };
-            let scope = &mut unsafe { CallbackScope::new(info) };
-            let args = FunctionCallbackArguments::from_function_callback_info(info);
-            let rv = ReturnValue::from_function_callback_info(info);
+extern "C" fn callback<F>(info: *const FunctionCallbackInfo)
+    where
+        F: FnOnce(&mut HandleScope, FunctionCallbackArguments, ReturnValue),
+{
+    let info = unsafe { &*info };
+    let scope = &mut unsafe { CallbackScope::new(info) };
+    let args = FunctionCallbackArguments::from_function_callback_info(info);
+    let rv = ReturnValue::from_function_callback_info(info);
+    let external = match <Local<External>>::try_from(args.data()) {
+        Ok(external) => external,
+        Err(e) => {
+            let Some(e) = v8::String::new(scope, &e.to_string()) else {
+                eprintln!("failed to create exception string\nexception was: {e}"); //TODO: replace with our own logger
+                return;
+            };
+            scope.throw_exception(Local::from(e));
+            return;
+        }
+    };
 
-            V8Function::callback(&ctx, scope, args, rv, &f);
-        };
+    let closure = unsafe { &mut *(external.value() as *mut F) };
+    closure(scope, args, rv);
+}
 
-        c.to_c_fn()
+struct CallbackWrapper<'a> {
+    ctx: V8Context<'a>,
+    f: Box<dyn Fn(&mut V8FunctionCallBack<'a>)>,
+}
+
+impl<'a> CallbackWrapper<'a> {
+    fn new(ctx: V8Context<'a>, f: impl Fn(&mut V8FunctionCallBack<'a>) + 'static)) -> Self {
+        Self {
+            ctx,
+            f: Box::new(f),
+        }
     }
+}
+
+fn get_callback<F>(_: &F) -> extern "C" fn(info: *const FunctionCallbackInfo)
+    where
+        F: FnOnce(&mut HandleScope, FunctionCallbackArguments, ReturnValue),
+{
+    callback::<F>
 }
 
 impl<'a> JSFunction for V8Function<'a> {
@@ -179,10 +202,25 @@ impl<'a> JSFunction for V8Function<'a> {
     fn new(ctx: Self::Context, f: impl Fn(&mut Self::CB)) -> Result<Self> {
         let ctx = Rc::clone(&ctx);
 
-        let function = Function::new_raw(
-            ctx.borrow_mut().scope(),
-            V8Function::callback_builder(ctx.clone(), f),
+
+        let mut closure = {
+            let ctx = Rc::clone(&ctx);
+            |scope: &mut HandleScope<'a>, args: FunctionCallbackArguments<'a>, mut rv: ReturnValue| {
+                let ctx = &ctx;
+                V8Function::callback(ctx, scope, args, rv, &f);
+            }
+        };
+
+        let builder: FunctionBuilder<Function> = FunctionBuilder::new_raw(get_callback(&closure));
+
+        let scope = ctx.borrow_mut().scope();
+
+        let closure = External::new(
+            scope,
+            &mut closure as *mut _ as *mut std::ffi::c_void,
         );
+
+        let function = builder.data(Local::from(closure)).build(scope);
 
         if let Some(function) = function {
             Ok(Self { ctx, function })
@@ -219,22 +257,22 @@ pub struct V8FunctionVariadic<'a> {
 
 pub struct V8FunctionCallBackVariadic<'a> {
     ctx: V8Context<'a>,
-    args: V8VariadicArgs<'a>,
+    args: V8VariadicArgsInternal<'a>,
     ret: Result<Local<'a, v8::Value>>,
 }
 
-pub struct V8VariadicArgs<'a> {
+pub struct V8VariadicArgsInternal<'a> {
     next: usize,
     args: Vec<Local<'a, v8::Value>>,
 }
 
-impl V8VariadicArgs<'_> {
+impl V8VariadicArgsInternal<'_> {
     fn v8(&self) -> &[Local<v8::Value>] {
         &self.args
     }
 }
 
-impl<'a> Iterator for V8VariadicArgs<'a> {
+impl<'a> Iterator for V8VariadicArgsInternal<'a> {
     type Item = Local<'a, v8::Value>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -248,9 +286,11 @@ impl<'a> Iterator for V8VariadicArgs<'a> {
     }
 }
 
-impl<'a> VariadicArgs for V8VariadicArgs<'a> {
+impl<'a> VariadicArgsInternal for V8VariadicArgsInternal<'a> {
     type Context = V8Context<'a>;
     type Value = V8Value<'a>;
+
+    type Args = V8VariadicArgs<'a>;
 
     fn get(&self, index: usize, ctx: Self::Context) -> Option<Self::Value> {
         if index < self.args.len() {
@@ -282,10 +322,38 @@ impl<'a> VariadicArgs for V8VariadicArgs<'a> {
 
         a
     }
+
+    fn variadic(&self, ctx: Self::Context) -> Self::Args {
+        V8VariadicArgs {
+            next: 0,
+            args: self.as_vec(ctx),
+        }
+    }
+}
+
+pub struct V8VariadicArgs<'a> {
+    next: usize,
+    args: Vec<V8Value<'a>>,
+}
+
+impl<'a> VariadicArgs for V8VariadicArgs<'a> {
+    type Value = V8Value<'a>;
+
+    fn get(&self, index: usize) -> Option<&Self::Value> {
+        self.args.get(index)
+    }
+
+    fn len(&self) -> usize {
+        self.args.len()
+    }
+
+    fn as_vec(&self) -> &Vec<Self::Value> {
+        &self.args
+    }
 }
 
 impl<'a> JSFunctionCallBackVariadic for V8FunctionCallBackVariadic<'a> {
-    type Args = V8VariadicArgs<'a>;
+    type Args = V8VariadicArgsInternal<'a>;
     type Context = V8Context<'a>;
     type Value = V8Value<'a>;
 
@@ -320,7 +388,7 @@ impl<'a> V8FunctionVariadic<'a> {
             a.push(args.get(i));
         }
 
-        let args = V8VariadicArgs { next: 0, args: a };
+        let args = V8VariadicArgsInternal { next: 0, args: a };
 
         let mut cb = V8FunctionCallBackVariadic {
             ctx: Rc::clone(ctx),
@@ -352,22 +420,6 @@ impl<'a> V8FunctionVariadic<'a> {
             }
         }
     }
-
-    fn callback_builder(
-        ctx: V8Context<'a>,
-        f: impl Fn(&mut V8FunctionCallBackVariadic<'a>),
-    ) -> FunctionCallback {
-        let c = |info: *const FunctionCallbackInfo| {
-            let info = unsafe { &*info };
-            let scope = &mut unsafe { CallbackScope::new(info) };
-            let args = FunctionCallbackArguments::from_function_callback_info(info);
-            let rv = ReturnValue::from_function_callback_info(info);
-
-            V8FunctionVariadic::callback(&ctx, scope, args, rv, &f);
-        };
-
-        c.to_c_fn()
-    }
 }
 
 impl<'a> JSFunctionVariadic for V8FunctionVariadic<'a> {
@@ -377,11 +429,24 @@ impl<'a> JSFunctionVariadic for V8FunctionVariadic<'a> {
 
     fn new(ctx: Self::Context, f: impl Fn(&mut Self::CB)) -> Result<Self> {
         let ctx = Rc::clone(&ctx);
+        let scope = ctx.borrow_mut().scope();
 
-        let function = Function::new_raw(
-            ctx.borrow_mut().scope(),
-            V8FunctionVariadic::callback_builder(ctx.clone(), f),
+
+        let mut closure = {
+            let ctx = Rc::clone(&ctx);
+            move |scope: &mut HandleScope, args: FunctionCallbackArguments<'a>, mut rv: ReturnValue, | {
+            V8FunctionVariadic::callback(&ctx, scope, args, rv, &f);
+        }
+        };
+
+        let builder: FunctionBuilder<Function> = FunctionBuilder::new_raw(get_callback(&closure));
+
+        let closure = External::new(
+            scope,
+            &mut closure as *mut _ as *mut std::ffi::c_void,
         );
+
+        let function = builder.data(Local::from(closure)).build(scope);
 
         if let Some(function) = function {
             Ok(Self { ctx, function })

@@ -2,7 +2,7 @@ use alloc::rc::Rc;
 use std::cell::RefCell;
 use std::ptr::NonNull;
 
-use v8::{ContextScope, CreateParams, HandleScope, Isolate, OwnedIsolate, TryCatch};
+use v8::{ContextScope, CreateParams, HandleScope, Isolate, Local, Object, OwnedIsolate, TryCatch};
 
 use crate::types::{Error, Result};
 use crate::web_executor::js::compile::JSCompiled;
@@ -15,6 +15,7 @@ use crate::web_executor::js::{JSContext, JSError, JSRuntime};
 pub struct V8Ctx<'a> {
     isolate: NonNull<OwnedIsolate>,
     handle_scope: NonNull<HandleScope<'a, ()>>,
+    ctx: NonNull<Local<'a, v8::Context>>,
     context_scope: NonNull<ContextScope<'a, HandleScope<'a>>>,
 }
 
@@ -23,6 +24,7 @@ impl<'a> V8Ctx<'a> {
         let mut v8_ctx = Self {
             isolate: NonNull::dangling(),
             handle_scope: NonNull::dangling(),
+            ctx: NonNull::dangling(),
             context_scope: NonNull::dangling(),
         };
 
@@ -52,6 +54,16 @@ impl<'a> V8Ctx<'a> {
             ctx,
         ));
 
+
+
+        let Some(ctx) = NonNull::new(Box::into_raw(Box::new(ctx))) else {
+            return Err(Error::JS(JSError::Compile(
+                "Failed to create context".to_owned(),
+            )));
+        };
+
+        v8_ctx.ctx = ctx;
+
         let Some(ctx_scope) = NonNull::new(Box::into_raw(ctx_scope)) else {
             return Err(Error::JS(JSError::Compile(
                 "Failed to create context scope".to_owned(),
@@ -65,6 +77,18 @@ impl<'a> V8Ctx<'a> {
 
     pub(crate) fn scope(&mut self) -> &'a mut ContextScope<'a, HandleScope<'a>> {
         unsafe { self.context_scope.as_mut() }
+    }
+
+    pub(crate) fn isolate(&mut self) -> &'a mut OwnedIsolate {
+        unsafe { self.isolate.as_mut() }
+    }
+
+    pub(crate) fn handle_scope(&mut self) -> &'a mut HandleScope<'a, ()> {
+        unsafe { self.handle_scope.as_mut() }
+    }
+
+    pub(crate) fn context(&mut self) -> &'a mut Local<'a, v8::Context> {
+        unsafe { self.ctx.as_mut() }
     }
 
     pub(crate) fn default() -> Result<Rc<RefCell<Self>>> {
@@ -118,6 +142,13 @@ impl<'a> JSContext for V8Context<'a> {
     }
 
     fn new_global_object(&mut self, name: &str) -> Result<Self::Object> {
-        todo!()
+        let scope = self.borrow_mut().scope();
+        let obj = Object::new(scope);
+        let name = v8::String::new(scope, name).unwrap();
+        let global = self.borrow_mut().context().global(scope);
+
+        global.set(scope, name.into(), obj.into());
+
+        Ok(V8Object::from_ctx(Rc::clone(self), obj))
     }
 }

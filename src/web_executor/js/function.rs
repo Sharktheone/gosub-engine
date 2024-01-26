@@ -9,7 +9,7 @@ pub trait JSFunction {
     type Context: JSContext;
     type Value: JSValue;
 
-    fn new(ctx: Self::Context, func: impl Fn(&mut Self::CB)) -> Result<Self>
+    fn new(ctx: Self::Context, func: impl Fn(&mut Self::CB) + Copy) -> Result<Self>
     where
         Self: Sized;
 
@@ -55,7 +55,7 @@ pub trait JSFunctionVariadic {
     type Context: JSContext;
     type Value: JSValue;
 
-    fn new(ctx: Self::Context, func: impl Fn(&mut Self::CB)) -> Result<Self>
+    fn new(ctx: Self::Context, func: impl Fn(&mut Self::CB) + Copy) -> Result<Self>
     where
         Self: Sized;
 
@@ -63,7 +63,7 @@ pub trait JSFunctionVariadic {
 }
 
 pub trait JSFunctionCallBackVariadic {
-    type Args: VariadicArgs;
+    type Args: VariadicArgsInternal;
     type Context: JSContext;
     type Value: JSValue;
 
@@ -80,9 +80,11 @@ pub trait JSFunctionCallBackVariadic {
     fn ret(&mut self, value: Self::Value);
 }
 
-pub trait VariadicArgs: Iterator {
+pub trait VariadicArgsInternal: Iterator {
     type Context: JSContext;
     type Value: JSValue;
+
+    type Args: VariadicArgs;
 
     fn get(&self, index: usize, ctx: Self::Context) -> Option<Self::Value>;
 
@@ -93,4 +95,20 @@ pub trait VariadicArgs: Iterator {
     }
 
     fn as_vec(&self, ctx: Self::Context) -> Vec<Self::Value>;
+
+    fn variadic(&self, ctx: Self::Context) -> Self::Args;
+}
+
+pub trait VariadicArgs {
+    type Value: JSValue;
+
+    fn get(&self, index: usize) -> Option<&Self::Value>;
+
+    fn len(&self) -> usize;
+
+    fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    fn as_vec(&self) -> &Vec<Self::Value>;
 }

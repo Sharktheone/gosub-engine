@@ -1,5 +1,7 @@
 use std::marker::PhantomData;
 use std::mem::size_of;
+use v8::{CallbackScope, FunctionCallback, FunctionCallbackArguments, FunctionCallbackInfo, ReturnValue};
+use crate::web_executor::js::v8::{V8Context, V8Function, V8FunctionCallBack};
 
 // --- https://github.com/denoland/rusty_v8/blob/ff2a50ccdf7d5f7091e2bfbdedf0927101e2844c/src/support.rs#L562 ---
 pub trait UnitType
@@ -54,50 +56,50 @@ pub struct DefaultTag;
 #[derive(Debug)]
 pub struct IdenticalConversionTag;
 
-pub trait MapFnFrom<F, Tag = DefaultTag>
+pub trait MapFnFrom<'a, F, Tag = DefaultTag>
 where
     F: UnitType,
     Self: Sized,
 {
-    fn mapping() -> Self;
+    fn mapping(ctx: &V8Context<'a>) -> Self;
 
     #[inline(always)]
-    fn map_fn_from(_: F) -> Self {
-        Self::mapping()
+    fn map_fn_from(ctx: &V8Context<'a>, _: F) -> Self {
+        Self::mapping(ctx)
     }
 }
 
-impl<F> MapFnFrom<F, IdenticalConversionTag> for F
+impl<'a, F> MapFnFrom<'a, F, IdenticalConversionTag> for F
 where
     Self: UnitType,
 {
     #[inline(always)]
-    fn mapping() -> Self {
+    fn mapping(ctx: &V8Context<'a>) -> Self {
         Self::get()
     }
 }
 
-pub trait MapFnTo<T, Tag = DefaultTag>
+pub trait MapFnTo<'a, T, Tag = DefaultTag>
 where
     Self: UnitType,
     T: Sized,
 {
-    fn mapping() -> T;
+    fn mapping(ctx: &V8Context<'a>) -> T;
 
     #[inline(always)]
-    fn map_fn_to(self) -> T {
-        Self::mapping()
+    fn map_fn_to(self, ctx: &V8Context<'a>) -> T {
+        Self::mapping(ctx)
     }
 }
 
-impl<F, T, Tag> MapFnTo<T, Tag> for F
+impl<'a, F, T, Tag> MapFnTo<'a, T, Tag> for F
 where
     Self: UnitType,
-    T: MapFnFrom<F, Tag>,
+    T: MapFnFrom<'a, F, Tag>,
 {
     #[inline(always)]
-    fn mapping() -> T {
-        T::map_fn_from(F::get())
+    fn mapping(ctx: &V8Context<'a>) -> T {
+        T::map_fn_from(ctx, F::get())
     }
 }
 
@@ -168,3 +170,22 @@ where
 }
 
 // --- copy end ---
+
+
+impl<'a, F> MapFnFrom<'a, F> for FunctionCallback
+where
+F: UnitType
+    + Fn(&mut V8FunctionCallBack<'a>),
+{
+    fn mapping(ctx: &V8Context<'a>) -> Self {
+        let f = |info: *const FunctionCallbackInfo| {
+            let info = unsafe { &*info };
+            let scope = &mut unsafe { CallbackScope::new(info) };
+            let args = FunctionCallbackArguments::from_function_callback_info(info);
+            let rv = ReturnValue::from_function_callback_info(info);
+
+            // V8Function::callback(ctx, scope, args, rv, F::get());
+        };
+        f.to_c_fn()
+    }
+}
