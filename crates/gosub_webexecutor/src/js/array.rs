@@ -38,4 +38,6 @@ pub trait JSArray: Iterator {
     ) -> Result<Self>
     where
         Self: Sized;
+
+    fn as_value(&self) -> <Self::RT as JSRuntime>::Value;
 }

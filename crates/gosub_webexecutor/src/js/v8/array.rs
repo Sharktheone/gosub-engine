@@ -143,13 +143,17 @@ impl<'a> JSArray for V8Array<'a> {
             next: 0,
         })
     }
+
+    fn as_value(&self) -> <Self::RT as JSRuntime>::Value {
+        V8Value::from_value(self.ctx.clone(), Local::from(self.value))
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::js::v8::{V8Array, V8Engine};
+    use crate::js::v8::{V8Array, V8Engine, V8Value};
     use crate::js::{
-        ArrayConversion, JSArray, JSContext, JSObject, JSRuntime, JSValue, ValueConversion,
+        ArrayConversion, IntoJSValue, JSArray, JSContext, JSObject, JSRuntime, JSValue,
     };
 
     #[test]
@@ -269,6 +273,21 @@ mod tests {
 
         let array: V8Array = [42, 1337, 1234].to_js_array(context.clone()).unwrap();
 
+        assert_eq!(array.len(), 3);
+        assert_eq!(array.get(0).unwrap().as_number().unwrap(), 42.0);
+        assert_eq!(array.get(1).unwrap().as_number().unwrap(), 1337.0);
+        assert_eq!(array.get(2).unwrap().as_number().unwrap(), 1234.0);
+    }
+
+    #[test]
+    fn rust_to_js_value() {
+        let mut engine = V8Engine::new();
+        let mut context = engine.new_context().unwrap();
+
+        let array: V8Value = [42, 1337, 1234].to_js_value(context.clone()).unwrap();
+
+        assert!(array.is_array());
+        let array = array.as_array().unwrap();
         assert_eq!(array.len(), 3);
         assert_eq!(array.get(0).unwrap().as_number().unwrap(), 42.0);
         assert_eq!(array.get(1).unwrap().as_number().unwrap(), 1337.0);

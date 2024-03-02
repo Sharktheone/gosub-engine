@@ -85,6 +85,22 @@ where
     }
 }
 
+impl<V, T> IntoJSValue<V> for [T]
+where
+    V: JSValue,
+    T: IntoJSValue<V, Value = V>,
+    V::RT: JSRuntime<Value = V>,
+{
+    type Value = V;
+    fn to_js_value(&self, ctx: <V::RT as JSRuntime>::Context) -> Result<Self::Value> {
+        let data = self
+            .iter()
+            .map(|v| v.to_js_value(ctx.clone()))
+            .collect::<Result<Vec<_>>>()?;
+
+        <V::RT as JSRuntime>::Array::new_with_data(ctx.clone(), &data).map(|v| v.as_value())
+    }
+}
 
 pub trait IntoRustValue<T> {
     fn to_rust_value(&self) -> Result<T>
