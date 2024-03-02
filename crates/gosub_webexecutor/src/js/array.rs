@@ -1,4 +1,4 @@
-use crate::js::{JSRuntime, JSValue};
+use crate::js::JSRuntime;
 use gosub_shared::types::Result;
 
 pub trait JSArray: Iterator {

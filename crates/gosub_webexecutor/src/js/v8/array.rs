@@ -159,7 +159,7 @@ mod tests {
     #[test]
     fn set() {
         let mut engine = V8Engine::new();
-        let mut context = engine.new_context().unwrap();
+        let context = engine.new_context().unwrap();
 
         let array = V8Array::new(context.clone(), 2).unwrap();
         array
@@ -175,7 +175,7 @@ mod tests {
     #[test]
     fn get() {
         let mut engine = V8Engine::new();
-        let mut context = engine.new_context().unwrap();
+        let context = engine.new_context().unwrap();
 
         let array = V8Array::new(context.clone(), 2).unwrap();
 
@@ -193,7 +193,7 @@ mod tests {
     #[test]
     fn push() {
         let mut engine = V8Engine::new();
-        let mut context = engine.new_context().unwrap();
+        let context = engine.new_context().unwrap();
 
         let array = V8Array::new(context.clone(), 2).unwrap();
 
@@ -210,7 +210,7 @@ mod tests {
     #[test]
     fn out_of_bounds() {
         let mut engine = V8Engine::new();
-        let mut context = engine.new_context().unwrap();
+        let context = engine.new_context().unwrap();
 
         let array = V8Array::new(context.clone(), 2).unwrap();
 
@@ -227,7 +227,7 @@ mod tests {
     #[test]
     fn pop() {
         let mut engine = V8Engine::new();
-        let mut context = engine.new_context().unwrap();
+        let context = engine.new_context().unwrap();
 
         let array = V8Array::new(context.clone(), 2).unwrap();
 
@@ -246,7 +246,7 @@ mod tests {
     #[test]
     fn dynamic_resize() {
         let mut engine = V8Engine::new();
-        let mut context = engine.new_context().unwrap();
+        let context = engine.new_context().unwrap();
 
         let array = V8Array::new(context.clone(), 2).unwrap();
 
@@ -269,7 +269,7 @@ mod tests {
     #[test]
     fn rust_to_js() {
         let mut engine = V8Engine::new();
-        let mut context = engine.new_context().unwrap();
+        let context = engine.new_context().unwrap();
 
         let array: V8Array = [42, 1337, 1234].to_js_array(context.clone()).unwrap();
 
@@ -282,7 +282,7 @@ mod tests {
     #[test]
     fn rust_to_js_value() {
         let mut engine = V8Engine::new();
-        let mut context = engine.new_context().unwrap();
+        let context = engine.new_context().unwrap();
 
         let array: V8Value = [42, 1337, 1234].to_js_value(context.clone()).unwrap();
 
@@ -403,7 +403,7 @@ mod tests {
     #[test]
     fn rust_vec_to_js() {
         let mut engine = V8Engine::new();
-        let mut context = engine.new_context().unwrap();
+        let context = engine.new_context().unwrap();
 
         #[allow(clippy::useless_vec)]
         let vec = vec![42, 1337, 1234];

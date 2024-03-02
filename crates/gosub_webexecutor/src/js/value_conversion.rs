@@ -1,6 +1,6 @@
 use gosub_shared::types::Result;
 
-use crate::js::{JSArray, JSContext, JSError, JSRuntime, JSValue};
+use crate::js::{JSArray, JSError, JSRuntime, JSValue};
 
 //trait to easily convert Rust types to JS values (just call .to_js_value() on the type)
 pub trait IntoJSValue<V: JSValue> {
