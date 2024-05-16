@@ -19,7 +19,6 @@ use gosub_styling::render_tree::{RenderNodeData, RenderTree, RenderTreeNode};
 use crate::render_tree::{NodeID, TreeDrawer};
 
 pub trait SceneDrawer {
-    /// Returns true if the texture needs to be redrawn
     fn draw(&mut self, scene: &mut Scene, size: PhysicalSize<u32>);
     fn mouse_move(&mut self, scene: &mut Scene, x: f64, y: f64);
 }
