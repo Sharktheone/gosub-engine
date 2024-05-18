@@ -1561,6 +1561,7 @@ dependencies = [
  "gosub_html5",
  "gosub_render_backend",
  "gosub_shared",
+ "gosub_typeface",
  "lazy_static",
  "regex",
  "rust-fontconfig",
@@ -1580,6 +1581,14 @@ dependencies = [
  "serde",
  "serde_derive",
  "serde_json",
+]
+
+[[package]]
+name = "gosub_typeface"
+version = "0.1.0"
+dependencies = [
+ "lazy_static",
+ "rust-fontconfig",
 ]
 
 [[package]]
