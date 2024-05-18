@@ -2,15 +2,19 @@ use std::io::Read;
 use std::ops::Div;
 
 use anyhow::anyhow;
+use image::DynamicImage;
 use smallvec::SmallVec;
 use taffy::{AvailableSpace, Layout, NodeId, PrintTree, Size, TaffyTree, TraversePartialTree};
 use url::Url;
-use vello::kurbo::{Affine, Arc, BezPath, Cap, Join, Rect, RoundedRect, Stroke};
-use vello::peniko::{Color, Fill, Format, Image};
+use vello::kurbo::{Affine, Arc, BezPath, Cap, Join, RoundedRect, Stroke};
+use vello::peniko::{Fill, Format};
 use vello::Scene;
 use winit::dpi::PhysicalSize;
 
 use gosub_html5::node::NodeId as GosubId;
+use gosub_render_backend::{
+    BorderRadius, Brush, Color, Image, Rect, RenderBackend, RenderRect, Transform, FP,
+};
 use gosub_rendering::position::PositionTree;
 use gosub_styling::css_colors::RgbColor;
 use gosub_styling::css_values::CssValue;
@@ -19,12 +23,12 @@ use gosub_styling::render_tree::{RenderNodeData, RenderTree, RenderTreeNode};
 use crate::render_tree::{NodeID, TreeDrawer};
 
 pub trait SceneDrawer {
-    fn draw(&mut self, scene: &mut Scene, size: PhysicalSize<u32>);
-    fn mouse_move(&mut self, scene: &mut Scene, x: f64, y: f64);
+    fn draw(&mut self, scene: &mut impl RenderBackend, size: PhysicalSize<u32>);
+    fn mouse_move(&mut self, scene: &mut impl RenderBackend, x: f64, y: f64);
 }
 
 impl SceneDrawer for TreeDrawer {
-    fn draw(&mut self, scene: &mut Scene, size: PhysicalSize<u32>) {
+    fn draw(&mut self, scene: &mut impl RenderBackend, size: PhysicalSize<u32>) {
         if self.size == Some(size) {
             //This check needs to be updated in the future, when the tree is mutable
             return;
@@ -36,7 +40,7 @@ impl SceneDrawer for TreeDrawer {
         self.render(scene, size);
     }
 
-    fn mouse_move(&mut self, _scene: &mut Scene, x: f64, y: f64) {
+    fn mouse_move(&mut self, _scene: &mut impl RenderBackend, x: f64, y: f64) {
         if let Some(e) = self.position.find(x as f32, y as f32) {
             if self.last_hover != Some(e) {
                 self.last_hover = Some(e);
@@ -55,7 +59,7 @@ impl SceneDrawer for TreeDrawer {
 }
 
 impl TreeDrawer {
-    pub(crate) fn render(&mut self, scene: &mut Scene, size: PhysicalSize<u32>) {
+    pub(crate) fn render<B: RenderBackend>(&mut self, scene: &mut B, size: PhysicalSize<u32>) {
         let space = Size {
             width: AvailableSpace::Definite(size.width as f32),
             height: AvailableSpace::Definite(size.height as f32),
@@ -70,13 +74,28 @@ impl TreeDrawer {
 
         self.position = PositionTree::from_taffy(&self.taffy, self.root);
 
-        let bg = Rect::new(0.0, 0.0, size.width as f64, size.height as f64);
-        scene.fill(Fill::NonZero, Affine::IDENTITY, Color::BLACK, None, &bg);
+        let bg = B::Rect::new(0.0, 0.0, size.width as FP, size.height as FP);
+
+        let rect = RenderRect {
+            rect: bg,
+            transform: None,
+            radius: None,
+            brush: B::Brush::color(B::Color::WHITE),
+            brush_transform: None,
+            border: None,
+        };
+
+        scene.draw_rect(&rect);
 
         self.render_node_with_children(self.root, scene, (0.0, 0.0));
     }
 
-    fn render_node_with_children(&mut self, id: NodeID, scene: &mut Scene, mut pos: (f64, f64)) {
+    fn render_node_with_children(
+        &mut self,
+        id: NodeID,
+        scene: &mut impl RenderBackend,
+        mut pos: (FP, FP),
+    ) {
         let err = self.render_node(id, scene, &mut pos);
         if let Err(e) = err {
             eprintln!("Error rendering node: {:?}", e);
@@ -95,11 +114,11 @@ impl TreeDrawer {
         }
     }
 
-    fn render_node(
+    fn render_node<B: RenderBackend>(
         &mut self,
         id: NodeID,
-        scene: &mut Scene,
-        pos: &mut (f64, f64),
+        scene: &mut B,
+        pos: &mut (FP, FP),
     ) -> anyhow::Result<()> {
         let gosub_id = *self
             .taffy
@@ -113,8 +132,8 @@ impl TreeDrawer {
             .get_node_mut(gosub_id)
             .ok_or(anyhow!("Node not found"))?;
 
-        pos.0 += layout.location.x as f64;
-        pos.1 += layout.location.y as f64;
+        pos.0 += layout.location.x as FP;
+        pos.1 += layout.location.y as FP;
 
         let border_radius = render_bg(node, scene, layout, pos, &self.url);
 
@@ -139,35 +158,27 @@ impl TreeDrawer {
 
                 let img = image::load_from_memory(&img)?;
 
-                let width = img.width();
-                let height = img.height();
-
-                let img = Image::new(
-                    img.into_rgba8().into_raw().into(),
-                    Format::Rgba8,
-                    width,
-                    height,
-                );
-
                 let fit = element
                     .attributes
                     .get("object-fit")
                     .map(|prop| prop.as_str())
                     .unwrap_or("contain");
 
-                render_image(&img, scene, *pos, layout.size, border_radius, fit)?;
+                render_image(img, scene, *pos, layout.size, border_radius, fit)?;
             }
         }
 
         render_text(node, scene, pos, layout);
-
-        render_border(node, scene, layout, pos, border_radius);
-
         Ok(())
     }
 }
 
-fn render_text(node: &mut RenderTreeNode, scene: &mut Scene, pos: &(f64, f64), layout: &Layout) {
+fn render_text<B: RenderBackend>(
+    node: &mut RenderTreeNode,
+    scene: &mut B,
+    pos: &(FP, FP),
+    layout: &Layout,
+) {
     if let RenderNodeData::Text(text) = &node.data {
         let color = node
             .properties
@@ -184,19 +195,19 @@ fn render_text(node: &mut RenderTreeNode, scene: &mut Scene, pos: &(f64, f64), l
             .map(|color| Color::rgba8(color.r as u8, color.g as u8, color.b as u8, color.a as u8))
             .unwrap_or(Color::BLACK);
 
-        let affine = Affine::translate((pos.0, pos.1 + layout.size.height as f64));
+        let translate = Transform::translate((pos.0, pos.1 + layout.size.height as FP));
 
-        text.show(scene, color, affine, Fill::NonZero, None);
+        text.show(scene, color, translate, Fill::NonZero, None);
     }
 }
 
-fn render_bg(
+fn render_bg<B: RenderBackend>(
     node: &mut RenderTreeNode,
-    scene: &mut Scene,
+    scene: &mut B,
     layout: &Layout,
-    pos: &(f64, f64),
+    pos: &(FP, FP),
     root_url: &Url,
-) -> (f64, f64, f64, f64) {
+) -> (FP, FP, FP, FP) {
     let bg_color = node
         .properties
         .get("background-color")
@@ -209,7 +220,7 @@ fn render_bg(
                 _ => None,
             }
         })
-        .map(|color| Color::rgba8(color.r as u8, color.g as u8, color.b as u8, color.a as u8));
+        .map(|color| Color::rgba(color.r as u8, color.g as u8, color.b as u8, color.a as u8));
 
     let border_radius_left = node
         .properties
@@ -248,22 +259,30 @@ fn render_bg(
         .unwrap_or(0.0);
 
     let border_radius = (
-        border_radius_top,
-        border_radius_right,
-        border_radius_bottom,
-        border_radius_left,
-    );
-
-    let rect = RoundedRect::new(
-        pos.0,
-        pos.1,
-        pos.0 + layout.size.width as f64,
-        pos.1 + layout.size.height as f64,
-        border_radius,
+        border_radius_top as FP,
+        border_radius_right as FP,
+        border_radius_bottom as FP,
+        border_radius_left as FP,
     );
 
     if let Some(bg_color) = bg_color {
-        scene.fill(Fill::NonZero, Affine::IDENTITY, bg_color, None, &rect);
+        let rect = Rect::new(
+            pos.0 as FP,
+            pos.1 as FP,
+            pos.0 + layout.size.width as FP,
+            pos.1 + layout.size.height as FP,
+        );
+
+        let rect = RenderRect {
+            rect,
+            transform: None,
+            radius: Some(B::BorderRadius::from(border_radius)),
+            brush: Brush::color(bg_color),
+            brush_transform: None,
+            border: None,
+        };
+
+        scene.draw_rect(&rect);
     }
 
     let background_image = node.properties.get("background-image").and_then(|prop| {
@@ -294,17 +313,7 @@ fn render_bg(
 
         let img = image::load_from_memory(&img).unwrap();
 
-        let height = img.height();
-        let width = img.width();
-
-        let img = Image::new(
-            img.into_rgba8().into_raw().into(),
-            Format::Rgba8,
-            width,
-            height,
-        );
-
-        let _ = render_image(&img, scene, *pos, layout.size, border_radius, "fill").map_err(|e| {
+        let _ = render_image(img, scene, *pos, layout.size, border_radius, "fill").map_err(|e| {
             eprintln!("Error rendering image: {:?}", e);
         });
     }
@@ -334,304 +343,310 @@ impl Side {
     }
 }
 
-fn render_border(
-    node: &mut RenderTreeNode,
-    scene: &mut Scene,
-    layout: &Layout,
-    pos: &(f64, f64),
-    border_radius: (f64, f64, f64, f64),
-) {
-    for side in Side::all() {
-        let radi = match side {
-            Side::Top => border_radius.0,
-            Side::Right => border_radius.1,
-            Side::Bottom => border_radius.2,
-            Side::Left => border_radius.3,
-        };
-        render_border_side(node, scene, layout, pos, radi, side);
-    }
-}
+// ---- This will be needed for the vello backend ----
+// fn render_border(
+//     node: &mut RenderTreeNode,
+//     scene: &mut Scene,
+//     layout: &Layout,
+//     pos: &(f64, f64),
+//     border_radius: (f64, f64, f64, f64),
+// ) {
+//     for side in Side::all() {
+//         let radi = match side {
+//             Side::Top => border_radius.0,
+//             Side::Right => border_radius.1,
+//             Side::Bottom => border_radius.2,
+//             Side::Left => border_radius.3,
+//         };
+//         render_border_side(node, scene, layout, pos, radi, side);
+//     }
+// }
+//
+// fn render_border_side<B: RenderBackend>(
+//     node: &mut RenderTreeNode,
+//     scene: &mut B ,
+//     layout: &Layout,
+//     pos: &(FP, FP),
+//     border_radius: FP,
+//     side: Side,
+// ) {
+//     let border_width = match side {
+//         Side::Top => layout.border.top,
+//         Side::Right => layout.border.right,
+//         Side::Bottom => layout.border.bottom,
+//         Side::Left => layout.border.left,
+//     } as f64;
+//
+//     let border_color = node
+//         .properties
+//         .get(&format!("border-{}-color", side.to_str()))
+//         .and_then(|prop| {
+//             prop.compute_value();
+//
+//             match &prop.actual {
+//                 CssValue::Color(color) => Some(*color),
+//                 CssValue::String(color) => Some(RgbColor::from(color.as_str())),
+//                 _ => None,
+//             }
+//         })
+//         .map(|color| Color::rgba8(color.r as u8, color.g as u8, color.b as u8, color.a as u8));
+//
+//     // let border_radius = 16f64;
+//
+//     let width = layout.size.width as f64;
+//     let height = layout.size.height as f64;
+//
+//     if let Some(border_color) = border_color {
+//         let mut path = BezPath::new();
+//
+//         //draw the border segment with rounded corners
+//
+//         match side {
+//             Side::Top => {
+//                 let offset = border_radius.powi(2).div(2.0).sqrt() - border_radius;
+//
+//                 path.move_to((pos.0 - offset, pos.1 - offset));
+//
+//                 let arc = Arc::new(
+//                     (pos.0 + border_radius, pos.1 + border_radius),
+//                     (border_radius, border_radius),
+//                     -std::f64::consts::PI * 3.0 / 4.0,
+//                     std::f64::consts::PI / 4.0,
+//                     0.0,
+//                 );
+//
+//                 arc.to_cubic_beziers(0.1, |p1, p2, p3| {
+//                     path.curve_to(p1, p2, p3);
+//                 });
+//
+//                 path.line_to((pos.0 + width - border_radius, pos.1));
+//
+//                 let arc = Arc::new(
+//                     (pos.0 + width - border_radius, pos.1 + border_radius),
+//                     (border_radius, border_radius),
+//                     -std::f64::consts::PI / 2.0,
+//                     std::f64::consts::PI / 4.0,
+//                     0.0,
+//                 );
+//
+//                 arc.to_cubic_beziers(0.1, |p1, p2, p3| {
+//                     path.curve_to(p1, p2, p3);
+//                 });
+//             }
+//             Side::Right => {
+//                 let offset = border_radius.powi(2).div(2.0).sqrt() - border_radius;
+//                 path.move_to((pos.0 + width + offset, pos.1 - offset));
+//
+//                 let arc = Arc::new(
+//                     (pos.0 + width - border_radius, pos.1 + border_radius),
+//                     (border_radius, border_radius),
+//                     -std::f64::consts::PI / 4.0,
+//                     std::f64::consts::PI / 4.0,
+//                     0.0,
+//                 );
+//
+//                 arc.to_cubic_beziers(0.1, |p1, p2, p3| {
+//                     path.curve_to(p1, p2, p3);
+//                 });
+//
+//                 path.line_to((pos.0 + width, pos.1 + height - border_radius));
+//
+//                 let arc = Arc::new(
+//                     (
+//                         pos.0 + width - border_radius,
+//                         pos.1 + height - border_radius,
+//                     ),
+//                     (border_radius, border_radius),
+//                     0.0,
+//                     std::f64::consts::PI / 4.0,
+//                     0.0,
+//                 );
+//
+//                 arc.to_cubic_beziers(0.1, |p1, p2, p3| {
+//                     path.curve_to(p1, p2, p3);
+//                 });
+//             }
+//             Side::Bottom => {
+//                 let offset = border_radius.powi(2).div(2.0).sqrt() - border_radius;
+//
+//                 path.move_to((pos.0 + width + offset, pos.1 + height + offset));
+//
+//                 let arc = Arc::new(
+//                     (
+//                         pos.0 + width - border_radius,
+//                         pos.1 + height - border_radius,
+//                     ),
+//                     (border_radius, border_radius),
+//                     -std::f64::consts::PI * 7.0 / 4.0,
+//                     std::f64::consts::PI / 4.0,
+//                     0.0,
+//                 );
+//
+//                 arc.to_cubic_beziers(0.1, |p1, p2, p3| {
+//                     path.curve_to(p1, p2, p3);
+//                 });
+//
+//                 path.line_to((pos.0 + border_radius, pos.1 + height));
+//
+//                 let arc = Arc::new(
+//                     (pos.0 + border_radius, pos.1 + height - border_radius),
+//                     (border_radius, border_radius),
+//                     -std::f64::consts::PI * 3.0 / 2.0,
+//                     std::f64::consts::PI / 4.0,
+//                     0.0,
+//                 );
+//
+//                 arc.to_cubic_beziers(0.1, |p1, p2, p3| {
+//                     path.curve_to(p1, p2, p3);
+//                 });
+//             }
+//             Side::Left => {
+//                 let offset = border_radius.powi(2).div(2.0).sqrt() - border_radius;
+//
+//                 path.move_to((pos.0 - offset, pos.1 + height + offset));
+//
+//                 let arc = Arc::new(
+//                     (pos.0 + border_radius, pos.1 + height - border_radius),
+//                     (border_radius, border_radius),
+//                     -std::f64::consts::PI * 5.0 / 4.0,
+//                     std::f64::consts::PI / 4.0,
+//                     0.0,
+//                 );
+//
+//                 arc.to_cubic_beziers(0.1, |p1, p2, p3| {
+//                     path.curve_to(p1, p2, p3);
+//                 });
+//
+//                 path.line_to((pos.0, pos.1 + border_radius));
+//
+//                 let arc = Arc::new(
+//                     (pos.0 + border_radius, pos.1 + border_radius),
+//                     (border_radius, border_radius),
+//                     -std::f64::consts::PI,
+//                     std::f64::consts::PI / 4.0,
+//                     0.0,
+//                 );
+//
+//                 arc.to_cubic_beziers(0.1, |p1, p2, p3| {
+//                     path.curve_to(p1, p2, p3);
+//                 });
+//             }
+//         }
+//
+//         let Some(border_style) = node
+//             .properties
+//             .get(&format!("border-{}-style", side.to_str()))
+//             .and_then(|prop| {
+//                 prop.compute_value();
+//
+//                 match &prop.actual {
+//                     CssValue::String(style) => Some(style.as_str()),
+//                     _ => None,
+//                 }
+//             })
+//         else {
+//             return;
+//         };
+//
+//         let border_style = BorderStyle::from_str(border_style);
+//
+//         let cap = match border_style {
+//             BorderStyle::Dashed => Cap::Square,
+//             BorderStyle::Dotted => Cap::Round,
+//             _ => Cap::Butt,
+//         };
+//
+//         let dash_pattern = match border_style {
+//             BorderStyle::Dashed => SmallVec::from([
+//                 border_width * 3.0,
+//                 border_width * 3.0,
+//                 border_width * 3.0,
+//                 border_width * 3.0,
+//             ]),
+//             BorderStyle::Dotted => {
+//                 SmallVec::from([border_width, border_width, border_width, border_width])
+//                 //TODO: somehow this doesn't result in circles. It is more like a rounded rectangle
+//             }
+//             _ => SmallVec::default(),
+//         };
+//
+//         let stroke = Stroke {
+//             width: border_width,
+//             join: Join::Bevel,
+//             miter_limit: 0.0,
+//             start_cap: cap,
+//             end_cap: cap,
+//             dash_pattern,
+//             dash_offset: 0.0,
+//         };
+//
+//         scene.stroke(&stroke, Affine::IDENTITY, border_color, None, &path);
+//     }
+// }
+// ---- This will be needed for the vello backend ----
 
-fn render_border_side(
-    node: &mut RenderTreeNode,
-    scene: &mut Scene,
-    layout: &Layout,
-    pos: &(f64, f64),
-    border_radius: f64,
-    side: Side,
-) {
-    let border_width = match side {
-        Side::Top => layout.border.top,
-        Side::Right => layout.border.right,
-        Side::Bottom => layout.border.bottom,
-        Side::Left => layout.border.left,
-    } as f64;
-
-    let border_color = node
-        .properties
-        .get(&format!("border-{}-color", side.to_str()))
-        .and_then(|prop| {
-            prop.compute_value();
-
-            match &prop.actual {
-                CssValue::Color(color) => Some(*color),
-                CssValue::String(color) => Some(RgbColor::from(color.as_str())),
-                _ => None,
-            }
-        })
-        .map(|color| Color::rgba8(color.r as u8, color.g as u8, color.b as u8, color.a as u8));
-
-    // let border_radius = 16f64;
-
-    let width = layout.size.width as f64;
-    let height = layout.size.height as f64;
-
-    if let Some(border_color) = border_color {
-        let mut path = BezPath::new();
-
-        //draw the border segment with rounded corners
-
-        match side {
-            Side::Top => {
-                let offset = border_radius.powi(2).div(2.0).sqrt() - border_radius;
-
-                path.move_to((pos.0 - offset, pos.1 - offset));
-
-                let arc = Arc::new(
-                    (pos.0 + border_radius, pos.1 + border_radius),
-                    (border_radius, border_radius),
-                    -std::f64::consts::PI * 3.0 / 4.0,
-                    std::f64::consts::PI / 4.0,
-                    0.0,
-                );
-
-                arc.to_cubic_beziers(0.1, |p1, p2, p3| {
-                    path.curve_to(p1, p2, p3);
-                });
-
-                path.line_to((pos.0 + width - border_radius, pos.1));
-
-                let arc = Arc::new(
-                    (pos.0 + width - border_radius, pos.1 + border_radius),
-                    (border_radius, border_radius),
-                    -std::f64::consts::PI / 2.0,
-                    std::f64::consts::PI / 4.0,
-                    0.0,
-                );
-
-                arc.to_cubic_beziers(0.1, |p1, p2, p3| {
-                    path.curve_to(p1, p2, p3);
-                });
-            }
-            Side::Right => {
-                let offset = border_radius.powi(2).div(2.0).sqrt() - border_radius;
-                path.move_to((pos.0 + width + offset, pos.1 - offset));
-
-                let arc = Arc::new(
-                    (pos.0 + width - border_radius, pos.1 + border_radius),
-                    (border_radius, border_radius),
-                    -std::f64::consts::PI / 4.0,
-                    std::f64::consts::PI / 4.0,
-                    0.0,
-                );
-
-                arc.to_cubic_beziers(0.1, |p1, p2, p3| {
-                    path.curve_to(p1, p2, p3);
-                });
-
-                path.line_to((pos.0 + width, pos.1 + height - border_radius));
-
-                let arc = Arc::new(
-                    (
-                        pos.0 + width - border_radius,
-                        pos.1 + height - border_radius,
-                    ),
-                    (border_radius, border_radius),
-                    0.0,
-                    std::f64::consts::PI / 4.0,
-                    0.0,
-                );
-
-                arc.to_cubic_beziers(0.1, |p1, p2, p3| {
-                    path.curve_to(p1, p2, p3);
-                });
-            }
-            Side::Bottom => {
-                let offset = border_radius.powi(2).div(2.0).sqrt() - border_radius;
-
-                path.move_to((pos.0 + width + offset, pos.1 + height + offset));
-
-                let arc = Arc::new(
-                    (
-                        pos.0 + width - border_radius,
-                        pos.1 + height - border_radius,
-                    ),
-                    (border_radius, border_radius),
-                    -std::f64::consts::PI * 7.0 / 4.0,
-                    std::f64::consts::PI / 4.0,
-                    0.0,
-                );
-
-                arc.to_cubic_beziers(0.1, |p1, p2, p3| {
-                    path.curve_to(p1, p2, p3);
-                });
-
-                path.line_to((pos.0 + border_radius, pos.1 + height));
-
-                let arc = Arc::new(
-                    (pos.0 + border_radius, pos.1 + height - border_radius),
-                    (border_radius, border_radius),
-                    -std::f64::consts::PI * 3.0 / 2.0,
-                    std::f64::consts::PI / 4.0,
-                    0.0,
-                );
-
-                arc.to_cubic_beziers(0.1, |p1, p2, p3| {
-                    path.curve_to(p1, p2, p3);
-                });
-            }
-            Side::Left => {
-                let offset = border_radius.powi(2).div(2.0).sqrt() - border_radius;
-
-                path.move_to((pos.0 - offset, pos.1 + height + offset));
-
-                let arc = Arc::new(
-                    (pos.0 + border_radius, pos.1 + height - border_radius),
-                    (border_radius, border_radius),
-                    -std::f64::consts::PI * 5.0 / 4.0,
-                    std::f64::consts::PI / 4.0,
-                    0.0,
-                );
-
-                arc.to_cubic_beziers(0.1, |p1, p2, p3| {
-                    path.curve_to(p1, p2, p3);
-                });
-
-                path.line_to((pos.0, pos.1 + border_radius));
-
-                let arc = Arc::new(
-                    (pos.0 + border_radius, pos.1 + border_radius),
-                    (border_radius, border_radius),
-                    -std::f64::consts::PI,
-                    std::f64::consts::PI / 4.0,
-                    0.0,
-                );
-
-                arc.to_cubic_beziers(0.1, |p1, p2, p3| {
-                    path.curve_to(p1, p2, p3);
-                });
-            }
-        }
-
-        let Some(border_style) = node
-            .properties
-            .get(&format!("border-{}-style", side.to_str()))
-            .and_then(|prop| {
-                prop.compute_value();
-
-                match &prop.actual {
-                    CssValue::String(style) => Some(style.as_str()),
-                    _ => None,
-                }
-            })
-        else {
-            return;
-        };
-
-        let border_style = BorderStyle::from_str(border_style);
-
-        let cap = match border_style {
-            BorderStyle::Dashed => Cap::Square,
-            BorderStyle::Dotted => Cap::Round,
-            _ => Cap::Butt,
-        };
-
-        let dash_pattern = match border_style {
-            BorderStyle::Dashed => SmallVec::from([
-                border_width * 3.0,
-                border_width * 3.0,
-                border_width * 3.0,
-                border_width * 3.0,
-            ]),
-            BorderStyle::Dotted => {
-                SmallVec::from([border_width, border_width, border_width, border_width])
-                //TODO: somehow this doesn't result in circles. It is more like a rounded rectangle
-            }
-            _ => SmallVec::default(),
-        };
-
-        let stroke = Stroke {
-            width: border_width,
-            join: Join::Bevel,
-            miter_limit: 0.0,
-            start_cap: cap,
-            end_cap: cap,
-            dash_pattern,
-            dash_offset: 0.0,
-        };
-
-        scene.stroke(&stroke, Affine::IDENTITY, border_color, None, &path);
-    }
-}
-
-fn render_image(
-    img: &Image,
-    scene: &mut Scene,
-    pos: (f64, f64),
+fn render_image<B: RenderBackend>(
+    img: DynamicImage,
+    scene: &mut B,
+    pos: (FP, FP),
     size: Size<f32>,
-    radii: (f64, f64, f64, f64),
+    radii: (FP, FP, FP, FP),
     fit: &str,
 ) -> anyhow::Result<()> {
-    let width = size.width as f64;
-    let height = size.height as f64;
+    let width = size.width as FP;
+    let height = size.height as FP;
 
-    let rect = RoundedRect::new(pos.0, pos.1, pos.0 + width, pos.1 + height, radii);
+    let rect = Rect::new(pos.0, pos.1, pos.0 + width, pos.1 + height);
 
-    let affine = match fit {
+    let img_size = (img.width() as FP, img.height() as FP);
+
+    let transform = match fit {
         "fill" => {
-            let scale_x = width / img.width as f64;
-            let scale_y = height / img.height as f64;
+            let scale_x = width / img_size.0;
+            let scale_y = height / img_size.1;
 
-            Affine::scale_non_uniform(scale_x, scale_y)
+            B::Transform::scale_xy(scale_x, scale_y)
         }
         "contain" => {
-            let scale_x = width / img.width as f64;
-            let scale_y = height / img.height as f64;
+            let scale_x = width / img_size.0;
+            let scale_y = height / img_size.1;
 
             let scale = scale_x.min(scale_y);
 
-            Affine::scale_non_uniform(scale, scale)
+            Transform::scale_xy(scale, scale)
         }
         "cover" => {
-            let scale_x = width / img.width as f64;
-            let scale_y = height / img.height as f64;
+            let scale_x = width / img_size.0;
+            let scale_y = height / img_size.1;
 
             let scale = scale_x.max(scale_y);
 
-            Affine::scale_non_uniform(scale, scale)
+            Transform::scale_xy(scale, scale)
         }
         "scale-down" => {
-            let scale_x = width / img.width as f64;
-            let scale_y = height / img.height as f64;
+            let scale_x = width / img_size.0;
+            let scale_y = height / img_size.1;
 
             let scale = scale_x.min(scale_y);
             let scale = scale.min(1.0);
 
-            Affine::scale_non_uniform(scale, scale)
+            Transform::scale_xy(scale, scale)
         }
-        _ => Affine::IDENTITY,
+        _ => Transform::IDENTITY,
     };
 
-    let affine = affine.with_translation(pos.into());
+    let transform = transform.with_translation(pos);
 
-    println!("affine: {:?}", affine);
-    println!("fit: {:?}", fit);
-    println!("width: {:?}", width);
-    println!("height: {:?}", height);
-    println!("img size: {}x{}", img.width, img.height);
-    println!("rect: {:?}", rect);
+    let rect = RenderRect {
+        rect,
+        transform: Some(transform),
+        radius: Some(B::BorderRadius::from(radii)),
+        brush: Brush::image(Image::new(img_size, img.into_rgba8().into_raw())),
+        brush_transform: None,
+        border: None,
+    };
 
-    scene.fill(Fill::NonZero, Affine::IDENTITY, img, Some(affine), &rect);
+    scene.draw_rect(&rect);
 
     Ok(())
 }

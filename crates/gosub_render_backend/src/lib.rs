@@ -13,8 +13,9 @@ pub trait RenderBackend: Sized {
     type Image: Image;
     type Brush: Brush<Self>;
 
-    fn draw_rect(&self, rect: &RenderRect<Self>, pos: Point);
-    fn draw_text(&self, text: &RenderText<Self>, pos: Point);
+    fn draw_rect(&mut self, rect: &RenderRect<Self>);
+    fn draw_text(&mut self, text: &RenderText<Self>, pos: Point);
+    fn reset(&mut self);
 }
 
 pub type FP = f32;
@@ -159,7 +160,13 @@ pub enum BorderStyle {
     Hidden,
 }
 
-pub trait BorderRadius: Sized {
+pub trait BorderRadius:
+    Sized
+    + From<[FP; 4]>
+    + From<[FP; 8]>
+    + From<(FP, FP, FP, FP)>
+    + From<(FP, FP, FP, FP, FP, FP, FP, FP)>
+{
     fn empty() -> Self;
     fn uniform(radius: FP) -> Self;
     fn uniform_elliptical(radius_x: FP, radius_y: FP) -> Self;
@@ -239,6 +246,8 @@ pub trait Transform: Sized + Mul<Self> + MulAssign {
     fn determinant(&self) -> FP;
 
     fn inverse(self) -> Self;
+
+    fn with_translation(&self, translation: (FP, FP)) -> Self;
 }
 
 pub trait Text {
@@ -277,10 +286,34 @@ pub trait Color {
     }
 
     fn with_alpha(r: u8, g: u8, b: u8, a: u8) -> Self;
+
+    fn rgb(r: u8, g: u8, b: u8) -> Self
+    where
+        Self: Sized,
+    {
+        Self::new(r, g, b)
+    }
+
+    fn rgba(r: u8, g: u8, b: u8, a: u8) -> Self
+    where
+        Self: Sized,
+    {
+        Self::with_alpha(r, g, b, a)
+    }
+
+    const WHITE: Self;
+    const BLACK: Self;
+    const RED: Self;
+    const GREEN: Self;
+    const BLUE: Self;
+    const YELLOW: Self;
+    const CYAN: Self;
+    const MAGENTA: Self;
+    const TRANSPARENT: Self;
 }
 
 pub trait Image {
-    fn new(width: u32, height: u32, data: &[u8]) -> Self;
+    fn new(size: (FP, FP), data: Vec<u8>) -> Self;
 
     fn from_img(img: &image::DynamicImage) -> Self;
 }

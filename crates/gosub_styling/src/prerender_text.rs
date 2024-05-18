@@ -11,6 +11,7 @@ use vello::skrifa::{FontRef, MetadataProvider};
 use vello::Scene;
 
 use gosub_html5::node::data::text::TextData;
+use gosub_render_backend::RenderBackend;
 
 #[cfg(target_arch = "wasm32")]
 #[derive(Default, Clone, Debug, PartialEq, Eq)]
@@ -325,24 +326,28 @@ impl PrerenderText {
         })
     }
 
-    pub fn show<'a>(
+    pub fn show<'a, B: RenderBackend>(
         &self,
-        scene: &mut Scene,
+        scene: &mut B,
         brush: impl Into<BrushRef<'a>>,
-        transform: Affine,
+        transform: B::Transform,
         style: impl Into<StyleRef<'a>>,
-        glyph_transform: Option<Affine>,
+        glyph_transform: Option<B::Transform>,
     ) {
         let brush = brush.into();
         let style = style.into();
 
-        scene
-            .draw_glyphs(&self.font)
-            .font_size(self.font_size)
-            .transform(transform)
-            .glyph_transform(glyph_transform)
-            .brush(brush)
-            .draw(style, self.glyphs.iter().copied());
+        let _ = (scene, transform, glyph_transform, brush, style);
+
+        todo!()
+
+        // scene
+        //     .draw_glyphs(&self.font)
+        //     .font_size(self.font_size)
+        //     .transform(transform)
+        //     .glyph_transform(glyph_transform)
+        //     .brush(brush)
+        //     .draw(style, self.glyphs.iter().copied());
     }
 }
 
