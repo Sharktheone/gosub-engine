@@ -1425,6 +1425,7 @@ dependencies = [
  "gosub_html5",
  "gosub_jsapi",
  "gosub_net",
+ "gosub_render_backend",
  "gosub_renderer",
  "gosub_rendering",
  "gosub_shared",
@@ -1528,6 +1529,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "gosub_html5",
+ "gosub_render_backend",
  "gosub_styling",
  "regex",
  "rstar",

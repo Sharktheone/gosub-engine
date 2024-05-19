@@ -1,20 +1,22 @@
 use smallvec::SmallVec;
+use std::fmt::Debug;
 use std::ops::{Mul, MulAssign};
 
-pub trait RenderBackend: Sized {
+pub trait RenderBackend: Sized + Debug {
     type Rect: Rect;
     type Border: Border<Self>;
     type BorderSide: BorderSide<Self>;
     type BorderRadius: BorderRadius;
     type Transform: Transform;
-    type Text: Text;
+    type PreRenderText: PreRenderText<Self>;
+    type Text: Text<Self>;
     type Gradient: Gradient<Self>;
     type Color: Color;
     type Image: Image;
     type Brush: Brush<Self>;
 
     fn draw_rect(&mut self, rect: &RenderRect<Self>);
-    fn draw_text(&mut self, text: &RenderText<Self>, pos: Point);
+    fn draw_text(&mut self, text: &RenderText<Self>);
     fn reset(&mut self);
 }
 
@@ -23,6 +25,12 @@ pub type FP = f32;
 pub struct Point {
     pub x: FP,
     pub y: FP,
+}
+
+#[derive(Debug)]
+pub struct Size {
+    pub width: FP,
+    pub height: FP,
 }
 
 pub struct RenderRect<B: RenderBackend> {
@@ -122,6 +130,8 @@ impl<B: RenderBackend> RenderBorder<B> {
 
 pub trait Rect {
     fn new(x: FP, y: FP, width: FP, height: FP) -> Self;
+
+    fn from_point(point: Point, size: Size) -> Self;
 }
 
 pub trait Border<B: RenderBackend> {
@@ -250,10 +260,19 @@ pub trait Transform: Sized + Mul<Self> + MulAssign {
     fn with_translation(&self, translation: (FP, FP)) -> Self;
 }
 
-pub trait Text {
-    fn new(text: &str, font: &str, size: FP) -> Self;
+pub trait PreRenderText<B: RenderBackend> {
+    fn new(text: String, font: Option<Vec<String>>, size: FP) -> Self;
 
-    // fn prerender(&mut self, backend: &impl RenderBackend); //TODO
+    fn prerender(&mut self, backend: &B) -> Size;
+    fn value(&self) -> &str;
+    fn font(&self) -> Option<&[String]>;
+    fn fs(&self) -> FP;
+
+    //TODO: Who should be responsible for line breaking if the text is too long?
+}
+
+pub trait Text<B: RenderBackend> {
+    fn new(pre: &B::PreRenderText) -> Self;
 }
 
 pub struct ColorStop<B: RenderBackend> {
@@ -261,7 +280,7 @@ pub struct ColorStop<B: RenderBackend> {
     pub color: B::Color,
 }
 
-type ColorStops<B: RenderBackend> = SmallVec<[ColorStop<B>; 4]>;
+type ColorStops<B> = SmallVec<[ColorStop<B>; 4]>;
 
 pub trait Gradient<B: RenderBackend> {
     fn new_linear(start: Point, end: Point, stops: ColorStops<B>) -> Self;

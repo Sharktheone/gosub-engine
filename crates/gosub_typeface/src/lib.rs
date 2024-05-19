@@ -42,7 +42,7 @@ pub struct FcPattern {
     name: Option<String>,
 }
 
-pub const DEFAULT_FS: f32 = 12.0;
+pub const DEFAULT_FS: f32 = 12.0; //TODO: this needs to be moved to somewhere and made configurable
 
 #[cfg(not(target_arch = "wasm32"))]
 lazy_static! {
@@ -171,7 +171,7 @@ impl FontRendererCache {
                     return &mut self.backup;
                 };
 
-                let font = Font::new((Arc::new(font_bytes)));
+                let font = Font::new(Arc::new(font_bytes));
 
                 let r = TextRenderer {
                     pattern,

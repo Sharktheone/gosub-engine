@@ -1,19 +1,15 @@
 use std::io::Read;
-use std::ops::Div;
 
 use anyhow::anyhow;
 use image::DynamicImage;
-use smallvec::SmallVec;
 use taffy::{AvailableSpace, Layout, NodeId, PrintTree, Size, TaffyTree, TraversePartialTree};
 use url::Url;
-use vello::kurbo::{Affine, Arc, BezPath, Cap, Join, RoundedRect, Stroke};
-use vello::peniko::{Fill, Format};
-use vello::Scene;
 use winit::dpi::PhysicalSize;
 
 use gosub_html5::node::NodeId as GosubId;
 use gosub_render_backend::{
-    BorderRadius, Brush, Color, Image, Rect, RenderBackend, RenderRect, Transform, FP,
+    Brush, Color, Image, PreRenderText, Rect, RenderBackend, RenderRect, RenderText, Text,
+    Transform, FP,
 };
 use gosub_rendering::position::PositionTree;
 use gosub_styling::css_colors::RgbColor;
@@ -22,13 +18,13 @@ use gosub_styling::render_tree::{RenderNodeData, RenderTree, RenderTreeNode};
 
 use crate::render_tree::{NodeID, TreeDrawer};
 
-pub trait SceneDrawer {
-    fn draw(&mut self, scene: &mut impl RenderBackend, size: PhysicalSize<u32>);
-    fn mouse_move(&mut self, scene: &mut impl RenderBackend, x: f64, y: f64);
+pub trait SceneDrawer<B: RenderBackend> {
+    fn draw(&mut self, scene: &mut B, size: PhysicalSize<u32>);
+    fn mouse_move(&mut self, scene: &mut B, x: f64, y: f64);
 }
 
-impl SceneDrawer for TreeDrawer {
-    fn draw(&mut self, scene: &mut impl RenderBackend, size: PhysicalSize<u32>) {
+impl<B: RenderBackend> SceneDrawer<B> for TreeDrawer<B> {
+    fn draw(&mut self, scene: &mut B, size: PhysicalSize<u32>) {
         if self.size == Some(size) {
             //This check needs to be updated in the future, when the tree is mutable
             return;
@@ -40,7 +36,7 @@ impl SceneDrawer for TreeDrawer {
         self.render(scene, size);
     }
 
-    fn mouse_move(&mut self, _scene: &mut impl RenderBackend, x: f64, y: f64) {
+    fn mouse_move(&mut self, _scene: &mut B, x: f64, y: f64) {
         if let Some(e) = self.position.find(x as f32, y as f32) {
             if self.last_hover != Some(e) {
                 self.last_hover = Some(e);
@@ -52,14 +48,14 @@ impl SceneDrawer for TreeDrawer {
                     return;
                 };
 
-                println!("Hovering over: {:?} ({:?})@({x},{y})", node.data, e);
+                println!("Hovering over: {:?} ({e:?})@({x},{y})", node.data);
             }
         };
     }
 }
 
-impl TreeDrawer {
-    pub(crate) fn render<B: RenderBackend>(&mut self, scene: &mut B, size: PhysicalSize<u32>) {
+impl<B: RenderBackend> TreeDrawer<B> {
+    pub(crate) fn render(&mut self, scene: &mut B, size: PhysicalSize<u32>) {
         let space = Size {
             width: AvailableSpace::Definite(size.width as f32),
             height: AvailableSpace::Definite(size.height as f32),
@@ -90,12 +86,7 @@ impl TreeDrawer {
         self.render_node_with_children(self.root, scene, (0.0, 0.0));
     }
 
-    fn render_node_with_children(
-        &mut self,
-        id: NodeID,
-        scene: &mut impl RenderBackend,
-        mut pos: (FP, FP),
-    ) {
+    fn render_node_with_children(&mut self, id: NodeID, scene: &mut B, mut pos: (FP, FP)) {
         let err = self.render_node(id, scene, &mut pos);
         if let Err(e) = err {
             eprintln!("Error rendering node: {:?}", e);
@@ -114,12 +105,7 @@ impl TreeDrawer {
         }
     }
 
-    fn render_node<B: RenderBackend>(
-        &mut self,
-        id: NodeID,
-        scene: &mut B,
-        pos: &mut (FP, FP),
-    ) -> anyhow::Result<()> {
+    fn render_node(&mut self, id: NodeID, scene: &mut B, pos: &mut (FP, FP)) -> anyhow::Result<()> {
         let gosub_id = *self
             .taffy
             .get_node_context(id)
@@ -174,7 +160,7 @@ impl TreeDrawer {
 }
 
 fn render_text<B: RenderBackend>(
-    node: &mut RenderTreeNode,
+    node: &mut RenderTreeNode<B>,
     scene: &mut B,
     pos: &(FP, FP),
     layout: &Layout,
@@ -192,17 +178,34 @@ fn render_text<B: RenderBackend>(
                     _ => None,
                 }
             })
-            .map(|color| Color::rgba8(color.r as u8, color.g as u8, color.b as u8, color.a as u8))
+            .map(|color| Color::rgba(color.r as u8, color.g as u8, color.b as u8, color.a as u8))
             .unwrap_or(Color::BLACK);
 
-        let translate = Transform::translate((pos.0, pos.1 + layout.size.height as FP));
+        let translate = Transform::translate(pos.0 as FP, pos.1 + layout.size.height as FP);
 
-        text.show(scene, color, translate, Fill::NonZero, None);
+        let text = Text::new(&text.prerender);
+
+        let rect = Rect::new(
+            pos.0 as FP,
+            pos.1 as FP,
+            pos.0 + layout.size.width as FP,
+            pos.1 + layout.size.height as FP,
+        );
+
+        let render_text = RenderText {
+            text,
+            rect,
+            transform: Some(translate),
+            brush: Brush::color(color),
+            brush_transform: None,
+        };
+
+        scene.draw_text(&render_text);
     }
 }
 
 fn render_bg<B: RenderBackend>(
-    node: &mut RenderTreeNode,
+    node: &mut RenderTreeNode<B>,
     scene: &mut B,
     layout: &Layout,
     pos: &(FP, FP),
@@ -686,17 +689,21 @@ impl BorderStyle {
 }
 
 //just for debugging
-pub fn print_tree(tree: &TaffyTree<GosubId>, root: NodeId, gosub_tree: &RenderTree) {
+pub fn print_tree<B: RenderBackend>(
+    tree: &TaffyTree<GosubId>,
+    root: NodeId,
+    gosub_tree: &RenderTree<B>,
+) {
     println!("TREE");
     print_node(tree, root, false, String::new(), gosub_tree);
 
     /// Recursive function that prints each node in the tree
-    fn print_node(
+    fn print_node<B: RenderBackend>(
         tree: &TaffyTree<GosubId>,
         node_id: NodeId,
         has_sibling: bool,
         lines_string: String,
-        gosub_tree: &RenderTree,
+        gosub_tree: &RenderTree<B>,
     ) {
         let layout = &tree.get_final_layout(node_id);
         let display = tree.get_debug_label(node_id);
@@ -722,7 +729,7 @@ pub fn print_tree(tree: &TaffyTree<GosubId>, root: NodeId, gosub_tree: &RenderTr
                 node_render.push('>');
             }
             RenderNodeData::Text(text) => {
-                let text = text.text.replace('\n', " ");
+                let text = text.prerender.value().replace('\n', " ");
                 node_render.push_str(text.trim());
             }
 
