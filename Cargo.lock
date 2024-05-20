@@ -1606,6 +1606,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "gosub_vello"
+version = "0.1.0"
+dependencies = [
+ "gosub_render_backend",
+ "gosub_shared",
+ "image",
+ "vello",
+]
+
+[[package]]
 name = "gosub_webexecutor"
 version = "0.1.0"
 dependencies = [

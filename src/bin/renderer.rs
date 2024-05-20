@@ -12,7 +12,7 @@ use gosub_rendering::layout::generate_taffy_tree;
 use gosub_shared::bytes::CharIterator;
 use gosub_shared::bytes::{Confidence, Encoding};
 use gosub_shared::types::Result;
-use gosub_styling::render_tree::{generate_render_tree, RenderTree as StyleTree, RenderTree};
+use gosub_styling::render_tree::{generate_render_tree, RenderTree as StyleTree};
 
 fn main() -> Result<()> {
     let matches = clap::Command::new("Gosub Renderer")

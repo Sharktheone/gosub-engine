@@ -227,12 +227,6 @@ pub trait Transform: Sized + Mul<Self> + MulAssign {
 
     fn pre_rotate_around(self, angle: FP, center: Point) -> Self;
 
-    fn pre_skew_x(self, angle: FP) -> Self;
-
-    fn pre_skew_y(self, angle: FP) -> Self;
-
-    fn pre_skew_xy(self, angle_x: FP, angle_y: FP) -> Self;
-
     fn then_scale(self, s: FP) -> Self;
 
     fn then_scale_xy(self, sx: FP, sy: FP) -> Self;
@@ -242,12 +236,6 @@ pub trait Transform: Sized + Mul<Self> + MulAssign {
     fn then_rotate(self, angle: FP) -> Self;
 
     fn then_rotate_around(self, angle: FP, center: Point) -> Self;
-
-    fn then_skew_x(self, angle: FP) -> Self;
-
-    fn then_skew_y(self, angle: FP) -> Self;
-
-    fn then_skew_xy(self, angle_x: FP, angle_y: FP) -> Self;
 
     fn as_matrix(&self) -> [FP; 6];
 
@@ -280,7 +268,7 @@ pub struct ColorStop<B: RenderBackend> {
     pub color: B::Color,
 }
 
-type ColorStops<B> = SmallVec<[ColorStop<B>; 4]>;
+pub type ColorStops<B> = SmallVec<[ColorStop<B>; 4]>;
 
 pub trait Gradient<B: RenderBackend> {
     fn new_linear(start: Point, end: Point, stops: ColorStops<B>) -> Self;
