@@ -251,6 +251,8 @@ pub trait Transform: Sized + Mul<Self> + MulAssign {
 pub trait PreRenderText<B: RenderBackend> {
     fn new(text: String, font: Option<Vec<String>>, size: FP) -> Self;
 
+    fn with_lh(text: String, font: Option<Vec<String>>, size: FP, line_height: FP) -> Self;
+
     fn prerender(&mut self, backend: &B) -> Size;
     fn value(&self) -> &str;
     fn font(&self) -> Option<&[String]>;
