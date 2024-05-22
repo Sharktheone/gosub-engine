@@ -1,14 +1,17 @@
 use vello::glyph::Glyph;
-use vello::peniko::{Blob, Font};
+use vello::kurbo::Affine;
+use vello::peniko::{Blob, BrushRef, Fill, Font, StyleRef};
+use vello::skrifa::{FontRef, MetadataProvider};
 
-use gosub_typeface::{BACKUP_FONT, DEFAULT_LH, FONT_RENDERER_CACHE};
+use gosub_render_backend::{PreRenderText as TPreRenderText, RenderText, Size, Text as TText, FP};
+use gosub_typeface::{FontSizing, BACKUP_FONT, DEFAULT_LH, FONT_RENDERER_CACHE};
 
 use crate::VelloRenderer;
 
-use gosub_render_backend::{PreRenderText as TPreRenderText, Size, Text as TText, FP};
-
 pub struct Text {
     glyphs: Vec<Glyph>,
+    font: Vec<Font>,
+    fs: FP,
 }
 
 pub struct PreRenderText {
@@ -21,8 +24,16 @@ pub struct PreRenderText {
 }
 
 impl TText<VelloRenderer> for Text {
-    fn new(pre: &PreRenderText) -> Self {
-        todo!()
+    fn new(pre: &mut PreRenderText, backend: &VelloRenderer) -> Self {
+        if pre.glyphs.is_none() {
+            pre.prerender(backend);
+        }
+
+        Text {
+            glyphs: pre.glyphs.clone().unwrap_or_default(),
+            font: pre.font.clone(),
+            fs: pre.fs,
+        }
     }
 }
 
@@ -71,7 +82,49 @@ impl TPreRenderText<VelloRenderer> for PreRenderText {
     }
 
     fn prerender(&mut self, backend: &VelloRenderer) -> Size {
-        todo!()
+        let font_ref = to_font_ref(&self.font[0]).unwrap();
+
+        let axes = font_ref.axes();
+        let char_map = font_ref.charmap();
+        let fs = Size::new(self.fs);
+        let variations: &[(&str, f32)] = &[]; // if we have more than an empty slice here we need to change the rendering to the scene
+        let var_loc = axes.location(variations.iter().copied());
+        let glyph_metrics = font_ref.glyph_metrics(fs, &var_loc);
+        let metrics = font_ref.metrics(fs, &var_loc);
+        // let line_height = metrics.ascent - metrics.descent + metrics.leading;
+
+        let mut width: f32 = 0.0;
+        let mut pen_x: f32 = 0.0;
+
+        let glyphs = self
+            .text
+            .chars()
+            .filter_map(|c| {
+                if c == '\n' {
+                    return None;
+                }
+
+                let gid = char_map.map(c).unwrap_or_default(); //TODO: here we need to use the next font if the glyph is not found
+                let advance = glyph_metrics.advance_width(gid).unwrap_or_default();
+                let x = pen_x;
+                pen_x += advance;
+
+                Some(Glyph {
+                    id: gid.to_u16() as u32,
+                    x,
+                    y: 0.0,
+                })
+            })
+            .collect();
+
+        width = width.max(pen_x);
+
+        self.glyphs = Some(glyphs);
+
+        Size {
+            width,
+            height: self.line_height,
+        }
     }
 
     fn value(&self) -> &str {
@@ -84,5 +137,33 @@ impl TPreRenderText<VelloRenderer> for PreRenderText {
 
     fn fs(&self) -> FP {
         self.fs
+    }
+}
+
+impl Text {
+    fn show(vello: &mut VelloRenderer, render: RenderText<VelloRenderer>) {
+        let brush: BrushRef = render.brush.0.into();
+        let style: StyleRef = Fill::NonZero.into();
+
+        let transform = render.transform.map(|t| t.0).unwrap_or(Affine::IDENTITY);
+        let brush_transform = render.brush_transform.map(|t| t.0);
+
+        vello
+            .scene
+            .draw_glyphs(&render.text.font[0])
+            .font_size(render.text.fs)
+            .transform(transform)
+            .glyph_transform(brush_transform)
+            .brush(brush)
+            .draw(style, render.text.glyphs.iter().copied());
+    }
+}
+
+fn to_font_ref(font: &Font) -> Option<FontRef<'_>> {
+    use vello::skrifa::raw::FileRef;
+    let file_ref = FileRef::new(font.data.as_ref()).ok()?;
+    match file_ref {
+        FileRef::Font(font) => Some(font),
+        FileRef::Collection(collection) => collection.get(font.index).ok(),
     }
 }

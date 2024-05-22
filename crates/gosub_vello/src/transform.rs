@@ -3,7 +3,7 @@ use vello::kurbo::Affine;
 
 use gosub_render_backend::{Point, Transform as TTransform, FP};
 
-pub struct Transform(Affine);
+pub struct Transform(pub(crate) Affine);
 
 impl From<Affine> for Transform {
     fn from(transform: Affine) -> Self {
