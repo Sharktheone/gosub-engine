@@ -1,12 +1,13 @@
+use std::ops::Deref;
 use vello::glyph::Glyph;
 use vello::kurbo::Affine;
 use vello::peniko::{Blob, BrushRef, Fill, Font, StyleRef};
-use vello::skrifa::{FontRef, MetadataProvider};
+use vello::skrifa::{instance::Size as FSize, FontRef, MetadataProvider};
 
 use gosub_render_backend::{PreRenderText as TPreRenderText, RenderText, Size, Text as TText, FP};
-use gosub_typeface::{FontSizing, BACKUP_FONT, DEFAULT_LH, FONT_RENDERER_CACHE};
+use gosub_typeface::{BACKUP_FONT, DEFAULT_LH, FONT_RENDERER_CACHE};
 
-use crate::VelloRenderer;
+use crate::VelloBackend;
 
 pub struct Text {
     glyphs: Vec<Glyph>,
@@ -23,8 +24,8 @@ pub struct PreRenderText {
     glyphs: Option<Vec<Glyph>>,
 }
 
-impl TText<VelloRenderer> for Text {
-    fn new(pre: &mut PreRenderText, backend: &VelloRenderer) -> Self {
+impl TText<VelloBackend> for Text {
+    fn new(pre: &mut PreRenderText, backend: &VelloBackend) -> Self {
         if pre.glyphs.is_none() {
             pre.prerender(backend);
         }
@@ -48,13 +49,13 @@ fn get_fonts_from_family(font_families: Option<Vec<String>>) -> Vec<Font> {
             }
         }
     } else {
-        fonts.push(Font::new(Blob::new(BACKUP_FONT.data), 0));
+        fonts.push(Font::new(Blob::new(BACKUP_FONT.data.clone()), 0));
     }
 
     fonts
 }
 
-impl TPreRenderText<VelloRenderer> for PreRenderText {
+impl TPreRenderText<VelloBackend> for PreRenderText {
     fn new(text: String, font: Option<Vec<String>>, size: FP) -> Self {
         let font = get_fonts_from_family(font);
 
@@ -81,12 +82,12 @@ impl TPreRenderText<VelloRenderer> for PreRenderText {
         }
     }
 
-    fn prerender(&mut self, backend: &VelloRenderer) -> Size {
+    fn prerender(&mut self, backend: &VelloBackend) -> Size {
         let font_ref = to_font_ref(&self.font[0]).unwrap();
 
         let axes = font_ref.axes();
         let char_map = font_ref.charmap();
-        let fs = Size::new(self.fs);
+        let fs = FSize::new(self.fs);
         let variations: &[(&str, f32)] = &[]; // if we have more than an empty slice here we need to change the rendering to the scene
         let var_loc = axes.location(variations.iter().copied());
         let glyph_metrics = font_ref.glyph_metrics(fs, &var_loc);
@@ -132,7 +133,7 @@ impl TPreRenderText<VelloRenderer> for PreRenderText {
     }
 
     fn font(&self) -> Option<&[String]> {
-        self.font.as_deref()
+        todo!()
     }
 
     fn fs(&self) -> FP {
@@ -141,8 +142,8 @@ impl TPreRenderText<VelloRenderer> for PreRenderText {
 }
 
 impl Text {
-    fn show(vello: &mut VelloRenderer, render: RenderText<VelloRenderer>) {
-        let brush: BrushRef = render.brush.0.into();
+    fn show(vello: &mut VelloBackend, render: RenderText<VelloBackend>) {
+        let brush = render.brush.0;
         let style: StyleRef = Fill::NonZero.into();
 
         let transform = render.transform.map(|t| t.0).unwrap_or(Affine::IDENTITY);
@@ -154,7 +155,7 @@ impl Text {
             .font_size(render.text.fs)
             .transform(transform)
             .glyph_transform(brush_transform)
-            .brush(brush)
+            .brush(&brush)
             .draw(style, render.text.glyphs.iter().copied());
     }
 }

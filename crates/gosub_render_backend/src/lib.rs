@@ -1,6 +1,7 @@
-use smallvec::SmallVec;
 use std::fmt::Debug;
 use std::ops::{Mul, MulAssign};
+
+use smallvec::SmallVec;
 
 pub trait RenderBackend: Sized + Debug {
     type Rect: Rect;
@@ -31,6 +32,19 @@ pub struct Point {
 pub struct Size {
     pub width: FP,
     pub height: FP,
+}
+
+impl Size {
+    pub fn new(width: FP, height: FP) -> Self {
+        Self { width, height }
+    }
+
+    pub fn uniform(size: FP) -> Self {
+        Self {
+            width: size,
+            height: size,
+        }
+    }
 }
 
 pub struct RenderRect<B: RenderBackend> {
@@ -262,7 +276,7 @@ pub trait PreRenderText<B: RenderBackend> {
 }
 
 pub trait Text<B: RenderBackend> {
-    fn new(pre: &B::PreRenderText, backend: &B) -> Self;
+    fn new(pre: &mut B::PreRenderText, backend: &B) -> Self;
 }
 
 pub struct ColorStop<B: RenderBackend> {

@@ -61,7 +61,7 @@ lazy_static! {
         data: Arc::new(include_bytes!("../../../resources/fonts/Roboto-Regular.ttf").to_vec()),
         ty: FontType::TrueType,
     };
-};
+}
 
 lazy_static! {
     pub static ref FONT_RENDERER_CACHE: Mutex<FontRendererCache> = {

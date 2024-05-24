@@ -1,4 +1,4 @@
-use crate::VelloRenderer;
+use crate::VelloBackend;
 use gosub_render_backend::{ColorStops, Gradient as TGradient, Point, FP};
 use vello::peniko::Gradient as VelloGradient;
 
@@ -10,8 +10,8 @@ impl From<VelloGradient> for Gradient {
     }
 }
 
-impl TGradient<VelloRenderer> for Gradient {
-    fn new_linear(start: Point, end: Point, stops: ColorStops<VelloRenderer>) -> Self {
+impl TGradient<VelloBackend> for Gradient {
+    fn new_linear(start: Point, end: Point, stops: ColorStops<VelloBackend>) -> Self {
         todo!()
     }
 
@@ -20,7 +20,7 @@ impl TGradient<VelloRenderer> for Gradient {
         start_radius: FP,
         end_center: Point,
         end_radius: FP,
-        stops: ColorStops<VelloRenderer>,
+        stops: ColorStops<VelloBackend>,
     ) -> Self {
         todo!()
     }
@@ -29,7 +29,7 @@ impl TGradient<VelloRenderer> for Gradient {
         center: Point,
         start_angle: FP,
         end_angle: FP,
-        stops: ColorStops<VelloRenderer>,
+        stops: ColorStops<VelloBackend>,
     ) -> Self {
         todo!()
     }

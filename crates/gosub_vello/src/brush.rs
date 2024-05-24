@@ -1,4 +1,4 @@
-use crate::{Color, Gradient, Image, VelloRenderer};
+use crate::{Color, Gradient, Image, VelloBackend};
 use gosub_render_backend::{Brush as TBrush, RenderBackend};
 use vello::peniko::Brush as VelloBrush;
 
@@ -10,7 +10,7 @@ impl From<VelloBrush> for Brush {
     }
 }
 
-impl TBrush<VelloRenderer> for Brush {
+impl TBrush<VelloBackend> for Brush {
     fn gradient(gradient: Gradient) -> Self {
         Brush(VelloBrush::Gradient(gradient.0))
     }

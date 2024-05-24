@@ -1432,6 +1432,7 @@ dependencies = [
  "gosub_styling",
  "gosub_testing",
  "gosub_v8",
+    "gosub_vello",
  "gosub_webexecutor",
  "js-sys",
  "lazy_static",

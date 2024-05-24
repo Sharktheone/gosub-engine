@@ -22,17 +22,17 @@ pub use rect::*;
 pub use text::*;
 pub use transform::*;
 
-struct VelloRenderer {
+pub struct VelloBackend {
     scene: Scene,
 }
 
-impl Debug for VelloRenderer {
+impl Debug for VelloBackend {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("VelloRenderer").finish()
     }
 }
 
-impl RenderBackend for VelloRenderer {
+impl RenderBackend for VelloBackend {
     type Rect = Rect;
     type Border = Border;
     type BorderSide = BorderSide;
@@ -55,5 +55,13 @@ impl RenderBackend for VelloRenderer {
 
     fn reset(&mut self) {
         todo!()
+    }
+}
+
+impl VelloBackend {
+    pub fn new() -> Self {
+        Self {
+            scene: Scene::new(),
+        }
     }
 }
