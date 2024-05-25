@@ -132,10 +132,6 @@ impl TPreRenderText<VelloBackend> for PreRenderText {
         self.text.as_ref()
     }
 
-    fn font(&self) -> Option<&[String]> {
-        todo!()
-    }
-
     fn fs(&self) -> FP {
         self.fs
     }

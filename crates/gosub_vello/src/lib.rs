@@ -1,8 +1,10 @@
 use std::fmt::Debug;
+use std::mem::offset_of;
 
+use vello::kurbo::Point as VelloPoint;
 use vello::Scene;
 
-use gosub_render_backend::{RenderBackend, RenderRect, RenderText};
+use gosub_render_backend::{Point, RenderBackend, RenderRect, RenderText};
 
 mod border;
 mod brush;
@@ -63,5 +65,15 @@ impl VelloBackend {
         Self {
             scene: Scene::new(),
         }
+    }
+}
+
+trait Convert<T> {
+    fn convert(self) -> T;
+}
+
+impl Convert<VelloPoint> for Point {
+    fn convert(self) -> VelloPoint {
+        VelloPoint::new(self.x as f64, self.y as f64)
     }
 }

@@ -23,6 +23,7 @@ pub trait RenderBackend: Sized + Debug {
 
 pub type FP = f32;
 
+#[derive(Clone, Copy)]
 pub struct Point {
     pub x: FP,
     pub y: FP,
@@ -269,7 +270,6 @@ pub trait PreRenderText<B: RenderBackend> {
 
     fn prerender(&mut self, backend: &B) -> Size;
     fn value(&self) -> &str;
-    fn font(&self) -> Option<&[String]>;
     fn fs(&self) -> FP;
 
     //TODO: Who should be responsible for line breaking if the text is too long?
@@ -289,13 +289,20 @@ pub type ColorStops<B> = SmallVec<[ColorStop<B>; 4]>;
 pub trait Gradient<B: RenderBackend> {
     fn new_linear(start: Point, end: Point, stops: ColorStops<B>) -> Self;
 
-    fn new_radial(
+    fn new_radial_two_point(
         start_center: Point,
         start_radius: FP,
         end_center: Point,
         end_radius: FP,
         stops: ColorStops<B>,
     ) -> Self;
+
+    fn new_radial(center: Point, radius: FP, stops: ColorStops<B>) -> Self
+    where
+        Self: Sized,
+    {
+        Self::new_radial_two_point(center, radius, center, radius, stops)
+    }
 
     fn new_sweep(center: Point, start_angle: FP, end_angle: FP, stops: ColorStops<B>) -> Self;
 }
