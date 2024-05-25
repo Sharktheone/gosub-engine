@@ -172,6 +172,7 @@ pub trait BorderSide<B: RenderBackend> {
     fn new(width: FP, style: BorderStyle, brush: B::Brush) -> Self;
 }
 
+#[derive(Clone, Copy)]
 pub enum BorderStyle {
     Solid,
     Dashed,
@@ -185,31 +186,94 @@ pub enum BorderStyle {
     Hidden,
 }
 
+#[derive(Clone, Copy)]
+pub enum Radius {
+    Uniform(FP),
+    Elliptical(FP, FP),
+}
+
+impl From<FP> for Radius {
+    fn from(value: FP) -> Self {
+        Radius::Uniform(value)
+    }
+}
+
+impl From<[FP; 2]> for Radius {
+    fn from(value: [FP; 2]) -> Self {
+        Radius::Elliptical(value[0], value[1])
+    }
+}
+
+impl From<(FP, FP)> for Radius {
+    fn from(value: (FP, FP)) -> Self {
+        Radius::Elliptical(value.0, value.1)
+    }
+}
+
 pub trait BorderRadius:
     Sized
+    + From<FP>
+    + From<Radius>
     + From<[FP; 4]>
+    + From<[Radius; 4]>
     + From<[FP; 8]>
     + From<(FP, FP, FP, FP)>
+    + From<(Radius, Radius, Radius, Radius)>
     + From<(FP, FP, FP, FP, FP, FP, FP, FP)>
 {
-    fn empty() -> Self;
-    fn uniform(radius: FP) -> Self;
-    fn uniform_elliptical(radius_x: FP, radius_y: FP) -> Self;
+    fn empty() -> Self {
+        Self::uniform(0.0)
+    }
+    fn uniform(radius: FP) -> Self {
+        Self::from(radius)
+    }
+    fn uniform_radius(radius: Radius) -> Self;
+    fn uniform_elliptical(radius_x: FP, radius_y: FP) -> Self {
+        Self::from([radius_x, radius_y, radius_x, radius_y])
+    }
 
-    fn top_left(&mut self, radius: FP);
-    fn top_left_elliptical(&mut self, radius_x: FP, radius_y: FP);
+    fn all(radius: FP) -> Self {
+        let radius = radius.into();
+        Self::all_radius(radius, radius, radius, radius)
+    }
+    fn all_elliptical(&self, radius_x: FP, radius_y: FP) -> Self {
+        let radius = Radius::Elliptical(radius_x, radius_y);
 
-    fn top_right(&mut self, radius: FP);
-    fn top_right_elliptical(&mut self, radius_x: FP, radius_y: FP);
+        Self::all_radius(radius, radius, radius, radius)
+    }
+    fn all_radius(tl: Radius, tr: Radius, dl: Radius, dr: Radius) -> Self;
 
-    fn bottom_left(&mut self, radius: FP);
-    fn bottom_left_elliptical(&mut self, radius_x: FP, radius_y: FP);
+    fn top_left(&mut self, radius: FP) {
+        self.top_left_radius(radius.into());
+    }
+    fn top_left_elliptical(&mut self, radius_x: FP, radius_y: FP) {
+        self.top_left_radius(Radius::Elliptical(radius_x, radius_y));
+    }
+    fn top_left_radius(&mut self, radius: Radius);
 
-    fn bottom_right(&mut self, radius: FP);
-    fn bottom_right_elliptical(&mut self, radius_x: FP, radius_y: FP);
+    fn top_right(&mut self, radius: FP) {
+        self.top_right_radius(radius.into());
+    }
+    fn top_right_elliptical(&mut self, radius_x: FP, radius_y: FP) {
+        self.top_right_radius(Radius::Elliptical(radius_x, radius_y));
+    }
+    fn top_right_radius(&mut self, radius: Radius);
 
-    //Can be used if the border was initially created with the empty method
-    fn build(self) -> Option<Self>;
+    fn bottom_left(&mut self, radius: FP) {
+        self.bottom_left_radius(radius.into());
+    }
+    fn bottom_left_elliptical(&mut self, radius_x: FP, radius_y: FP) {
+        self.bottom_left_radius(Radius::Elliptical(radius_x, radius_y));
+    }
+    fn bottom_left_radius(&mut self, radius: Radius);
+
+    fn bottom_right(&mut self, radius: FP) {
+        self.bottom_right_radius(radius.into());
+    }
+    fn bottom_right_elliptical(&mut self, radius_x: FP, radius_y: FP) {
+        self.bottom_right_radius(Radius::Elliptical(radius_x, radius_y));
+    }
+    fn bottom_right_radius(&mut self, radius: Radius);
 }
 
 pub trait Transform: Sized + Mul<Self> + MulAssign {
