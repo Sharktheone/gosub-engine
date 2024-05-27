@@ -1,5 +1,5 @@
 use std::fmt::Debug;
-use std::ops::{Mul, MulAssign};
+use std::ops::{Div, Mul, MulAssign};
 
 use smallvec::SmallVec;
 
@@ -192,6 +192,51 @@ pub enum Radius {
     Elliptical(FP, FP),
 }
 
+impl Radius {
+    pub fn offset(&self) -> Size {
+        match self {
+            Radius::Uniform(value) => Size::uniform(value.powi(2).div(2.0).sqrt() - *value),
+            Radius::Elliptical(x, y) => {
+                //TODO: is this correct?
+
+                let theta = (std::f64::consts::PI / 4.0) as FP;
+                let ox = x * theta.cos();
+                let oy = y * theta.sin();
+
+                Size::new(ox - *x, oy - *y)
+            }
+        }
+    }
+
+    pub fn radi_x(&self) -> FP {
+        match self {
+            Radius::Uniform(value) => *value,
+            Radius::Elliptical(x, _) => *x,
+        }
+    }
+
+    pub fn radi_y(&self) -> FP {
+        match self {
+            Radius::Uniform(value) => *value,
+            Radius::Elliptical(_, y) => *y,
+        }
+    }
+
+    pub fn radii(&self) -> [FP; 2] {
+        match self {
+            Radius::Uniform(value) => [*value, *value],
+            Radius::Elliptical(x, y) => [*x, *y],
+        }
+    }
+
+    pub fn radii_f64(&self) -> (f64, f64) {
+        match self {
+            Radius::Uniform(value) => (*value as f64, *value as f64),
+            Radius::Elliptical(x, y) => (*x as f64, *y as f64),
+        }
+    }
+}
+
 impl From<FP> for Radius {
     fn from(value: FP) -> Self {
         Radius::Uniform(value)
@@ -207,6 +252,51 @@ impl From<[FP; 2]> for Radius {
 impl From<(FP, FP)> for Radius {
     fn from(value: (FP, FP)) -> Self {
         Radius::Elliptical(value.0, value.1)
+    }
+}
+
+impl From<Radius> for (f64, f64) {
+    fn from(value: Radius) -> Self {
+        match value {
+            Radius::Uniform(value) => (value as f64, value as f64),
+            Radius::Elliptical(x, y) => (x as f64, y as f64),
+        }
+    }
+}
+
+impl From<Radius> for f64 {
+    fn from(value: Radius) -> Self {
+        match value {
+            Radius::Uniform(value) => value as f64,
+            Radius::Elliptical(x, y) => (x * y).sqrt() as f64,
+        }
+    }
+}
+
+impl From<Radius> for FP {
+    fn from(value: Radius) -> Self {
+        match value {
+            Radius::Uniform(value) => value,
+            Radius::Elliptical(x, y) => (x * y).sqrt(),
+        }
+    }
+}
+
+impl From<Radius> for [FP; 2] {
+    fn from(value: Radius) -> Self {
+        match value {
+            Radius::Uniform(value) => [value, value],
+            Radius::Elliptical(x, y) => [x, y],
+        }
+    }
+}
+
+impl From<Radius> for (FP, FP) {
+    fn from(value: Radius) -> Self {
+        match value {
+            Radius::Uniform(value) => (value, value),
+            Radius::Elliptical(x, y) => (x, y),
+        }
     }
 }
 

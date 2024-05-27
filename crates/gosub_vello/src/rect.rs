@@ -1,7 +1,7 @@
 use gosub_render_backend::{Point, Rect as TRect, Size, FP};
 use vello::kurbo::Rect as VelloRect;
 
-pub struct Rect(VelloRect);
+pub struct Rect(pub(crate) VelloRect);
 
 impl From<VelloRect> for Rect {
     fn from(rect: VelloRect) -> Self {
