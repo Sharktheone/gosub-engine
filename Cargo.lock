@@ -1614,7 +1614,7 @@ dependencies = [
  "gosub_shared",
  "gosub_typeface",
  "image",
-    "smallvec",
+ "smallvec",
  "vello",
 ]
 
