@@ -12,13 +12,13 @@ use crate::window::Window;
 
 struct Application<D: SceneDrawer<B>, B: RenderBackend> {
     windows: HashMap<WindowId, Window<D, B>>,
-    renderer_data: B::AppData,
+    backend: B,
 }
 
 impl<D: SceneDrawer<B>, B: RenderBackend> ApplicationHandler for Application<D, B> {
-    fn resumed(&mut self, event_loop: &ActiveEventLoop) {
+    fn resumed(&mut self, _event_loop: &ActiveEventLoop) {
         for window in self.windows.values_mut() {
-            window.resumed(event_loop, &mut self.renderer_data);
+            window.resumed(&mut self.backend);
         }
     }
 
@@ -29,13 +29,13 @@ impl<D: SceneDrawer<B>, B: RenderBackend> ApplicationHandler for Application<D, 
         event: WindowEvent,
     ) {
         if let Some(window) = self.windows.get_mut(&window_id) {
-            window.event(event_loop, &mut self.renderer_data, event);
+            window.event(event_loop, &mut self.backend, event);
         }
     }
 
     fn suspended(&mut self, event_loop: &ActiveEventLoop) {
         for window in self.windows.values_mut() {
-            window.suspended(event_loop, &mut self.renderer_data);
+            window.suspended(event_loop, &mut self.backend);
         }
     }
 }

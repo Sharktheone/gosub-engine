@@ -1,7 +1,14 @@
+use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 use std::fmt::Debug;
 use std::ops::{Div, Mul, MulAssign};
 
 use smallvec::SmallVec;
+
+use gosub_shared::types::Result;
+
+pub trait WindowHandle: HasDisplayHandle + HasWindowHandle + Send + Sync {}
+
+impl<T> WindowHandle for T where T: HasDisplayHandle + HasWindowHandle + Send + Sync {}
 
 pub trait RenderBackend: Sized + Debug {
     type Rect: Rect;
@@ -16,13 +23,36 @@ pub trait RenderBackend: Sized + Debug {
     type Image: Image;
     type Brush: Brush<Self>;
 
-    type ActiveWindowData;
-    type WindowData;
-    type AppData;
+    type ActiveWindowData<'a>;
+    type WindowData<'a>;
 
     fn draw_rect(&mut self, rect: &RenderRect<Self>);
     fn draw_text(&mut self, text: &RenderText<Self>);
     fn reset(&mut self);
+
+    fn activate_window(
+        &mut self,
+        handle: impl WindowHandle,
+        data: &mut Self::WindowData<'_>,
+        size: SizeU32,
+    ) -> Result<Self::ActiveWindowData<'_>>;
+    fn suspend_window(
+        &mut self,
+        handle: impl WindowHandle,
+        data: Self::ActiveWindowData<'_>,
+        window_data: &mut Self::WindowData<'_>,
+    ) -> Result<()>;
+    fn resize_window(
+        &mut self,
+        window_data: &mut Self::WindowData<'_>,
+        active_window_data: Self::ActiveWindowData<'_>,
+        size: SizeU32,
+    ) -> Result<()>;
+    fn render(
+        &mut self,
+        window_data: &Self::WindowData<'_>,
+        active_data: &Self::ActiveWindowData<'_>,
+    ) -> Result<()>;
 }
 
 pub type FP = f32;
@@ -49,6 +79,17 @@ impl Size {
             width: size,
             height: size,
         }
+    }
+}
+
+pub struct SizeU32 {
+    pub width: u32,
+    pub height: u32,
+}
+
+impl SizeU32 {
+    pub fn new(width: u32, height: u32) -> Self {
+        Self { width, height }
     }
 }
 

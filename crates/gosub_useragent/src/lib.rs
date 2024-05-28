@@ -1,5 +1,6 @@
 mod application;
 mod even_loop;
+mod tabs;
 mod window;
 
 pub fn add(left: usize, right: usize) -> usize {

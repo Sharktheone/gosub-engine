@@ -1,10 +1,10 @@
 use std::io::Read;
 
 use anyhow::anyhow;
+use dpi::PhysicalSize;
 use image::DynamicImage;
 use taffy::{AvailableSpace, Layout, NodeId, PrintTree, Size, TaffyTree, TraversePartialTree};
 use url::Url;
-use winit::dpi::PhysicalSize;
 
 use gosub_html5::node::NodeId as GosubId;
 use gosub_render_backend::{

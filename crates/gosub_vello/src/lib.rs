@@ -1,13 +1,15 @@
 use std::fmt::Debug;
 
+use gosub_shared::types::Result;
 use vello::kurbo::{Point as VelloPoint, RoundedRect, Shape};
 use vello::peniko::Fill;
 use vello::Scene;
 
+use crate::render::window::{ActiveWindowData, WindowData};
 pub use border::*;
 pub use brush::*;
 pub use color::*;
-use gosub_render_backend::{Point, RenderBackend, RenderRect, RenderText};
+use gosub_render_backend::{Point, RenderBackend, RenderRect, RenderText, SizeU32, WindowHandle};
 pub use gradient::*;
 pub use image::*;
 pub use rect::*;
@@ -20,6 +22,7 @@ mod color;
 mod gradient;
 mod image;
 mod rect;
+mod render;
 mod text;
 mod transform;
 
@@ -45,6 +48,8 @@ impl RenderBackend for VelloBackend {
     type Color = Color;
     type Image = Image;
     type Brush = Brush;
+    type ActiveWindowData<'a> = ActiveWindowData<'a>;
+    type WindowData<'a> = WindowData;
 
     fn draw_rect(&mut self, rect: &RenderRect<Self>) {
         let affine = rect.transform.as_ref().map(|t| t.0).unwrap_or_default();
@@ -79,6 +84,46 @@ impl RenderBackend for VelloBackend {
 
     fn reset(&mut self) {
         self.scene.reset();
+    }
+
+    fn activate_window(
+        &mut self,
+        handle: impl WindowHandle,
+        data: &mut Self::WindowData<'_>,
+        size: SizeU32,
+    ) -> Result<Self::ActiveWindowData<'_>> {
+        let surface = data.adapter.create_surface(
+            handle,
+            size.width,
+            size.height,
+            wgpu::PresentMode::AutoVsync,
+        );
+    }
+
+    fn suspend_window(
+        &mut self,
+        handle: impl WindowHandle,
+        data: Self::ActiveWindowData<'_>,
+        window_data: &mut Self::WindowData<'_>,
+    ) -> Result<()> {
+        todo!()
+    }
+
+    fn resize_window(
+        &mut self,
+        window_data: &mut Self::WindowData<'_>,
+        active_window_data: Self::ActiveWindowData<'_>,
+        size: SizeU32,
+    ) -> Result<()> {
+        todo!()
+    }
+
+    fn render(
+        &mut self,
+        window_data: &Self::WindowData<'_>,
+        active_data: &Self::ActiveWindowData<'_>,
+    ) -> Result<()> {
+        todo!()
     }
 }
 

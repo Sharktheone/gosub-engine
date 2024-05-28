@@ -1538,7 +1538,9 @@ dependencies = [
 name = "gosub_render_backend"
 version = "0.1.0"
 dependencies = [
+ "gosub_shared",
  "image",
+ "raw-window-handle",
  "smallvec",
 ]
 
@@ -1547,6 +1549,7 @@ name = "gosub_renderer"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "dpi",
  "futures",
  "gosub_html5",
  "gosub_net",
@@ -1643,6 +1646,7 @@ dependencies = [
  "gosub_render_backend",
  "gosub_renderer",
  "gosub_shared",
+ "slotmap",
  "winit 0.30.0",
 ]
 
@@ -1662,12 +1666,15 @@ dependencies = [
 name = "gosub_vello"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "gosub_render_backend",
  "gosub_shared",
  "gosub_typeface",
  "image",
+ "raw-window-handle",
  "smallvec",
  "vello",
+ "wgpu",
 ]
 
 [[package]]
@@ -3218,9 +3225,9 @@ dependencies = [
 
 [[package]]
 name = "raw-window-handle"
-version = "0.6.0"
+version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "42a9830a0e1b9fb145ebb365b8bc4ccd75f290f98c0247deafbbe2c75cefb544"
+checksum = "20675572f6f24e9e76ef639bc5552774ed45f1c30e2951e1e99c59888861c539"
 
 [[package]]
 name = "rayon"
@@ -4502,9 +4509,9 @@ checksum = "53a85b86a771b1c87058196170769dd264f66c0782acf1ae6cc51bfd64b39082"
 
 [[package]]
 name = "wgpu"
-version = "0.19.3"
+version = "0.19.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a4b1213b52478a7631d6e387543ed8f642bc02c578ef4e3b49aca2a29a7df0cb"
+checksum = "cbd7311dbd2abcfebaabf1841a2824ed7c8be443a0f29166e5d3c6a53a762c01"
 dependencies = [
  "arrayvec",
  "cfg-if",
