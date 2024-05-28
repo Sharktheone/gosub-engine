@@ -16,6 +16,10 @@ pub trait RenderBackend: Sized + Debug {
     type Image: Image;
     type Brush: Brush<Self>;
 
+    type ActiveWindowData;
+    type WindowData;
+    type AppData;
+
     fn draw_rect(&mut self, rect: &RenderRect<Self>);
     fn draw_text(&mut self, text: &RenderText<Self>);
     fn reset(&mut self);
