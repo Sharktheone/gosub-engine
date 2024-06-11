@@ -39,6 +39,8 @@ impl<B: RenderBackend> SceneDrawer<B> for TreeDrawer<B> {
             return;
         }
 
+        print_tree(&self.taffy, self.root, &self.style);
+
         self.size = Some(size);
 
         backend.reset(data);
@@ -91,7 +93,7 @@ impl<B: RenderBackend> TreeDrawer<B> {
             rect: bg,
             transform: None,
             radius: None,
-            brush: Brush::color(Color::BLACK),
+            brush: Brush::color(Color::MAGENTA),
             brush_transform: None,
             border: None,
         };
