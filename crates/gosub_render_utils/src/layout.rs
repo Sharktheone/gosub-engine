@@ -54,30 +54,3 @@ pub enum NodeContext {
     Element(GosubID),
     Inline(Vec<GosubID>),
 }
-
-pub trait TaffyGosubCalculate<D> {
-    fn compute_gosub(
-        &mut self,
-        root: NodeId,
-        size: Size<AvailableSpace>,
-        data: &mut D,
-    ) -> Result<(), taffy::TaffyError>;
-}
-
-impl<B: RenderBackend> TaffyGosubCalculate<RenderTree<B>> for TaffyTree<NodeContext> {
-    fn compute_gosub(
-        &mut self,
-        root: NodeId,
-        size: Size<AvailableSpace>,
-        rt: &mut RenderTree<B>,
-    ) -> Result<(), taffy::TaffyError> {
-        self.compute_layout_with_measure(
-            root,
-            size,
-            |size, space, id, context, style| match context {
-                Some(NodeContext::Inline(inline)) => {}
-                _ => Size::ZERO,
-            },
-        )
-    }
-}

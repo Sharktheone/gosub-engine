@@ -39,6 +39,7 @@ impl<B: RenderBackend> RenderTree<B> {
                 name: String::from("root"),
                 namespace: None,
                 data: RenderNodeData::Document,
+                pos: (0.0, 0.0),
             },
         );
 
@@ -226,6 +227,7 @@ impl<B: RenderBackend> RenderTree<B> {
                 name: node.name.clone(), // We might be able to move node into render_tree_node
                 namespace: node.namespace.clone(),
                 data,
+                pos: (0.0, 0.0),
             };
 
             self.nodes.insert(current_node_id, render_tree_node);
@@ -368,6 +370,8 @@ pub struct RenderTreeNode<B: RenderBackend> {
     pub name: String,
     pub namespace: Option<String>,
     pub data: RenderNodeData<B>,
+    pub pos: (FP, FP), //The element's position relative to it's parent
+                       //TODO: it might be beneficial for layout to cache position props
 }
 
 impl<B: RenderBackend> RenderTreeNode<B> {

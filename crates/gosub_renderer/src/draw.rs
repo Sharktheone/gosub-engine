@@ -18,7 +18,7 @@ use gosub_styling::css_values::CssValue;
 use gosub_styling::render_tree::{RenderNodeData, RenderTree, RenderTreeNode};
 
 use crate::draw::img::request_img;
-use crate::render_tree::{load_html_rendertree, NodeID, TreeDrawer};
+use crate::render_tree::{load_html_rendertree, TreeDrawer};
 
 mod img;
 
