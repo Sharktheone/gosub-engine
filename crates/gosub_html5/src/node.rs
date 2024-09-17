@@ -50,6 +50,7 @@ pub enum NodeData {
 #[derive(Clone, Copy, Debug, Default, Display, Eq, Hash, PartialEq, PartialOrd)]
 pub struct NodeId(pub(crate) usize);
 
+
 impl From<NodeId> for usize {
     /// Converts a NodeId into a usize
     fn from(value: NodeId) -> Self {
