@@ -56,7 +56,7 @@ pub struct CssDeclaration {
     pub property: String,
     // Raw values of the declaration. It is not calculated or converted in any way (ie: "red", "50px" etc)
     // There can be multiple values  (ie:   "1px solid black" are split into 3 values)
-    pub value: Vec<CssValue>,
+    pub value: CssValue,
     // ie: !important
     pub important: bool,
 }
@@ -472,7 +472,7 @@ mod test {
             }],
             declarations: vec![CssDeclaration {
                 property: "color".to_string(),
-                value: vec![CssValue::String("red".to_string())],
+                value: CssValue::String("red".to_string()),
                 important: false,
             }],
         };

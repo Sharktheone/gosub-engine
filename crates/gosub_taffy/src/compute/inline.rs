@@ -633,7 +633,9 @@ fn parse_font_style(node: &mut impl Node) -> FontStyle {
 }
 
 fn parse_font_axes(p: &mut impl Node) -> Vec<FontVariation> {
-    _ = p;
+    dbg!(p.get_property("font-variation-settings"));
+
+    // todo!();
 
     //TODO
 

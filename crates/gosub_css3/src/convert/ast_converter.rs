@@ -1,11 +1,13 @@
+use anyhow::anyhow;
+use log::warn;
+
+use gosub_shared::types::Result;
+
 use crate::node::{Node as CssNode, NodeType};
 use crate::stylesheet::{
     AttributeSelector, Combinator, CssDeclaration, CssOrigin, CssRule, CssSelector,
     CssSelectorPart, CssStylesheet, CssValue, MatcherType,
 };
-use anyhow::anyhow;
-use gosub_shared::types::Result;
-use log::warn;
 
 /*
 
@@ -208,9 +210,15 @@ pub fn convert_ast_to_stylesheet(
                     continue;
                 }
 
+                let value = if css_values.len() == 1 {
+                    css_values.pop().expect("unreachable")
+                } else {
+                    CssValue::List(css_values)
+                };
+
                 rule.declarations.push(CssDeclaration {
                     property: property.clone(),
-                    value: css_values.to_vec(),
+                    value,
                     important: *important,
                 });
             }
@@ -223,9 +231,10 @@ pub fn convert_ast_to_stylesheet(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::parser_config::ParserConfig;
     use crate::Css3;
+
+    use super::*;
 
     #[test]
     fn convert_font_family() {

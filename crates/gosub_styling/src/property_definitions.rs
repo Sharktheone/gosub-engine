@@ -1,12 +1,11 @@
 use std::collections::HashMap;
+use std::sync::LazyLock;
 
 use log::warn;
 
 use gosub_css3::stylesheet::CssValue;
 
 use crate::shorthands::{FixList, Shorthands};
-use std::sync::LazyLock;
-
 use crate::syntax::GroupCombinators::Juxtaposition;
 use crate::syntax::{CssSyntax, SyntaxComponent};
 use crate::syntax_matcher::CssSyntaxTree;
@@ -890,6 +889,26 @@ mod tests {
             unit!(2.0, "px"),
             unit!(3.0, "px"),
             unit!(4.0, "px"),
+        ]));
+    }
+
+    #[test]
+    fn test_font_var() {
+        let definitions = get_css_definitions();
+        let def = definitions
+            .find_property("font-variation-settings")
+            .unwrap();
+
+        assert_true!(def.matches(&[str!("normal")]));
+
+        assert_true!(def.matches(&[str!("wgth"), CssValue::Number(100.0)]));
+
+        assert_true!(def.matches(&[
+            str!("wgth"),
+            CssValue::Number(100.0),
+            CssValue::Comma,
+            str!("ital"),
+            CssValue::Number(100.0)
         ]));
     }
 }

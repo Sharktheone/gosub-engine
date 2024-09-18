@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::fmt::{Debug, Formatter};
+use std::slice;
 
 use log::warn;
 
@@ -314,15 +315,26 @@ impl<L: Layouter> RenderTree<L> {
 
                             let value = resolve_functions(&declaration.value, node, &doc);
 
+                            let match_value = if let CssValue::List(value) = &value {
+                                &**value
+                            } else {
+                                slice::from_ref(&value)
+                            };
+
+                            // create property for the given values
+                            let property_name = declaration.property.clone();
+
+                            if &property_name == "font-variation-settings" {
+                                println!("Font variation settings: {:?}", &value);
+                            }
+
                             // Check if the declaration matches the definition and return the "expanded" order
-                            let res = definition.matches_and_shorthands(&value, &mut fix_list);
+                            let res = definition.matches_and_shorthands(match_value, &mut fix_list);
                             if !res {
                                 warn!("Declaration does not match definition: {:?}", declaration);
                                 continue;
                             }
 
-                            // create property for the given values
-                            let property_name = declaration.property.clone();
                             let decl = CssDeclaration {
                                 property: property_name.to_string(),
                                 value,
@@ -585,7 +597,7 @@ pub fn add_property_to_map(
     //
     let declaration = DeclarationProperty {
         // @todo: this seems wrong. We only get the first values from the declared values
-        value: declaration.value.first().unwrap().clone(),
+        value: declaration.value.clone(),
         origin: sheet.origin.clone(),
         important: declaration.important,
         location: sheet.location.clone(),
@@ -964,13 +976,11 @@ pub fn node_is_undernderable(node: &gosub_html5::node::Node) -> bool {
 }
 
 pub fn resolve_functions(
-    value: &[CssValue],
+    value: &CssValue,
     node: &gosub_html5::node::Node,
     doc: &Document,
-) -> Vec<CssValue> {
-    let mut result = Vec::with_capacity(value.len()); //TODO: we could give it a &mut Vec and reuse the allocation
-
-    for val in value {
+) -> CssValue {
+    fn resolve(val: &CssValue, node: &gosub_html5::node::Node, doc: &Document) -> CssValue {
         match val {
             CssValue::Function(func, values) => {
                 let resolved = match func.as_str() {
@@ -980,13 +990,18 @@ pub fn resolve_functions(
                     _ => vec![val.clone()],
                 };
 
-                result.extend(resolved);
+                CssValue::List(resolved)
             }
-            _ => result.push(val.clone()),
+            _ => val.clone(),
         }
     }
 
-    result
+    if let CssValue::List(list) = value {
+        let resolved = list.iter().map(|val| resolve(val, node, doc)).collect();
+        CssValue::List(resolved)
+    } else {
+        resolve(value, node, doc)
+    }
 }
 
 // pub fn walk_render_tree(tree: &RenderTree, visitor: &mut Box<dyn TreeVisitor<RenderTreeNode>>) {

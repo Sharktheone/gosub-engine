@@ -15,3 +15,8 @@ settings.db
 */gosub_bindings/tests/*
 !*/gosub_bindings/tests/*.c
 *.dSYM
+
+.idea
+.gitignore
+callgrind.*
+old_callgrind.*
