@@ -390,6 +390,9 @@ impl CssValue {
                 }
                 Ok(CssValue::Function(name, list))
             }
+
+            crate::node::NodeType::Comma => Ok(CssValue::Comma),
+
             _ => Err(anyhow!(format!(
                 "Cannot convert node to CssValue: {:?}",
                 node

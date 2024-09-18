@@ -324,10 +324,6 @@ impl<L: Layouter> RenderTree<L> {
                             // create property for the given values
                             let property_name = declaration.property.clone();
 
-                            if &property_name == "font-variation-settings" {
-                                println!("Font variation settings: {:?}", &value);
-                            }
-
                             // Check if the declaration matches the definition and return the "expanded" order
                             let res = definition.matches_and_shorthands(match_value, &mut fix_list);
                             if !res {
@@ -882,6 +878,10 @@ impl gosub_render_backend::layout::CssProperty for CssProperty {
     fn is_none(&self) -> bool {
         matches!(self.actual, CssValue::None)
     }
+
+    fn is_comma(&self) -> bool {
+        matches!(self.actual, CssValue::Comma)
+    }
 }
 
 impl gosub_render_backend::layout::CssValue for Value {
@@ -939,6 +939,10 @@ impl gosub_render_backend::layout::CssValue for Value {
 
     fn is_none(&self) -> bool {
         matches!(self.0, CssValue::None)
+    }
+
+    fn is_comma(&self) -> bool {
+        matches!(self.0, CssValue::Comma)
     }
 }
 

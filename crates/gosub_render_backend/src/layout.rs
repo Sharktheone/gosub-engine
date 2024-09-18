@@ -157,6 +157,8 @@ pub trait CssProperty: Debug + Sized {
     fn as_list(&self) -> Option<Vec<Self::Value>>;
 
     fn is_none(&self) -> bool;
+
+    fn is_comma(&self) -> bool;
 }
 
 pub trait CssValue: Sized {
@@ -170,6 +172,8 @@ pub trait CssValue: Sized {
     fn as_list(&self) -> Option<Vec<Self>>;
 
     fn is_none(&self) -> bool;
+
+    fn is_comma(&self) -> bool;
 }
 
 pub trait TextLayout {
