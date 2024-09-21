@@ -170,6 +170,7 @@ pub trait CssValue: Sized {
     fn as_color(&self) -> Option<(f32, f32, f32, f32)>;
     fn as_number(&self) -> Option<f32>;
     fn as_list(&self) -> Option<Vec<Self>>;
+    fn as_function(&self) -> Option<(&str, Vec<Self>)>;
 
     fn is_none(&self) -> bool;
 

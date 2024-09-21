@@ -6,6 +6,9 @@ use taffy::{
 
 use gosub_render_backend::geo::Size;
 use gosub_render_backend::layout::{CssProperty, Node};
+pub use grid::*;
+
+mod grid;
 
 pub fn parse_len(node: &mut impl Node, name: &str) -> LengthPercentage {
     let Some(property) = node.get_property(name) else {
@@ -113,25 +116,25 @@ pub fn parse_tracking_sizing_function(
     node: &mut impl Node,
     name: &str,
 ) -> Vec<TrackSizingFunction> {
-    let Some(display) = node.get_property(name) else {
+    let Some(prop) = node.get_property(name) else {
         return Vec::new();
     };
 
-    display.compute_value();
+    let input = if let Some(list) = prop.as_list() {
+        list
+    } else {
+        todo!("prop as value")
+    };
+
+    let mut input = input.as_slice();
+
+    let functions = maybe_consume_track_sizing_function(&mut input);
 
     let Some(_value) = display.as_string() else {
         return Vec::new();
     };
 
     Vec::new() //TODO: Implement this
-}
-
-#[allow(dead_code)]
-pub fn parse_non_repeated_tracking_sizing_function(
-    _node: &mut impl Node,
-    _name: &str,
-) -> NonRepeatedTrackSizingFunction {
-    todo!("implement parse_non_repeated_tracking_sizing_function")
 }
 
 pub fn parse_grid_auto(node: &mut impl Node, name: &str) -> Vec<NonRepeatedTrackSizingFunction> {
