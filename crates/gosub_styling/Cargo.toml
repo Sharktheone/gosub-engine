@@ -11,6 +11,7 @@ gosub_css3 = { path = "../gosub_css3" }
 gosub_html5 = { path = "../gosub_html5" }
 gosub_render_backend = { path = "../gosub_render_backend" }
 gosub_typeface = { path = "../gosub_typeface" }
+gosub_net = { path = "../gosub_net" }
 lazy_static = "1.5"
 anyhow = "1.0.87"
 regex = "1.10.6"
@@ -24,6 +25,7 @@ memoize = "0.4.2"
 thiserror = "1.0.58"
 nom = "7.1.3"
 itertools = "0.13.0"
+
 
 #[target.'cfg(target_arch = "wasm32")'.dependencies]
 #web-sys = { version = "0.3.69", features = ["fontface"] }

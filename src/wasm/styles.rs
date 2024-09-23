@@ -1,9 +1,11 @@
 use url::Url;
+use wasm_bindgen::prelude::wasm_bindgen;
 
 use gosub_html5::parser::document::{Document, DocumentBuilder};
 use gosub_html5::parser::Html5Parser;
-use gosub_styling::render_tree::generate_render_tree;
-use wasm_bindgen::prelude::wasm_bindgen;
+use gosub_shared::byte_stream::{ByteStream, Encoding};
+use gosub_styling::render_tree::{generate_render_tree, RenderTree};
+use gosub_taffy::TaffyLayouter;
 
 #[wasm_bindgen]
 pub struct StylesOptions {
@@ -53,7 +55,7 @@ pub fn styles_parser(input: &str, opts: StylesOptions) -> StylesOutput {
     match Html5Parser::parse_document(&mut stream, Document::clone(&doc), None) {
         Ok(errs) => {
             for e in errs {
-                errors.push_str(&format!("{}@{}:{}\n", e.message, e.line, e.col));
+                errors.push_str(&format!("{}@{:?}\n", e.message, e.location));
             }
         }
         Err(e) => {
@@ -61,7 +63,7 @@ pub fn styles_parser(input: &str, opts: StylesOptions) -> StylesOutput {
         }
     }
 
-    let render_tree = match generate_render_tree(Document::clone(&doc)) {
+    let render_tree: RenderTree<TaffyLayouter> = match generate_render_tree(Document::clone(&doc)) {
         Ok(tree) => tree,
         Err(e) => {
             errors = format!("{}\nFailed to generate render tree: {}", errors, e);

@@ -1749,6 +1749,7 @@ dependencies = [
  "colors-transform",
  "gosub_css3",
  "gosub_html5",
+ "gosub_net",
  "gosub_render_backend",
  "gosub_shared",
  "gosub_typeface",

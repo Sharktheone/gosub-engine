@@ -197,9 +197,9 @@ where
     }
 
     fn from_url(url: Url, layouter: L, debug: bool) -> Result<Self> {
-        let rt = load_html_rendertree(url.clone())?;
+        let (rt, fetcher) = load_html_rendertree(url.clone())?;
 
-        Ok(Self::new(rt, layouter, url, debug))
+        Ok(Self::new(rt, layouter, fetcher, debug))
     }
 
     fn clear_buffers(&mut self) {

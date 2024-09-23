@@ -1,4 +1,3 @@
-use gosub_shared::byte_stream::{ByteStream, Encoding};
 #[cfg(not(target_arch = "wasm32"))]
 use {
     cookie::CookieJar,
@@ -159,8 +158,6 @@ fn fetch_url(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     #[cfg(not(target_arch = "wasm32"))]
     #[test]
     fn test_fetch_url() {

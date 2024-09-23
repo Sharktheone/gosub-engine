@@ -27,12 +27,22 @@ const INLINE_ELEMENTS: [&str; 31] = [
 ];
 
 /// Map of all declared values for all nodes in the document
-#[derive(Debug)]
 pub struct RenderTree<L: Layouter> {
     pub nodes: HashMap<NodeId, RenderTreeNode<L>>,
     pub root: NodeId,
     pub dirty: bool,
     next_id: NodeId,
+}
+
+impl<L: Layouter> Debug for RenderTree<L> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("RenderTree")
+            .field("nodes", &self.nodes)
+            .field("root", &self.root)
+            .field("dirty", &self.dirty)
+            .field("next_id", &self.next_id)
+            .finish()
+    }
 }
 
 #[allow(unused)]

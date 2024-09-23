@@ -7,7 +7,6 @@ use gosub_html5::node::NodeId;
 use gosub_html5::parser::document::{Document, DocumentBuilder};
 use gosub_html5::parser::Html5Parser;
 use gosub_net::http::fetcher::Fetcher;
-use gosub_net::http::ureq;
 use gosub_render_backend::geo::SizeU32;
 use gosub_render_backend::layout::Layouter;
 use gosub_render_backend::RenderBackend;
@@ -17,8 +16,8 @@ use gosub_styling::render_tree::{generate_render_tree, RenderNodeData, RenderTre
 use gosub_styling::styling::CssProperties;
 
 pub struct TreeDrawer<B: RenderBackend, L: Layouter> {
-    pub(crate) fetcher: Fetcher,
     pub(crate) tree: RenderTree<L>,
+    pub(crate) fetcher: Fetcher,
     pub(crate) layouter: L,
     pub(crate) size: Option<SizeU32>,
     pub(crate) position: PositionTree,
@@ -32,9 +31,10 @@ pub struct TreeDrawer<B: RenderBackend, L: Layouter> {
 }
 
 impl<B: RenderBackend, L: Layouter> TreeDrawer<B, L> {
-    pub fn new(tree: RenderTree<L>, layouter: L, url: Url, debug: bool) -> Self {
+    pub fn new(tree: RenderTree<L>, layouter: L, fetcher: Fetcher, debug: bool) -> Self {
         Self {
             tree,
+            fetcher,
             layouter,
             size: None,
             position: PositionTree::default(),
@@ -45,7 +45,6 @@ impl<B: RenderBackend, L: Layouter> TreeDrawer<B, L> {
             tree_scene: None,
             selected_element: None,
             scene_transform: None,
-            fetcher: Fetcher::new(url),
         }
     }
 }
@@ -62,17 +61,20 @@ pub struct RenderTreeNode<L: Layouter> {
 
 pub(crate) fn load_html_rendertree<L: Layouter>(
     url: Url,
-) -> gosub_shared::types::Result<RenderTree<L>> {
+) -> gosub_shared::types::Result<(RenderTree<L>, Fetcher)> {
+    let fetcher = Fetcher::new(url.clone());
+
     let html = if url.scheme() == "http" || url.scheme() == "https" {
         // Fetch the html from the url
-        let response = ureq::get(url.as_ref()).call()?;
-        if response.status() != 200 {
+        let response = fetcher.get(url.as_ref())?;
+        if response.status != 200 {
             bail!(format!(
                 "Could not get url. Status code {}",
-                response.status()
+                response.status
             ));
         }
-        response.into_string()?
+
+        String::from_utf8(response.body.clone())?
     } else if url.scheme() == "file" {
         fs::read_to_string(url.as_str().trim_start_matches("file://"))?
     } else {
@@ -97,5 +99,5 @@ pub(crate) fn load_html_rendertree<L: Layouter>(
 
     drop(doc);
 
-    generate_render_tree(Document::clone(&doc_handle))
+    Ok((generate_render_tree(Document::clone(&doc_handle))?, fetcher))
 }
