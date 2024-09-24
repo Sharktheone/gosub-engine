@@ -1,5 +1,5 @@
-use std::sync::mpsc;
 use std::{io, thread};
+use std::sync::mpsc;
 
 use clap::ArgAction;
 use url::Url;
@@ -8,7 +8,7 @@ use gosub_renderer::render_tree::TreeDrawer;
 use gosub_shared::types::Result;
 use gosub_styling::render_tree::RenderTree;
 use gosub_taffy::TaffyLayouter;
-use gosub_useragent::application::{Application, CustomEvent};
+use gosub_useragent::application::{Application, CustomEvent, WindowOptions};
 use gosub_vello::VelloBackend;
 
 type Backend = VelloBackend;
@@ -42,7 +42,7 @@ fn main() -> Result<()> {
     let mut application: Application<Drawer, Backend, Layouter, Tree> =
         Application::new(VelloBackend::new(), TaffyLayouter, debug);
 
-    application.initial_tab(Url::parse(&url)?);
+    application.initial_tab(Url::parse(&url)?, WindowOptions::default());
 
     //this will initialize the application
     let p = application.proxy()?;

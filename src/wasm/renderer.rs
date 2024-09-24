@@ -1,12 +1,14 @@
 use js_sys::Promise;
+use log::info;
 use url::Url;
 use wasm_bindgen::prelude::*;
+use web_sys::console::info;
 
 use gosub_renderer::render_tree::TreeDrawer;
 use gosub_shared::types::Result;
 use gosub_styling::render_tree::RenderTree;
 use gosub_taffy::TaffyLayouter;
-use gosub_useragent::application::Application;
+use gosub_useragent::application::{Application, WindowOptions};
 use gosub_vello::VelloBackend;
 
 type Backend = VelloBackend;
@@ -81,9 +83,13 @@ pub fn renderer(opts: RendererOptions) -> RendererOutput {
 
 async fn renderer_internal(opts: RendererOptions) -> Result<()> {
     let mut application: Application<Drawer, Backend, Layouter, Tree> =
-        Application::new(VelloBackend::new(), TaffyLayouter, opts.debug);
+        Application::new(VelloBackend::new().await?, TaffyLayouter, opts.debug);
 
-    application.initial_tab(Url::parse(&opts.url)?);
+
+    info!("created application");
+
+
+    application.initial_tab(Url::parse(&opts.url)?, WindowOptions::with_id(opts.id));
 
     application.initialize()?;
 
