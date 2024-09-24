@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::sync::mpsc;
 
 use anyhow::anyhow;
+use log::{error, info};
 use url::Url;
 use winit::application::ApplicationHandler;
 use winit::event::WindowEvent;
@@ -17,13 +18,15 @@ use crate::window::Window;
 
 #[derive(Debug, Default)]
 pub struct WindowOptions {
+    
     #[cfg(target_arch = "wasm32")] pub id: String,
+    #[cfg(target_arch = "wasm32")] pub parent_id: String,
 }
 
 impl WindowOptions {
     #[cfg(target_arch = "wasm32")]
     pub fn with_id(id: String) -> Self {
-        Self { id }
+        Self { id, parent_id: String::new() }
     }
 }
 
@@ -48,9 +51,10 @@ impl<'a, D: SceneDrawer<B, L, LT>, B: RenderBackend, L: Layouter, LT: LayoutTree
     ApplicationHandler<CustomEvent> for Application<'a, D, B, L, LT>
 {
     fn resumed(&mut self, _event_loop: &ActiveEventLoop) {
+        info!("Resumed");
         for window in self.windows.values_mut() {
             if let Err(e) = window.resumed(&mut self.backend) {
-                eprintln!("Error resuming window: {e:?}");
+                error!("Error resuming window: {e:?}");
             }
         }
     }
@@ -68,9 +72,10 @@ impl<'a, D: SceneDrawer<B, L, LT>, B: RenderBackend, L: Layouter, LT: LayoutTree
                 ) {
                     Ok(window) => window,
                     Err(e) => {
-                        eprintln!("Error opening window: {e:?}");
+                        error!("Error opening window: {e:?}");
 
                         if self.windows.is_empty() {
+                            info!("No more windows; exiting event loop");
                             event_loop.exit();
                         }
                         return;
@@ -78,7 +83,7 @@ impl<'a, D: SceneDrawer<B, L, LT>, B: RenderBackend, L: Layouter, LT: LayoutTree
                 };
 
                 if let Err(e) = window.resumed(&mut self.backend) {
-                    eprintln!("Error resuming window: {e:?}");
+                    error!("Error resuming window: {e:?}");
                     return;
                 }
                 self.windows.insert(window.id(), window);
@@ -86,10 +91,15 @@ impl<'a, D: SceneDrawer<B, L, LT>, B: RenderBackend, L: Layouter, LT: LayoutTree
             CustomEvent::CloseWindow(id) => {
                 self.windows.remove(&id);
                 if self.windows.is_empty() {
+                    info!("No more windows; exiting event loop");
                     event_loop.exit();
                 }
             }
             CustomEvent::OpenInitial => {
+
+
+                info!("Opening initial windows");
+
                 for (urls, opts) in self.open_windows.drain(..) {
                     let mut window = match Window::new(
                         event_loop,
@@ -101,8 +111,9 @@ impl<'a, D: SceneDrawer<B, L, LT>, B: RenderBackend, L: Layouter, LT: LayoutTree
                     ) {
                         Ok(window) => window,
                         Err(e) => {
-                            eprintln!("Error opening window: {e:?}");
+                            error!("Error opening window: {e:?}");
                             if self.windows.is_empty() {
+                                info!("No more windows; exiting event loop");
                                 event_loop.exit();
                             }
                             return;
@@ -110,8 +121,9 @@ impl<'a, D: SceneDrawer<B, L, LT>, B: RenderBackend, L: Layouter, LT: LayoutTree
                     };
 
                     if let Err(e) = window.resumed(&mut self.backend) {
-                        eprintln!("Error resuming window: {e:?}");
+                        error!("Error resuming window: {e:?}");
                         if self.windows.is_empty() {
+                            info!("No more windows; exiting event loop");
                             event_loop.exit();
                         }
                         return;
@@ -215,6 +227,7 @@ impl<'a, D: SceneDrawer<B, L, LT>, B: RenderBackend, L: Layouter, LT: LayoutTree
 
         let proxy = self.proxy()?;
 
+        info!("Sending OpenInitial event");
         proxy
             .send_event(CustomEvent::OpenInitial)
             .map_err(|e| anyhow!(e.to_string()))?;

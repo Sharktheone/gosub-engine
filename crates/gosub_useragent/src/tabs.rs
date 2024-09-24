@@ -13,6 +13,16 @@ pub struct Tabs<D: SceneDrawer<B, L, LT>, B: RenderBackend, L: Layouter, LT: Lay
     _marker: std::marker::PhantomData<(B, L, LT)>,
 }
 
+impl<D: SceneDrawer<B, L, LT>, L: Layouter, LT: LayoutTree<L>, B: RenderBackend> Default for Tabs<D, B, L, LT> {
+    fn default() -> Self {
+        Self {
+            tabs: SlotMap::new(),
+            active: TabID::default(),
+            _marker: std::marker::PhantomData,
+        }
+    }
+}
+
 impl<D: SceneDrawer<B, L, LT>, L: Layouter, LT: LayoutTree<L>, B: RenderBackend> Tabs<D, B, L, LT> {
     pub fn new(initial: Tab<D, B, L, LT>) -> Self {
         let mut tabs = SlotMap::new();
@@ -42,9 +52,11 @@ impl<D: SceneDrawer<B, L, LT>, L: Layouter, LT: LayoutTree<L>, B: RenderBackend>
     }
 
     pub(crate) fn from_url(url: Url, layouter: L, debug: bool) -> Result<Self> {
-        let tab = Tab::from_url(url, layouter, debug)?;
-
-        Ok(Self::new(tab))
+        // let tab = Tab::from_url(url, layouter, debug)?;
+        // 
+        // Ok(Self::new(tab))
+        
+        Ok(Self::default())
     }
 
     pub fn select_element(&mut self, id: LT::NodeId) {
@@ -95,5 +107,5 @@ impl<D: SceneDrawer<B, L, LT>, B: RenderBackend, L: Layouter, LT: LayoutTree<L>>
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 pub struct TabID(pub(crate) DefaultKey);

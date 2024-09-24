@@ -19,7 +19,7 @@ type Tree = RenderTree<Layouter>;
 #[wasm_bindgen]
 pub struct RendererOptions {
     id: String,
-    html: String,
+    parent_id: String,
     url: String,
     debug: bool,
 }
@@ -27,10 +27,10 @@ pub struct RendererOptions {
 #[wasm_bindgen]
 impl RendererOptions {
     #[wasm_bindgen(constructor)]
-    pub fn new(id: String, html: String, url: String, debug: bool) -> Self {
+    pub fn new(id: String, parent_id: String, url: String, debug: bool) -> Self {
         Self {
             id,
-            html,
+            parent_id,
             url,
             debug,
         }
@@ -89,7 +89,10 @@ async fn renderer_internal(opts: RendererOptions) -> Result<()> {
     info!("created application");
 
 
-    application.initial_tab(Url::parse(&opts.url)?, WindowOptions::with_id(opts.id));
+    application.initial_tab(Url::parse(&opts.url)?, WindowOptions {
+        id: opts.id,
+        parent_id: opts.parent_id,
+    });
 
     application.initialize()?;
 
