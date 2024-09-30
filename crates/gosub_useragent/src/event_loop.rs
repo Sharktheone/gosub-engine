@@ -1,4 +1,4 @@
-use log::info;
+use log::{error, info};
 use winit::event::{ElementState, MouseScrollDelta, WindowEvent};
 use winit::event_loop::ActiveEventLoop;
 use winit::keyboard::{KeyCode, PhysicalKey};
@@ -58,13 +58,6 @@ impl<'a, D: SceneDrawer<B, L, LT>, B: RenderBackend, L: Layouter, LT: LayoutTree
                 }
 
                 info!("Redraw requested");
-
-                #[cfg(target_arch = "wasm32")]
-                wasm_bindgen_futures::spawn_local(async {
-                    for _ in 0..10 {
-                        info!("Hello from wasm");
-                    }
-                });
             }
 
             WindowEvent::CursorMoved { position, .. } => {

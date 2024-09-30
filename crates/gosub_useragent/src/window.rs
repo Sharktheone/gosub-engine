@@ -57,7 +57,7 @@ pub struct Window<'a, D: SceneDrawer<B, L, LT>, B: RenderBackend, L: Layouter, L
 impl<'a, D: SceneDrawer<B, L, LT>, B: RenderBackend, L: Layouter, LT: LayoutTree<L>>
     Window<'a, D, B, L, LT>
 {
-    pub fn new(
+    pub async fn new(
         event_loop: &ActiveEventLoop,
         backend: &mut B,
         layouter: L,
@@ -101,7 +101,7 @@ impl<'a, D: SceneDrawer<B, L, LT>, B: RenderBackend, L: Layouter, LT: LayoutTree
             state: WindowState::Suspended,
             window,
             renderer_data,
-            tabs: Tabs::from_url(default_url, layouter, debug)?,
+            tabs: Tabs::from_url(default_url, layouter, debug).await?,
         })
     }
 

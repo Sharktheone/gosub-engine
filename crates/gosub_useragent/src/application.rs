@@ -1,4 +1,6 @@
+use std::cell::RefCell;
 use std::collections::HashMap;
+use std::rc::Rc;
 use std::sync::mpsc;
 
 use anyhow::anyhow;
@@ -9,8 +11,8 @@ use winit::event::WindowEvent;
 use winit::event_loop::{ActiveEventLoop, EventLoop, EventLoopProxy};
 use winit::window::WindowId;
 
+use gosub_render_backend::layout::{LayoutTree, Layouter};
 use gosub_render_backend::{NodeDesc, RenderBackend};
-use gosub_render_backend::layout::{Layouter, LayoutTree};
 use gosub_renderer::draw::SceneDrawer;
 use gosub_shared::types::Result;
 
@@ -18,7 +20,6 @@ use crate::window::Window;
 
 #[derive(Debug, Default)]
 pub struct WindowOptions {
-    
     #[cfg(target_arch = "wasm32")] pub id: String,
     #[cfg(target_arch = "wasm32")] pub parent_id: String,
 }
@@ -48,7 +49,7 @@ pub struct Application<
 }
 
 impl<'a, D: SceneDrawer<B, L, LT>, B: RenderBackend, L: Layouter, LT: LayoutTree<L>>
-    ApplicationHandler<CustomEvent> for Application<'a, D, B, L, LT>
+ApplicationHandler<CustomEvent> for Application<'a, D, B, L, LT>
 {
     fn resumed(&mut self, _event_loop: &ActiveEventLoop) {
         info!("Resumed");
@@ -73,7 +74,7 @@ impl<'a, D: SceneDrawer<B, L, LT>, B: RenderBackend, L: Layouter, LT: LayoutTree
                     Ok(window) => window,
                     Err(e) => {
                         error!("Error opening window: {e:?}");
-
+                
                         if self.windows.is_empty() {
                             info!("No more windows; exiting event loop");
                             event_loop.exit();
@@ -81,11 +82,15 @@ impl<'a, D: SceneDrawer<B, L, LT>, B: RenderBackend, L: Layouter, LT: LayoutTree
                         return;
                     }
                 };
+                
+                
 
                 if let Err(e) = window.resumed(&mut self.backend) {
                     error!("Error resuming window: {e:?}");
                     return;
                 }
+
+
                 self.windows.insert(window.id(), window);
             }
             CustomEvent::CloseWindow(id) => {
@@ -96,8 +101,6 @@ impl<'a, D: SceneDrawer<B, L, LT>, B: RenderBackend, L: Layouter, LT: LayoutTree
                 }
             }
             CustomEvent::OpenInitial => {
-
-
                 info!("Opening initial windows");
 
                 for (urls, opts) in self.open_windows.drain(..) {
@@ -174,7 +177,7 @@ impl<'a, D: SceneDrawer<B, L, LT>, B: RenderBackend, L: Layouter, LT: LayoutTree
 }
 
 impl<'a, D: SceneDrawer<B, L, LT>, B: RenderBackend, L: Layouter, LT: LayoutTree<L>>
-    Application<'a, D, B, L, LT>
+Application<'a, D, B, L, LT>
 {
     pub fn new(backend: B, layouter: L, debug: bool) -> Self {
         Self {

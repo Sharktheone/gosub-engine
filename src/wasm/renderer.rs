@@ -1,11 +1,12 @@
 use js_sys::Promise;
-use log::info;
+use log::{error, info};
 use url::Url;
 use wasm_bindgen::prelude::*;
 use web_sys::console::info;
 
 use gosub_renderer::render_tree::TreeDrawer;
 use gosub_shared::types::Result;
+use gosub_shared::worker::WasmWorker;
 use gosub_styling::render_tree::RenderTree;
 use gosub_taffy::TaffyLayouter;
 use gosub_useragent::application::{Application, WindowOptions};
