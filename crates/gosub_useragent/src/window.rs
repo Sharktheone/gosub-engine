@@ -18,7 +18,7 @@ use gosub_renderer::draw::SceneDrawer;
 use gosub_shared::types::Result;
 
 use crate::application::WindowOptions;
-use crate::tabs::Tabs;
+use crate::tabs::{Tab, TabID, Tabs};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum WindowState<'a, B: RenderBackend> {
@@ -57,12 +57,9 @@ pub struct Window<'a, D: SceneDrawer<B, L, LT>, B: RenderBackend, L: Layouter, L
 impl<'a, D: SceneDrawer<B, L, LT>, B: RenderBackend, L: Layouter, LT: LayoutTree<L>>
     Window<'a, D, B, L, LT>
 {
-    pub async fn new(
+    pub fn new(
         event_loop: &ActiveEventLoop,
         backend: &mut B,
-        layouter: L,
-        default_url: Url,
-        debug: bool,
         opts: WindowOptions,
     ) -> Result<Self> {
         let window = create_window(event_loop)?;
@@ -101,8 +98,25 @@ impl<'a, D: SceneDrawer<B, L, LT>, B: RenderBackend, L: Layouter, LT: LayoutTree
             state: WindowState::Suspended,
             window,
             renderer_data,
-            tabs: Tabs::from_url(default_url, layouter, debug).await?,
+            tabs: Tabs::default(),
         })
+    }
+    
+    pub async fn open_tab(&mut self, url: Url, layouter: L, debug: bool) -> Result<()> {
+        let tab = Tab::from_url(url, layouter, debug).await?;
+        self.tabs.add_tab(tab);
+        Ok(())
+    }
+    
+    pub fn add_tab(&mut self, tab: Tab<D, B, L, LT>) {
+        let id = self.tabs.add_tab(tab);
+        
+        if self.tabs.active == TabID::default() { 
+            self.tabs.activate_tab(id);
+        }
+        
+        
+        self.window.request_redraw();
     }
 
     pub fn resumed(&mut self, backend: &mut B) -> Result<()> {

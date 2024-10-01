@@ -26,7 +26,7 @@ use crate::render_tree::{load_html_rendertree, TreeDrawer};
 
 mod img;
 
-pub trait SceneDrawer<B: RenderBackend, L: Layouter, LT: LayoutTree<L>> {
+pub trait SceneDrawer<B: RenderBackend, L: Layouter, LT: LayoutTree<L>>: 'static {
     fn draw(&mut self, backend: &mut B, data: &mut B::WindowData<'_>, size: SizeU32) -> bool;
     fn mouse_move(&mut self, backend: &mut B, x: FP, y: FP) -> bool;
 

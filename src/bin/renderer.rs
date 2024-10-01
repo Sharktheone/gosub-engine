@@ -8,7 +8,7 @@ use gosub_renderer::render_tree::TreeDrawer;
 use gosub_shared::types::Result;
 use gosub_styling::render_tree::RenderTree;
 use gosub_taffy::TaffyLayouter;
-use gosub_useragent::application::{Application, CustomEvent, WindowOptions};
+use gosub_useragent::application::{Application, CustomEventInternal, WindowOptions};
 use gosub_vello::VelloBackend;
 
 type Backend = VelloBackend;
@@ -63,7 +63,7 @@ fn main() -> Result<()> {
             "list" => {
                 let (sender, receiver) = mpsc::channel();
 
-                if let Err(e) = p.send_event(CustomEvent::SendNodes(sender)) {
+                if let Err(e) = p.send_event(CustomEventInternal::SendNodes(sender)) {
                     eprintln!("Error sending event: {e:?}");
                     continue;
                 }
@@ -80,7 +80,7 @@ fn main() -> Result<()> {
             }
 
             "unselect" => {
-                if let Err(e) = p.send_event(CustomEvent::Unselect) {
+                if let Err(e) = p.send_event(CustomEventInternal::Unselect) {
                     eprintln!("Error sending event: {e:?}");
                 }
             }
@@ -95,7 +95,7 @@ fn main() -> Result<()> {
                 continue;
             };
 
-            if let Err(e) = p.send_event(CustomEvent::Select(id)) {
+            if let Err(e) = p.send_event(CustomEventInternal::Select(id)) {
                 eprintln!("Error sending event: {e:?}");
             }
         }
