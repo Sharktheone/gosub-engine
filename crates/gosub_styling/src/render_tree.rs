@@ -4,6 +4,7 @@ use std::fmt::{Debug, Formatter};
 use log::warn;
 
 use gosub_css3::stylesheet::{CssDeclaration, CssStylesheet, CssValue, Specificity};
+use gosub_html5::element_class::ElementClass;
 use gosub_html5::node::data::element::ElementData;
 use gosub_html5::node::{NodeData, NodeId};
 use gosub_html5::parser::document::{Document, DocumentHandle, TreeIterator};
@@ -618,7 +619,7 @@ pub fn add_property_to_map(
 
 pub enum RenderNodeData<L: Layouter> {
     Document,
-    Element(Box<ElementData>),
+    Element(Box<RenderElementData>),
     Text(Box<TextData<L>>),
     AnonymousInline,
 }
@@ -650,6 +651,44 @@ impl<L: Layouter> Debug for TextData<L> {
     }
 }
 
+
+#[derive(Clone, Debug)]
+pub struct RenderElementData {
+    pub node_id: NodeId,
+    pub name: String,
+    pub attributes: HashMap<String, String>,
+    pub classes: ElementClass,
+    pub force_async: bool,
+}
+
+
+impl From<ElementData> for RenderElementData {
+    fn from(data: ElementData) -> Self {
+        Self {
+            node_id: data.node_id,
+            name: data.name,
+            attributes: data.attributes,
+            classes: data.classes,
+            force_async: data.force_async,
+        }
+    }
+}
+
+
+impl From<Box<ElementData>> for RenderElementData {
+    fn from(data: Box<ElementData>) -> Self {
+        Self {
+            node_id: data.node_id,
+            name: data.name,
+            attributes: data.attributes,
+            classes: data.classes,
+            force_async: data.force_async,
+        }
+    }
+}
+
+
+
 pub enum ControlFlow<T> {
     Ok(T),
     Drop,
@@ -659,7 +698,7 @@ pub enum ControlFlow<T> {
 impl<L: Layouter> RenderNodeData<L> {
     pub fn from_node_data(node: NodeData) -> ControlFlow<Self> {
         ControlFlow::Ok(match node {
-            NodeData::Element(data) => RenderNodeData::Element(data),
+            NodeData::Element(data) => RenderNodeData::Element(Box::new(data.into())),
             NodeData::Text(data) => {
                 let text = pre_transform_text(data.value);
 

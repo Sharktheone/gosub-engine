@@ -130,10 +130,7 @@ ApplicationHandler<CustomEventInternal<D, B, L, LT>> for Application<'a, D, B, L
                 let layouter = self.layouter.clone();
                 let debug = self.debug;
                 
-                wasm_bindgen_futures::spawn_local(async move {
-                    
-                    info!("Opening tab with URL: {url}");
-                    
+                gosub_shared::async_executor::spawn(async move {
                     let tab = match Tab::from_url(url, layouter, debug).await {
                         Ok(tab) => tab,
                         Err(e) => {
@@ -141,8 +138,6 @@ ApplicationHandler<CustomEventInternal<D, B, L, LT>> for Application<'a, D, B, L
                             return;
                         }
                     };
-                    
-                    info!("Tab created");
                     
                     let _ = proxy.send_event(CustomEventInternal::AddTab(tab, id));
                     

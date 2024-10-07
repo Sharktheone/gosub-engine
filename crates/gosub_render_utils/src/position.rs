@@ -27,7 +27,7 @@ impl RTreeObject for Element {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct PositionTree {
     tree: RTree<Element>,
 }

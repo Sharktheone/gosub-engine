@@ -1,4 +1,7 @@
+use std::cell::LazyCell;
 use std::future::Future;
+use std::ops::Deref;
+use std::sync::{Arc, LazyLock, Mutex, Once};
 use std::sync::mpsc::Sender;
 
 use anyhow::anyhow;
@@ -12,26 +15,27 @@ use gosub_net::http::fetcher::Fetcher;
 use gosub_render_backend::geo::{Size, SizeU32, FP};
 use gosub_render_backend::layout::{Layout, LayoutTree, Layouter, TextLayout};
 use gosub_render_backend::svg::SvgRenderer;
-use gosub_render_backend::{
-    Border, BorderSide, BorderStyle, Brush, Color, ImageBuffer, NodeDesc, Rect, RenderBackend,
-    RenderBorder, RenderRect, RenderText, Scene as TScene, Text, Transform,
-};
+use gosub_render_backend::{Border, BorderSide, BorderStyle, Brush, Color, ImageBuffer, ImgCache, NodeDesc, Rect, RenderBackend, RenderBorder, RenderRect, RenderText, Scene as TScene, Text, Transform};
 use gosub_rendering::position::PositionTree;
 use gosub_shared::types::Result;
 use gosub_styling::render_tree::{RenderNodeData, RenderTree, RenderTreeNode};
 
 use crate::debug::scale::px_scale;
 use crate::draw::img::request_img;
+use crate::draw::img_cache::ImageCache;
 use crate::render_tree::{load_html_rendertree, TreeDrawer};
 
 mod img;
+pub mod img_cache;
 
-pub trait SceneDrawer<B: RenderBackend, L: Layouter, LT: LayoutTree<L>>: 'static {
-    fn draw(&mut self, backend: &mut B, data: &mut B::WindowData<'_>, size: SizeU32) -> bool;
+pub trait SceneDrawer<B: RenderBackend, L: Layouter, LT: LayoutTree<L>>: Send  + 'static {
+    type ImgCache: ImgCache<B>;
+
+    fn draw(&mut self, backend: &mut B, data: &mut B::WindowData<'_>, size: SizeU32, rerender: Arc<dyn Fn() + Send + Sync>) -> bool;
     fn mouse_move(&mut self, backend: &mut B, x: FP, y: FP) -> bool;
 
     fn scroll(&mut self, point: Point);
-    fn from_url(url: Url, layouter: L, debug: bool) -> impl Future<Output = Result<Self>>
+    fn from_url(url: Url, layouter: L, debug: bool) -> impl Future<Output = Result<Self>> + Send
     where
         Self: Sized;
 
@@ -44,6 +48,8 @@ pub trait SceneDrawer<B: RenderBackend, L: Layouter, LT: LayoutTree<L>>: 'static
     fn send_nodes(&mut self, sender: Sender<NodeDesc>);
 
     fn set_needs_redraw(&mut self);
+
+    fn get_img_cache(&self) -> Arc<Mutex<Self::ImgCache>>;
 }
 
 const DEBUG_CONTENT_COLOR: (u8, u8, u8) = (0, 192, 255); //rgb(0, 192, 255)
@@ -58,7 +64,9 @@ where
     <<B as RenderBackend>::Text as Text>::Font:
         From<<<L as Layouter>::TextLayout as TextLayout>::Font>,
 {
-    fn draw(&mut self, backend: &mut B, data: &mut B::WindowData<'_>, size: SizeU32) -> bool {
+    type ImgCache = ImageCache<B>;
+
+    fn draw(&mut self, backend: &mut B, data: &mut B::WindowData<'_>, size: SizeU32, rerender: Arc<dyn Fn() + Send + Sync>) -> bool {
         if !self.dirty && self.size == Some(size) {
             return false;
         }
@@ -80,10 +88,14 @@ where
                 scene_transform.set_xy(x, y);
             }
 
+            let image_cache = self.img_cache.clone();
+            
             let mut drawer = Drawer {
                 scene: &mut scene,
                 drawer: self,
-                svg: B::SVGRenderer::new(),
+                svg: Arc::new(Mutex::new(B::SVGRenderer::new())),
+                rerender,
+                image_cache,
             };
 
             println!("Rendering tree");
@@ -236,12 +248,19 @@ where
     fn set_needs_redraw(&mut self) {
         self.dirty = true;
     }
+
+    fn get_img_cache(&self) -> Arc<Mutex<Self::ImgCache>> {
+        self.img_cache.clone()
+    }
 }
 
 struct Drawer<'s, 't, B: RenderBackend, L: Layouter> {
     scene: &'s mut B::Scene,
     drawer: &'t mut TreeDrawer<B, L>,
-    svg: B::SVGRenderer,
+    svg: Arc<Mutex<B::SVGRenderer>>,
+    rerender: Arc<dyn Fn() + Send + Sync>,
+    image_cache: Arc<Mutex<ImageCache<B>>>
+    
 }
 
 impl<B: RenderBackend, L: Layouter> Drawer<'_, '_, B, L>
@@ -283,7 +302,7 @@ where
         }
     }
 
-    fn render_node(&mut self, id: NodeId, pos: &mut Point) -> anyhow::Result<()> {
+    fn render_node(&mut self, id: NodeId, pos: &mut Point) -> Result<()> {
         let mut needs_redraw = false;
 
         let node = self
@@ -295,14 +314,15 @@ where
         let p = node.layout.rel_pos();
         pos.x += p.x as FP;
         pos.y += p.y as FP;
-
+        
+        
         let (border_radius, redraw) =
-            render_bg::<B, L>(node, self.scene, pos, &mut self.svg, &self.drawer.fetcher);
+            render_bg::<B, L>(node, self.scene, pos, self.svg.clone(), self.drawer.fetcher.clone(), self.image_cache.clone(), self.rerender.clone());
 
         needs_redraw |= redraw;
 
         if let RenderNodeData::Element(element) = &node.data {
-            if element.name() == "img" {
+            if element.name == "img" {
                 let src = element
                     .attributes
                     .get("src")
@@ -312,7 +332,7 @@ where
 
                 let size = node.layout.size_or().map(|x| x.u32());
 
-                let img = request_img(&self.drawer.fetcher, &mut self.svg, url, size)?;
+                let img = request_img::<B, L>(self.drawer.fetcher.clone(), self.svg.clone(), url, size, self.image_cache.clone(), self.rerender.clone())?;
 
                 if size.is_none() {
                     node.layout.set_size_and_content(img.size());
@@ -401,12 +421,14 @@ fn render_text<B: RenderBackend, L: Layouter>(
     }
 }
 
-fn render_bg<B: RenderBackend, L: Layouter>(
+fn render_bg<B: RenderBackend,  L: Layouter>(
     node: &mut RenderTreeNode<L>,
     scene: &mut B::Scene,
     pos: &Point,
-    svg: &mut B::SVGRenderer,
-    fetcher: &Fetcher,
+    svg: Arc<Mutex<B::SVGRenderer>>,
+    fetcher: Arc<Fetcher>,
+    img_cache: Arc<Mutex<ImageCache<B>>>,
+    rerender: Arc<dyn Fn() + Send + Sync>,
 ) -> ((FP, FP, FP, FP), bool) {
     let bg_color = node
         .properties
@@ -523,7 +545,7 @@ fn render_bg<B: RenderBackend, L: Layouter>(
     if let Some(url) = background_image {
         let size = node.layout.size_or().map(|x| x.u32());
 
-        let img = match request_img(fetcher, svg, url, size) {
+        let img = match request_img::<B, L>(fetcher.clone(), svg.clone(), url, size, img_cache, rerender) {
             Ok(img) => img,
             Err(e) => {
                 eprintln!("Error loading image: {:?}", e);

@@ -1,5 +1,5 @@
 use std::fs;
-
+use std::sync::{Arc, Mutex};
 use anyhow::bail;
 use url::Url;
 
@@ -9,15 +9,17 @@ use gosub_html5::parser::Html5Parser;
 use gosub_net::http::fetcher::Fetcher;
 use gosub_render_backend::geo::SizeU32;
 use gosub_render_backend::layout::Layouter;
-use gosub_render_backend::RenderBackend;
+use gosub_render_backend::{ImgCache, RenderBackend};
 use gosub_rendering::position::PositionTree;
 use gosub_shared::byte_stream::{ByteStream, Encoding};
 use gosub_styling::render_tree::{generate_render_tree, RenderNodeData, RenderTree};
 use gosub_styling::styling::CssProperties;
+use crate::draw::img_cache::ImageCache;
 
+#[derive(Debug)]
 pub struct TreeDrawer<B: RenderBackend, L: Layouter> {
     pub(crate) tree: RenderTree<L>,
-    pub(crate) fetcher: Fetcher,
+    pub(crate) fetcher: Arc<Fetcher>,
     pub(crate) layouter: L,
     pub(crate) size: Option<SizeU32>,
     pub(crate) position: PositionTree,
@@ -28,13 +30,14 @@ pub struct TreeDrawer<B: RenderBackend, L: Layouter> {
     pub(crate) tree_scene: Option<B::Scene>,
     pub(crate) selected_element: Option<NodeId>,
     pub(crate) scene_transform: Option<B::Transform>,
+    pub(crate) img_cache: Arc<Mutex<ImageCache<B>>>,
 }
 
 impl<B: RenderBackend, L: Layouter> TreeDrawer<B, L> {
     pub fn new(tree: RenderTree<L>, layouter: L, fetcher: Fetcher, debug: bool) -> Self {
         Self {
             tree,
-            fetcher,
+            fetcher: Arc::new(fetcher),
             layouter,
             size: None,
             position: PositionTree::default(),
@@ -45,6 +48,7 @@ impl<B: RenderBackend, L: Layouter> TreeDrawer<B, L> {
             tree_scene: None,
             selected_element: None,
             scene_transform: None,
+            img_cache: Arc::new(Mutex::new(ImageCache::new())),
         }
     }
 }

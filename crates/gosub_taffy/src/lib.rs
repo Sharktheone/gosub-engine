@@ -88,7 +88,7 @@ impl TLayout for Layout {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct TaffyLayouter;
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]

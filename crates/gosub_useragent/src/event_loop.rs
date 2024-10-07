@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use log::{error, info};
 use winit::event::{ElementState, MouseScrollDelta, WindowEvent};
 use winit::event_loop::ActiveEventLoop;
@@ -48,8 +49,12 @@ impl<'a, D: SceneDrawer<B, L, LT>, B: RenderBackend, L: Layouter, LT: LayoutTree
                 let Some(tab) = self.tabs.get_current_tab() else {
                     return Ok(());
                 };
+                
+                let w = window.clone();
 
-                let redraw = tab.data.draw(backend, &mut self.renderer_data, size);
+                let redraw = tab.data.draw(backend, &mut self.renderer_data, size, Arc::new(move || {
+                    w.request_redraw();
+                }));
                 
                 backend.render(&mut self.renderer_data, active_window_data)?;
                 

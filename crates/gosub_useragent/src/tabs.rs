@@ -2,7 +2,6 @@ use slotmap::{DefaultKey, SlotMap};
 use std::sync::mpsc::Sender;
 use log::info;
 use url::Url;
-use web_sys::console::info;
 use gosub_render_backend::layout::{LayoutTree, Layouter};
 use gosub_render_backend::{NodeDesc, RenderBackend};
 use gosub_renderer::draw::SceneDrawer;
@@ -82,7 +81,7 @@ pub struct Tab<D: SceneDrawer<B, L, LT>, B: RenderBackend, L: Layouter, LT: Layo
     pub title: String,
     pub url: Url,
     pub data: D,
-    _marker: std::marker::PhantomData<(B, L, LT)>,
+    _marker: std::marker::PhantomData<fn() -> (B, L, LT)>,
 }
 
 impl<D: SceneDrawer<B, L, LT>, B: RenderBackend, L: Layouter, LT: LayoutTree<L>> Tab<D, B, L, LT> {
