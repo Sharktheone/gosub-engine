@@ -50,7 +50,8 @@ impl<D: SceneDrawer<B, L, LT>, L: Layouter, LT: LayoutTree<L>, B: RenderBackend>
     pub fn get_current_tab(&mut self) -> Option<&mut Tab<D, B, L, LT>> {
         self.tabs.get_mut(self.active.0)
     }
-
+    
+    #[allow(unused)]
     pub(crate) async fn from_url(url: Url, layouter: L, debug: bool) -> Result<Self> {
         let tab = Tab::from_url(url, layouter, debug).await?;
         
@@ -81,7 +82,7 @@ pub struct Tab<D: SceneDrawer<B, L, LT>, B: RenderBackend, L: Layouter, LT: Layo
     pub title: String,
     pub url: Url,
     pub data: D,
-    _marker: std::marker::PhantomData<fn() -> (B, L, LT)>,
+    _marker: std::marker::PhantomData<fn(B, L, LT)>,
 }
 
 impl<D: SceneDrawer<B, L, LT>, B: RenderBackend, L: Layouter, LT: LayoutTree<L>> Tab<D, B, L, LT> {

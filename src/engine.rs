@@ -159,6 +159,11 @@ fn fetch_url(
 
 #[cfg(test)]
 mod tests {
+    use cookie::CookieJar;
+    use gosub_net::http::headers::Headers;
+    use crate::engine::{fetch_url, USER_AGENT};
+    
+    
     #[cfg(not(target_arch = "wasm32"))]
     #[test]
     fn test_fetch_url() {
