@@ -66,7 +66,6 @@ where
     type ImgCache = ImageCache<B>;
 
     fn draw(&mut self, backend: &mut B, data: &mut B::WindowData<'_>, size: SizeU32, rerender: impl Fn() + Send + Sync + 'static) -> bool {
-        
         let dirty = self.dirty.load(Ordering::Relaxed);
         
         if !dirty && self.size == Some(size) {
@@ -331,10 +330,6 @@ where
 
         if let RenderNodeData::Element(element) = &node.data {
             if element.name == "img" {
-                
-                
-                println!("element is image");
-                
                 let src = element
                     .attributes
                     .get("src")
@@ -345,8 +340,6 @@ where
                 let size = node.layout.size_or().map(|x| x.u32());
 
                 let img = request_img::<B>(self.drawer.fetcher.clone(), self.svg.clone(), url, size, self.image_cache.clone(), self.rerender.clone())?;
-
-                println!("got img {url}: {:?}", img.size());
 
                 if size.is_none() {
                     node.layout.set_size_and_content(img.size());
