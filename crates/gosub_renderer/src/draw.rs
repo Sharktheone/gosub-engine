@@ -16,6 +16,7 @@ use gosub_render_backend::layout::{Layout, LayoutTree, Layouter, TextLayout};
 use gosub_render_backend::svg::SvgRenderer;
 use gosub_render_backend::{Border, BorderSide, BorderStyle, Brush, Color, ImageBuffer, ImgCache, NodeDesc, Rect, RenderBackend, RenderBorder, RenderRect, RenderText, Scene as TScene, Text, Transform};
 use gosub_rendering::position::PositionTree;
+use gosub_shared::async_executor::{WasmNotSend, WasmNotSendSync};
 use gosub_shared::types::Result;
 use gosub_styling::render_tree::{RenderNodeData, RenderTree, RenderTreeNode};
 
@@ -27,14 +28,14 @@ use crate::render_tree::{load_html_rendertree, TreeDrawer};
 mod img;
 pub mod img_cache;
 
-pub trait SceneDrawer<B: RenderBackend, L: Layouter, LT: LayoutTree<L>>: Send  + 'static {
+pub trait SceneDrawer<B: RenderBackend, L: Layouter, LT: LayoutTree<L>>: WasmNotSend  + 'static {
     type ImgCache: ImgCache<B>;
 
     fn draw(&mut self, backend: &mut B, data: &mut B::WindowData<'_>, size: SizeU32, rerender: impl Fn() + Send + Sync + 'static) -> bool;
     fn mouse_move(&mut self, backend: &mut B, x: FP, y: FP) -> bool;
 
     fn scroll(&mut self, point: Point);
-    fn from_url(url: Url, layouter: L, debug: bool) -> impl Future<Output = Result<Self>> + Send
+    fn from_url(url: Url, layouter: L, debug: bool) -> impl Future<Output = Result<Self>> + WasmNotSend
     where
         Self: Sized;
 
@@ -67,7 +68,7 @@ where
 
     fn draw(&mut self, backend: &mut B, data: &mut B::WindowData<'_>, size: SizeU32, rerender: impl Fn() + Send + Sync + 'static) -> bool {
         let dirty = self.dirty.load(Ordering::Relaxed);
-        
+
         if !dirty && self.size == Some(size) {
             return false;
         }
@@ -90,7 +91,7 @@ where
             }
 
             let image_cache = self.img_cache.clone();
-            
+
             let dirty = self.dirty.clone();
             
             let mut drawer = Drawer {
@@ -99,7 +100,7 @@ where
                 svg: Arc::new(Mutex::new(B::SVGRenderer::new())),
                 rerender: Arc::new(move || {
                     dirty.store(true, Ordering::Relaxed);
-                    
+
                     rerender();
                 }),
                 image_cache,
