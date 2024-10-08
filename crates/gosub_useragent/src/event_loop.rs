@@ -1,4 +1,3 @@
-use std::sync::Arc;
 use log::info;
 use winit::event::{ElementState, MouseScrollDelta, WindowEvent};
 use winit::event_loop::ActiveEventLoop;
@@ -42,6 +41,9 @@ impl<'a, D: SceneDrawer<B, L, LT>, B: RenderBackend, L: Layouter, LT: LayoutTree
                 window.request_redraw();
             }
             WindowEvent::RedrawRequested => {
+
+                println!("Redrawing da shit");
+
                 let size = window.inner_size();
 
                 let size = SizeU32::new(size.width, size.height);
@@ -50,11 +52,13 @@ impl<'a, D: SceneDrawer<B, L, LT>, B: RenderBackend, L: Layouter, LT: LayoutTree
                     return Ok(());
                 };
                 
+                
                 let w = window.clone();
 
-                let redraw = tab.data.draw(backend, &mut self.renderer_data, size, Arc::new(move || {
+                let redraw = tab.data.draw(backend, &mut self.renderer_data, size, move || {
+                    println!("Requesting da redraw");
                     w.request_redraw();
-                }));
+                });
                 
                 backend.render(&mut self.renderer_data, active_window_data)?;
                 

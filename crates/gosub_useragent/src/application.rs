@@ -176,7 +176,7 @@ ApplicationHandler<CustomEventInternal<D, B, L, LT>> for Application<'a, D, B, L
                         }
                         return;
                     }
- 
+                    
                     let id = window.id();
                     
                     self.windows.insert(id, window);

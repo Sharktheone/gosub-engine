@@ -1,5 +1,6 @@
 use std::future::Future;
 use std::sync::{Arc, Mutex};
+use std::sync::atomic::Ordering;
 use std::sync::mpsc::Sender;
 
 use anyhow::anyhow;
@@ -29,7 +30,7 @@ pub mod img_cache;
 pub trait SceneDrawer<B: RenderBackend, L: Layouter, LT: LayoutTree<L>>: Send  + 'static {
     type ImgCache: ImgCache<B>;
 
-    fn draw(&mut self, backend: &mut B, data: &mut B::WindowData<'_>, size: SizeU32, rerender: Arc<dyn Fn() + Send + Sync>) -> bool;
+    fn draw(&mut self, backend: &mut B, data: &mut B::WindowData<'_>, size: SizeU32, rerender: impl Fn() + Send + Sync + 'static) -> bool;
     fn mouse_move(&mut self, backend: &mut B, x: FP, y: FP) -> bool;
 
     fn scroll(&mut self, point: Point);
@@ -64,12 +65,15 @@ where
 {
     type ImgCache = ImageCache<B>;
 
-    fn draw(&mut self, backend: &mut B, data: &mut B::WindowData<'_>, size: SizeU32, rerender: Arc<dyn Fn() + Send + Sync>) -> bool {
-        if !self.dirty && self.size == Some(size) {
+    fn draw(&mut self, backend: &mut B, data: &mut B::WindowData<'_>, size: SizeU32, rerender: impl Fn() + Send + Sync + 'static) -> bool {
+        
+        let dirty = self.dirty.load(Ordering::Relaxed);
+        
+        if !dirty && self.size == Some(size) {
             return false;
         }
 
-        if self.tree_scene.is_none() || self.size != Some(size) {
+        if self.tree_scene.is_none() || self.size != Some(size) || dirty {
             self.size = Some(size);
 
             let mut scene = B::Scene::new();
@@ -88,11 +92,17 @@ where
 
             let image_cache = self.img_cache.clone();
             
+            let dirty = self.dirty.clone();
+            
             let mut drawer = Drawer {
                 scene: &mut scene,
                 drawer: self,
                 svg: Arc::new(Mutex::new(B::SVGRenderer::new())),
-                rerender,
+                rerender: Arc::new(move || {
+                    dirty.store(true, Ordering::Relaxed);
+                    
+                    rerender();
+                }),
                 image_cache,
             };
 
@@ -123,14 +133,14 @@ where
             backend.apply_scene(data, scene, self.scene_transform.clone());
         }
 
-        if self.dirty {
+        if self.dirty.load(Ordering::Relaxed)  {
             if let Some(id) = self.selected_element {
                 self.debug_annotate(id);
             }
         }
 
         if let Some(scene) = &self.debugger_scene {
-            self.dirty = false;
+            self.dirty.store(false, Ordering::Relaxed);
             backend.apply_scene(data, scene, self.scene_transform.clone());
         }
 
@@ -150,8 +160,8 @@ where
             backend.apply_scene(data, &scale, None);
         }
 
-        if self.dirty {
-            self.dirty = false;
+        if self.dirty.load(Ordering::Relaxed) {
+            self.dirty.store(false, Ordering::Relaxed);
 
             return true;
         }
@@ -205,7 +215,7 @@ where
 
         self.scene_transform = Some(transform);
 
-        self.dirty = true;
+        self.dirty.store(true, Ordering::Relaxed);
     }
 
     async fn from_url(url: Url, layouter: L, debug: bool) -> Result<Self> {
@@ -218,25 +228,25 @@ where
         self.tree_scene = None;
         self.debugger_scene = None;
         self.last_hover = None;
-        self.dirty = true;
+        self.dirty.store(true, Ordering::Relaxed);
     }
 
     fn toggle_debug(&mut self) {
         self.debug = !self.debug;
-        self.dirty = true;
+        self.dirty.store(true, Ordering::Relaxed);
         self.last_hover = None;
         self.debugger_scene = None;
     }
 
     fn select_element(&mut self, id: NodeId) {
         self.selected_element = Some(id);
-        self.dirty = true;
+        self.dirty.store(true, Ordering::Relaxed);
     }
 
     fn unselect_element(&mut self) {
         self.selected_element = None;
         self.debugger_scene = None;
-        self.dirty = true;
+        self.dirty.store(true, Ordering::Relaxed);
     }
 
     fn send_nodes(&mut self, sender: Sender<NodeDesc>) {
@@ -244,7 +254,7 @@ where
     }
 
     fn set_needs_redraw(&mut self) {
-        self.dirty = true;
+        self.dirty.store(true, Ordering::Relaxed);
     }
 
     fn get_img_cache(&self) -> Arc<Mutex<Self::ImgCache>> {
@@ -321,6 +331,10 @@ where
 
         if let RenderNodeData::Element(element) = &node.data {
             if element.name == "img" {
+                
+                
+                println!("element is image");
+                
                 let src = element
                     .attributes
                     .get("src")
@@ -331,6 +345,8 @@ where
                 let size = node.layout.size_or().map(|x| x.u32());
 
                 let img = request_img::<B>(self.drawer.fetcher.clone(), self.svg.clone(), url, size, self.image_cache.clone(), self.rerender.clone())?;
+
+                println!("got img {url}: {:?}", img.size());
 
                 if size.is_none() {
                     node.layout.set_size_and_content(img.size());
@@ -922,7 +938,7 @@ impl<B: RenderBackend, L: Layouter> TreeDrawer<B, L> {
         scene.draw_rect(&render_rect);
 
         self.debugger_scene = Some(scene);
-        self.dirty = true;
+        self.dirty.store(true, Ordering::Relaxed);
 
         true
     }

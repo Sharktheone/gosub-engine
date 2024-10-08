@@ -1,5 +1,6 @@
 use std::fs;
 use std::sync::{Arc, Mutex};
+use std::sync::atomic::AtomicBool;
 use anyhow::bail;
 use url::Url;
 
@@ -25,7 +26,7 @@ pub struct TreeDrawer<B: RenderBackend, L: Layouter> {
     pub(crate) position: PositionTree,
     pub(crate) last_hover: Option<NodeId>,
     pub(crate) debug: bool,
-    pub(crate) dirty: bool,
+    pub(crate) dirty: Arc<AtomicBool>,
     pub(crate) debugger_scene: Option<B::Scene>,
     pub(crate) tree_scene: Option<B::Scene>,
     pub(crate) selected_element: Option<NodeId>,
@@ -44,7 +45,7 @@ impl<B: RenderBackend, L: Layouter> TreeDrawer<B, L> {
             last_hover: None,
             debug,
             debugger_scene: None,
-            dirty: false,
+            dirty: Arc::new(AtomicBool::new(false)),
             tree_scene: None,
             selected_element: None,
             scene_transform: None,
