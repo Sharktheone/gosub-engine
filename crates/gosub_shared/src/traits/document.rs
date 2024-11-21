@@ -2,7 +2,6 @@ use crate::byte_stream::Location;
 use crate::document::DocumentHandle;
 use crate::node::NodeId;
 use crate::traits::config::HasDocument;
-use crate::traits::css3::CssSystem;
 use crate::traits::node::{Node, QuirksMode};
 use std::collections::HashMap;
 use std::fmt::{Debug, Display};
@@ -25,17 +24,18 @@ pub trait DocumentBuilder<C: HasDocument> {
     ) -> DocumentHandle<C>;
 }
 
-pub trait DocumentFragment<C: HasDocument>: Sized + Clone + PartialEq{
+pub trait DocumentFragment<C: HasDocument>: Sized + Clone + PartialEq {
     /// Returns the document handle for this document
     fn handle(&self) -> DocumentHandle<C>;
 
     fn new(handle: DocumentHandle<C>, node_id: NodeId) -> Self;
 }
 
-pub trait Document<C: HasDocument<Document=Self>>: Sized + Display + Debug + PartialEq + 'static {
+pub trait Document<C: HasDocument<Document = Self>>: Sized + Display + Debug + PartialEq + 'static {
     type Node: Node<C>;
 
     // Creates a new doc with an optional document root node
+    #[allow(clippy::new_ret_no_self)]
     fn new(document_type: DocumentType, url: Option<Url>, root_node: Option<Self::Node>) -> DocumentHandle<C>;
 
     // /// Creates a new document with an optional document root node

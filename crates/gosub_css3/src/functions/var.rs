@@ -1,8 +1,6 @@
-use std::collections::HashMap;
-use gosub_shared::traits::config::HasDocument;
 use crate::stylesheet::CssValue;
-use gosub_shared::traits::css3::CssSystem;
-use gosub_shared::traits::document::Document;
+use gosub_shared::traits::config::HasDocument;
+use std::collections::HashMap;
 
 #[allow(dead_code)]
 #[derive(Clone, Debug, Default)]

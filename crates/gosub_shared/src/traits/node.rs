@@ -34,7 +34,7 @@ pub enum NodeData<'a, C: HasDocument> {
 }
 
 // impl<C: HasDocument> Copy for NodeData<'_, C> {}
-// 
+//
 // impl<C: HasDocument> Clone for NodeData<'_, C> {
 //     fn clone(&self) -> Self {
 //         *self

@@ -1,6 +1,5 @@
 use gosub_shared::node::NodeId;
 use gosub_shared::traits::config::HasDocument;
-use gosub_shared::traits::css3::CssSystem;
 use gosub_shared::traits::node::Node;
 use std::collections::HashMap;
 
@@ -115,7 +114,6 @@ mod tests {
     use crate::document::document_impl::DocumentImpl;
     use gosub_css3::system::Css3System;
     use gosub_shared::byte_stream::Location;
-    use gosub_shared::traits::document::Document;
 
     use crate::document::builder::DocumentBuilderImpl;
     use gosub_shared::traits::document::DocumentBuilder;

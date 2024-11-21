@@ -1,18 +1,26 @@
-use std::fmt::Debug;
 use crate::traits::config::css_system::HasCssSystem;
 use crate::traits::document::{Document, DocumentBuilder, DocumentFragment};
 use crate::traits::html5::Html5Parser;
 use crate::traits::node::{CommentDataType, DocTypeDataType, DocumentDataType, ElementDataType, Node, TextDataType};
+use std::fmt::Debug;
 
-pub trait HasDocument: Sized + Clone + Debug + PartialEq + HasCssSystem + 'static +
-HasDocumentExt<Self,
-    Node=<Self::Document as Document<Self>>::Node,
-    DocumentData=<<Self::Document as Document<Self>>::Node as Node<Self>>::DocumentData,
-    DocTypeData=<<Self::Document as Document<Self>>::Node as Node<Self>>::DocTypeData,
-    TextData=<<Self::Document as Document<Self>>::Node as Node<Self>>::TextData,
-    CommentData=<<Self::Document as Document<Self>>::Node as Node<Self>>::CommentData,
-    ElementData=<<Self::Document as Document<Self>>::Node as Node<Self>>::ElementData,
-> {
+pub trait HasDocument:
+    Sized
+    + Clone
+    + Debug
+    + PartialEq
+    + HasCssSystem
+    + 'static
+    + HasDocumentExt<
+        Self,
+        Node = <Self::Document as Document<Self>>::Node,
+        DocumentData = <<Self::Document as Document<Self>>::Node as Node<Self>>::DocumentData,
+        DocTypeData = <<Self::Document as Document<Self>>::Node as Node<Self>>::DocTypeData,
+        TextData = <<Self::Document as Document<Self>>::Node as Node<Self>>::TextData,
+        CommentData = <<Self::Document as Document<Self>>::Node as Node<Self>>::CommentData,
+        ElementData = <<Self::Document as Document<Self>>::Node as Node<Self>>::ElementData,
+    >
+{
     type Document: Document<Self>;
     type DocumentFragment: DocumentFragment<Self>;
 
@@ -23,7 +31,6 @@ pub trait HasHtmlParser: HasDocument {
     type HtmlParser: Html5Parser<Self>;
 }
 
-
 pub trait HasDocumentExt<C: HasDocument> {
     type Node: Node<C>;
     type DocumentData: DocumentDataType;
@@ -33,7 +40,6 @@ pub trait HasDocumentExt<C: HasDocument> {
     type ElementData: ElementDataType<C>;
 }
 
-
 impl<C: HasDocument> HasDocumentExt<C> for C {
     type Node = <C::Document as Document<Self>>::Node;
     type DocumentData = <<C::Document as Document<Self>>::Node as Node<Self>>::DocumentData;
@@ -41,4 +47,4 @@ impl<C: HasDocument> HasDocumentExt<C> for C {
     type TextData = <<C::Document as Document<Self>>::Node as Node<Self>>::TextData;
     type CommentData = <<C::Document as Document<Self>>::Node as Node<Self>>::CommentData;
     type ElementData = <<C::Document as Document<Self>>::Node as Node<Self>>::ElementData;
-}  
+}

@@ -8,7 +8,7 @@ use gosub_shared::document::DocumentHandle;
 use gosub_shared::node::NodeId;
 use gosub_shared::traits::config::HasDocument;
 use gosub_shared::traits::css3;
-use gosub_shared::traits::css3::{CssOrigin, CssPropertyMap, CssSystem};
+use gosub_shared::traits::css3::{CssOrigin, CssPropertyMap};
 use gosub_shared::traits::document::Document;
 use gosub_shared::traits::node::ClassList;
 use gosub_shared::traits::node::ElementDataType;
@@ -538,7 +538,6 @@ impl Display for CssProperty {
 }
 
 impl css3::CssProperty<Css3System> for CssProperty {
-
     fn compute_value(&mut self) {
         self.compute_value();
     }
@@ -639,7 +638,6 @@ impl CssProperties {
 }
 
 impl CssPropertyMap<Css3System> for CssProperties {
-
     fn insert_inherited(&mut self, name: &str, value: CssProperty) {
         self.properties.entry(name.to_string()).or_insert(value);
     }

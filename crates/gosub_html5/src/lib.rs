@@ -3,12 +3,10 @@
 //! The parser's job is to take a stream of bytes and turn it into a DOM tree. The parser is
 //! implemented as a state machine and runs in the current thread.
 use crate::document::builder::DocumentBuilderImpl;
-use crate::document::document_impl::DocumentImpl;
 use crate::parser::Html5Parser;
 use gosub_shared::byte_stream::{ByteStream, Encoding};
 use gosub_shared::document::DocumentHandle;
 use gosub_shared::traits::config::HasDocument;
-use gosub_shared::traits::css3::CssSystem;
 use gosub_shared::traits::document::DocumentBuilder as _;
 
 pub mod document;

@@ -10,13 +10,11 @@ use gosub_html5::document::fragment::DocumentFragmentImpl;
 use gosub_shared::document::DocumentHandle;
 use gosub_shared::node::NodeId;
 use gosub_shared::traits::config::{HasCssSystem, HasDocument, HasHtmlParser};
-use gosub_shared::traits::css3::CssSystem;
 use gosub_shared::traits::document::{Document, DocumentBuilder};
 use gosub_shared::traits::node::{Node, TextDataType};
 
 #[derive(Clone, Debug, PartialEq)]
 struct Config;
-
 
 impl HasCssSystem for Config {
     type CssSystem = Css3System;
@@ -26,7 +24,6 @@ impl HasDocument for Config {
     type DocumentFragment = DocumentFragmentImpl<Self>;
     type DocumentBuilder = DocumentBuilderImpl;
 }
-
 
 impl HasHtmlParser for Config {
     type HtmlParser = Html5Parser<Self>;
@@ -54,8 +51,7 @@ fn main() -> Result<()> {
     stream.close();
 
     let doc_handle: DocumentHandle<Config> = DocumentBuilderImpl::new_document(None);
-    let parse_errors =
-        Html5Parser::<Config>::parse_document(stream, doc_handle.clone(), None)?;
+    let parse_errors = Html5Parser::<Config>::parse_document(stream, doc_handle.clone(), None)?;
 
     for e in parse_errors {
         println!("Parse Error: {}", e.message);
@@ -66,10 +62,7 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn display_node<C: HasDocument>(
-    doc_handle: DocumentHandle<C>,
-    node_id: NodeId,
-) {
+fn display_node<C: HasDocument>(doc_handle: DocumentHandle<C>, node_id: NodeId) {
     let binding = doc_handle.get();
     let node = binding.node_by_id(node_id).unwrap();
     if node.is_text_node() {

@@ -28,7 +28,6 @@ pub struct TotalTestResults {
 #[derive(Clone, Debug, PartialEq)]
 struct Config;
 
-
 impl HasCssSystem for Config {
     type CssSystem = Css3System;
 }
@@ -38,11 +37,9 @@ impl HasDocument for Config {
     type DocumentBuilder = DocumentBuilderImpl;
 }
 
-
 impl HasHtmlParser for Config {
     type HtmlParser = Html5Parser<Self>;
 }
-
 
 fn main() {
     let mut results = TotalTestResults::default();

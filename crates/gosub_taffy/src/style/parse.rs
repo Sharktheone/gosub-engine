@@ -101,7 +101,10 @@ pub fn parse_align_c<C: HasLayouter>(node: &mut impl LayoutNode<C>, name: &str) 
     }
 }
 
-pub fn parse_tracking_sizing_function<C: HasLayouter>(node: &mut impl LayoutNode<C>, name: &str) -> Vec<TrackSizingFunction> {
+pub fn parse_tracking_sizing_function<C: HasLayouter>(
+    node: &mut impl LayoutNode<C>,
+    name: &str,
+) -> Vec<TrackSizingFunction> {
     let Some(display) = node.get_property(name) else {
         return Vec::new();
     };
@@ -121,7 +124,10 @@ pub fn parse_non_repeated_tracking_sizing_function<C: HasLayouter>(
     todo!("implement parse_non_repeated_tracking_sizing_function")
 }
 
-pub fn parse_grid_auto<C: HasLayouter>(node: &mut impl LayoutNode<C>, name: &str) -> Vec<NonRepeatedTrackSizingFunction> {
+pub fn parse_grid_auto<C: HasLayouter>(
+    node: &mut impl LayoutNode<C>,
+    name: &str,
+) -> Vec<NonRepeatedTrackSizingFunction> {
     let Some(display) = node.get_property(name) else {
         return Vec::new();
     };

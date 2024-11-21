@@ -1,5 +1,3 @@
-use crate::document::document_impl::DocumentImpl;
-use crate::document::fragment::DocumentFragmentImpl;
 use crate::node::elements::{
     FORMATTING_HTML_ELEMENTS, SPECIAL_HTML_ELEMENTS, SPECIAL_MATHML_ELEMENTS, SPECIAL_SVG_ELEMENTS,
 };
@@ -7,12 +5,11 @@ use crate::node::{HTML_NAMESPACE, MATHML_NAMESPACE, SVG_NAMESPACE};
 use core::fmt::{Debug, Formatter};
 use gosub_shared::document::DocumentHandle;
 use gosub_shared::node::NodeId;
-use gosub_shared::traits::css3::CssSystem;
+use gosub_shared::traits::config::HasDocument;
 use gosub_shared::traits::node::{ClassList, ElementDataType};
 use std::collections::hash_map::IntoIter;
 use std::collections::HashMap;
 use std::fmt;
-use gosub_shared::traits::config::HasDocument;
 
 #[derive(Debug)]
 pub struct ClassListImpl {
@@ -183,7 +180,6 @@ impl<C: HasDocument> Debug for ElementData<C> {
 }
 
 impl<C: HasDocument> ElementDataType<C> for ElementData<C> {
-
     fn name(&self) -> &str {
         self.name.as_str()
     }

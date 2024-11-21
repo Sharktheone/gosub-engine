@@ -137,7 +137,12 @@ impl Layouter for TaffyLayouter {
 
     const COLLAPSE_INLINE: bool = true;
 
-    fn layout<C: HasLayouter<Layouter = TaffyLayouter>>(&self, tree: &mut C::LayoutTree, root: <C::LayoutTree as LayoutTree<C>>::NodeId, space: SizeU32) -> Result<()> {
+    fn layout<C: HasLayouter<Layouter = TaffyLayouter>>(
+        &self,
+        tree: &mut C::LayoutTree,
+        root: <C::LayoutTree as LayoutTree<C>>::NodeId,
+        space: SizeU32,
+    ) -> Result<()> {
         let size = taffy::Size {
             width: AvailableSpace::Definite(space.width as f32),
             height: AvailableSpace::Definite(space.height as f32),
@@ -152,7 +157,10 @@ impl Layouter for TaffyLayouter {
 }
 
 impl TaffyLayouter {
-    fn precompute_style<C: HasLayouter<Layouter = TaffyLayouter>>(tree: &mut LayoutDocument<C>, root: <C::LayoutTree as LayoutTree<C>>::NodeId) {
+    fn precompute_style<C: HasLayouter<Layouter = TaffyLayouter>>(
+        tree: &mut LayoutDocument<C>,
+        root: <C::LayoutTree as LayoutTree<C>>::NodeId,
+    ) {
         tree.update_style(root);
 
         let Some(children) = tree.0.children(root) else {

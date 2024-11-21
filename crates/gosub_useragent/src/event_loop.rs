@@ -4,22 +4,13 @@ use winit::event_loop::ActiveEventLoop;
 use winit::keyboard::{KeyCode, ModifiersState, PhysicalKey};
 
 use crate::window::{Window, WindowState};
-use gosub_shared::render_backend::layout::{LayoutTree, Layouter};
 use gosub_shared::render_backend::{Point, RenderBackend, SizeU32, WindowedEventLoop, FP};
 use gosub_shared::traits::config::ModuleConfiguration;
-use gosub_shared::traits::document::Document;
 use gosub_shared::traits::draw::TreeDrawer;
-use gosub_shared::traits::html5::Html5Parser;
 use gosub_shared::types::Result;
 
-impl<C: ModuleConfiguration> Window<'_, C>
-{
-    pub fn event(
-        &mut self,
-        el: &ActiveEventLoop,
-        backend: &mut C::RenderBackend,
-        event: WindowEvent,
-    ) -> Result<()> {
+impl<C: ModuleConfiguration> Window<'_, C> {
+    pub fn event(&mut self, el: &ActiveEventLoop, backend: &mut C::RenderBackend, event: WindowEvent) -> Result<()> {
         let WindowState::Active {
             surface: active_window_data,
         } = &mut self.state

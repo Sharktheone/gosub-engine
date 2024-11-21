@@ -1,11 +1,7 @@
-use gosub_shared::render_backend::layout::{LayoutTree, Layouter};
-use gosub_shared::render_backend::{NodeDesc, RenderBackend, WindowedEventLoop};
-use gosub_shared::traits::config::{HasHtmlParser, HasTreeDrawer, ModuleConfiguration};
-use gosub_shared::traits::css3::CssSystem;
-use gosub_shared::traits::document::Document;
+use gosub_shared::render_backend::layout::LayoutTree;
+use gosub_shared::render_backend::{NodeDesc, WindowedEventLoop};
+use gosub_shared::traits::config::ModuleConfiguration;
 use gosub_shared::traits::draw::TreeDrawer;
-use gosub_shared::traits::html5::Html5Parser;
-use gosub_shared::traits::render_tree::RenderTree;
 use gosub_shared::types::Result;
 use slotmap::{DefaultKey, SlotMap};
 use std::sync::mpsc::Sender;
@@ -17,8 +13,7 @@ pub struct Tabs<C: ModuleConfiguration> {
     pub active: TabID,
 }
 
-impl<C: ModuleConfiguration> Default for Tabs<C>
-{
+impl<C: ModuleConfiguration> Default for Tabs<C> {
     fn default() -> Self {
         Self {
             tabs: SlotMap::new(),
@@ -27,16 +22,12 @@ impl<C: ModuleConfiguration> Default for Tabs<C>
     }
 }
 
-impl<C: ModuleConfiguration> Tabs<C>
-{
+impl<C: ModuleConfiguration> Tabs<C> {
     pub fn new(initial: Tab<C>) -> Self {
         let mut tabs = SlotMap::new();
         let active = TabID(tabs.insert(initial));
 
-        Self {
-            tabs,
-            active,
-        }
+        Self { tabs, active }
     }
 
     pub fn add_tab(&mut self, tab: Tab<C>) -> TabID {
@@ -56,11 +47,7 @@ impl<C: ModuleConfiguration> Tabs<C>
     }
 
     #[allow(unused)]
-    pub(crate) async fn from_url(
-        url: Url,
-        layouter: C::Layouter,
-        debug: bool,
-    ) -> Result<Self> {
+    pub(crate) async fn from_url(url: Url, layouter: C::Layouter, debug: bool) -> Result<Self> {
         let tab = Tab::from_url(url, layouter, debug).await?;
         Ok(Self::new(tab))
     }
@@ -125,11 +112,7 @@ pub struct Tab<C: ModuleConfiguration> {
 
 impl<C: ModuleConfiguration> Tab<C> {
     pub fn new(title: String, url: Url, data: C::TreeDrawer) -> Self {
-        Self {
-            title,
-            url,
-            data,
-        }
+        Self { title, url, data }
     }
 
     pub async fn from_url(url: Url, layouter: C::Layouter, debug: bool) -> Result<Self> {

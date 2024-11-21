@@ -9,14 +9,13 @@ use crate::{load_default_useragent_stylesheet, Css3};
 use gosub_shared::document::DocumentHandle;
 use gosub_shared::errors::CssResult;
 use gosub_shared::node::NodeId;
+use gosub_shared::traits::config::{HasDocument, HasRenderTree};
 use gosub_shared::traits::css3::{CssOrigin, CssPropertyMap, CssSystem};
-use gosub_shared::traits::document::Document;
 use gosub_shared::traits::node::{ElementDataType, Node, TextDataType};
 use gosub_shared::traits::render_tree::{RenderTree, RenderTreeNode};
 use gosub_shared::traits::ParserConfig;
 use log::warn;
 use std::slice;
-use gosub_shared::traits::config::{HasDocument, HasRenderTree};
 
 #[derive(Debug, Clone)]
 pub struct Css3System;
@@ -240,11 +239,7 @@ pub fn node_is_unrenderable<C: HasDocument>(node: &C::Node) -> bool {
     false
 }
 
-pub fn resolve_functions<C: HasDocument>(
-    value: &CssValue,
-    node: &C::Node,
-    handle: DocumentHandle<C>,
-) -> CssValue {
+pub fn resolve_functions<C: HasDocument>(value: &CssValue, node: &C::Node, handle: DocumentHandle<C>) -> CssValue {
     fn resolve<C: HasDocument>(val: &CssValue, node: &C::Node, doc: &C::Document) -> CssValue {
         match val {
             CssValue::Function(func, values) => {

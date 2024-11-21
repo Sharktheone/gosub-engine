@@ -6,8 +6,7 @@ use crate::render_tree::{load_html_rendertree, load_html_rendertree_fetcher};
 use anyhow::anyhow;
 use gosub_net::http::fetcher::Fetcher;
 use gosub_rendering::position::PositionTree;
-use gosub_rendering::render_tree::{RenderNodeData, RenderTree, RenderTreeNode};
-use gosub_shared::async_executor::WasmNotSend;
+use gosub_rendering::render_tree::RenderTree;
 use gosub_shared::node::NodeId;
 use gosub_shared::render_backend::geo::{Size, SizeU32, FP};
 use gosub_shared::render_backend::layout::{Layout, LayoutTree, Layouter, TextLayout};
@@ -16,17 +15,13 @@ use gosub_shared::render_backend::{
     Border, BorderSide, BorderStyle, Brush, Color, ImageBuffer, ImgCache, NodeDesc, Rect, RenderBackend, RenderBorder,
     RenderRect, RenderText, Scene as TScene, Text, Transform, WindowedEventLoop,
 };
-use gosub_shared::traits::config::{HasDocument, HasDrawComponents, HasHtmlParser, HasLayouter, HasRenderBackend};
-use gosub_shared::traits::css3::{CssProperty, CssPropertyMap, CssSystem, CssValue};
-use gosub_shared::traits::document::Document;
+use gosub_shared::traits::config::{HasDrawComponents, HasHtmlParser};
+use gosub_shared::traits::css3::{CssProperty, CssPropertyMap, CssValue};
 use gosub_shared::traits::draw::TreeDrawer;
-use gosub_shared::traits::html5::Html5Parser;
 use gosub_shared::traits::render_tree;
-use gosub_shared::traits::render_tree::{RenderTreeNode as _};
+use gosub_shared::traits::render_tree::RenderTreeNode as _;
 use gosub_shared::types::Result;
 use log::{error, info, warn};
-use std::future::Future;
-use std::marker::PhantomData;
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
 use url::Url;
@@ -34,7 +29,6 @@ use url::Url;
 mod img;
 pub mod img_cache;
 mod testing;
-
 
 const DEBUG_CONTENT_COLOR: (u8, u8, u8) = (0, 192, 255); //rgb(0, 192, 255)
 const DEBUG_PADDING_COLOR: (u8, u8, u8) = (0, 255, 192); //rgb(0, 255, 192)
@@ -80,9 +74,11 @@ impl<C: HasDrawComponents> TreeDrawerImpl<C> {
     }
 }
 
-impl<C: HasDrawComponents<RenderTree=RenderTree<C>, LayoutTree=RenderTree<C>> + HasHtmlParser> TreeDrawer<C> for TreeDrawerImpl<C>
+impl<C: HasDrawComponents<RenderTree=RenderTree<C>, LayoutTree=RenderTree<C>> + HasHtmlParser> TreeDrawer<C>
+for TreeDrawerImpl<C>
 where
-    <<C::RenderBackend as RenderBackend>::Text as Text>::Font: From<<<C::Layouter as Layouter>::TextLayout as TextLayout>::Font>,
+    <<C::RenderBackend as RenderBackend>::Text as Text>::Font:
+    From<<<C::Layouter as Layouter>::TextLayout as TextLayout>::Font>,
 {
     type ImgCache = ImageCache<C::RenderBackend>;
 
@@ -162,7 +158,8 @@ where
                 .map(|x| Point::new(x.tx(), x.ty()))
                 .unwrap_or(Point::ZERO);
 
-            let scale = px_scale::<C::RenderBackend>(size, pos, self.size.as_ref().map(|x| x.width as f32).unwrap_or(0.0));
+            let scale =
+                px_scale::<C::RenderBackend>(size, pos, self.size.as_ref().map(|x| x.width as f32).unwrap_or(0.0));
 
             backend.apply_scene(data, &scale, None);
         }
@@ -318,9 +315,13 @@ struct Drawer<'s, 't, C: HasDrawComponents + HasHtmlParser, EL: WindowedEventLoo
     el: &'t EL,
 }
 
-impl<C: HasDrawComponents<LayoutTree=RenderTree<C>, RenderTree=RenderTree<C>> + HasHtmlParser, EL: WindowedEventLoop<C>> Drawer<'_, '_, C, EL>
+impl<
+    C: HasDrawComponents<LayoutTree=RenderTree<C>, RenderTree=RenderTree<C>> + HasHtmlParser,
+    EL: WindowedEventLoop<C>,
+> Drawer<'_, '_, C, EL>
 where
-    <<C::RenderBackend as RenderBackend>::Text as Text>::Font: From<<<C::Layouter as Layouter>::TextLayout as TextLayout>::Font>,
+    <<C::RenderBackend as RenderBackend>::Text as Text>::Font:
+    From<<<C::Layouter as Layouter>::TextLayout as TextLayout>::Font>,
 {
     pub(crate) fn render(&mut self, size: SizeU32) {
         let root = self.drawer.tree.root();
@@ -426,9 +427,9 @@ fn render_text<C: HasDrawComponents>(
     node: &<C::RenderTree as render_tree::RenderTree<C>>::Node,
     pos: &Point,
     scene: &mut <C::RenderBackend as RenderBackend>::Scene,
-)
-where
-    <<C::RenderBackend as RenderBackend>::Text as Text>::Font: From<<<C::Layouter as Layouter>::TextLayout as TextLayout>::Font>,
+) where
+    <<C::RenderBackend as RenderBackend>::Text as Text>::Font:
+    From<<<C::Layouter as Layouter>::TextLayout as TextLayout>::Font>,
 {
     // if u64::from(node.id) < 204 && u64::from(node.id) > 202 {
     //     return;
@@ -451,7 +452,8 @@ where
             return;
         };
 
-        let text: <C::RenderBackend as RenderBackend>::Text = Text::new::<<C::Layouter as Layouter>::TextLayout>(layout);
+        let text: <C::RenderBackend as RenderBackend>::Text =
+            Text::new::<<C::Layouter as Layouter>::TextLayout>(layout);
 
         let size = node.layout().size();
 
@@ -660,7 +662,7 @@ fn render_bg<C: HasDrawComponents>(
         border_radius_left as FP,
     );
 
-    let border = get_border::<C>(node).map(|border| RenderBorder::new(border));
+    let border = get_border::<C>(node).map(RenderBorder::new);
 
     if let Some(bg_color) = bg_color {
         let size = node.layout().size();
@@ -694,10 +696,7 @@ fn render_bg<C: HasDrawComponents>(
         scene.draw_rect(&rect);
     }
 
-    let background_image = node
-        .props()
-        .get("background-image")
-        .and_then(|prop| prop.as_function());
+    let background_image = node.props().get("background-image").and_then(|prop| prop.as_function());
 
     let mut img_size = None;
 
@@ -722,9 +721,10 @@ fn render_bg<C: HasDrawComponents>(
                     }
 
                     let _ =
-                        render_image::<C::RenderBackend>(img, *pos, node.layout().size(), border_radius, "fill", scene).map_err(|e| {
-                            eprintln!("Error rendering image: {:?}", e);
-                        });
+                        render_image::<C::RenderBackend>(img, *pos, node.layout().size(), border_radius, "fill", scene)
+                            .map_err(|e| {
+                                eprintln!("Error rendering image: {:?}", e);
+                            });
                 }
             }
 
@@ -735,7 +735,9 @@ fn render_bg<C: HasDrawComponents>(
     (border_radius, img_size)
 }
 
-fn get_border<C: HasDrawComponents>(node: &<C::RenderTree as render_tree::RenderTree<C>>::Node) -> Option<<C::RenderBackend as RenderBackend>::Border> {
+fn get_border<C: HasDrawComponents>(
+    node: &<C::RenderTree as render_tree::RenderTree<C>>::Node,
+) -> Option<<C::RenderBackend as RenderBackend>::Border> {
     let left = get_border_side::<C>(node, Side::Left);
     let right = get_border_side::<C>(node, Side::Right);
     let top = get_border_side::<C>(node, Side::Top);
@@ -811,7 +813,7 @@ impl Side {
     }
 }
 
-impl<C: HasDrawComponents<RenderTree = RenderTree<C>, LayoutTree = RenderTree<C>>> TreeDrawerImpl<C> {
+impl<C: HasDrawComponents<RenderTree=RenderTree<C>, LayoutTree=RenderTree<C>>> TreeDrawerImpl<C> {
     fn debug_annotate(&mut self, e: NodeId) -> bool {
         let Some(node) = self.tree.get_node(e) else {
             return false;
@@ -836,10 +838,16 @@ impl<C: HasDrawComponents<RenderTree = RenderTree<C>, LayoutTree = RenderTree<C>
 
         let content_rect = Rect::new(x, y, size.width as FP, size.height as FP);
 
-        let padding_brush = <C::RenderBackend as RenderBackend>::Brush::color(<C::RenderBackend as RenderBackend>::Color::tuple3(DEBUG_PADDING_COLOR).alpha(127));
-        let content_brush = <C::RenderBackend as RenderBackend>::Brush::color(<C::RenderBackend as RenderBackend>::Color::tuple3(DEBUG_CONTENT_COLOR).alpha(127));
+        let padding_brush = <C::RenderBackend as RenderBackend>::Brush::color(
+            <C::RenderBackend as RenderBackend>::Color::tuple3(DEBUG_PADDING_COLOR).alpha(127),
+        );
+        let content_brush = <C::RenderBackend as RenderBackend>::Brush::color(
+            <C::RenderBackend as RenderBackend>::Color::tuple3(DEBUG_CONTENT_COLOR).alpha(127),
+        );
         // let margin_brush = <C::RenderBackend as RenderBackend>::Brush::color(<C::RenderBackend as RenderBackend>::Color::tuple3(DEBUG_MARGIN_COLOR).alpha(127));
-        let border_brush = <C::RenderBackend as RenderBackend>::Brush::color(<C::RenderBackend as RenderBackend>::Color::tuple3(DEBUG_BORDER_COLOR).alpha(127));
+        let border_brush = <C::RenderBackend as RenderBackend>::Brush::color(
+            <C::RenderBackend as RenderBackend>::Color::tuple3(DEBUG_BORDER_COLOR).alpha(127),
+        );
 
         let mut border = <C::RenderBackend as RenderBackend>::Border::empty();
 

@@ -62,11 +62,7 @@ impl<C: HasDocument> DocumentQuery<C> {
         false
     }
 
-    fn matches_query_condition(
-        doc_handle: DocumentHandle<C>,
-        current_node_id: &NodeId,
-        condition: &Condition,
-    ) -> bool {
+    fn matches_query_condition(doc_handle: DocumentHandle<C>, current_node_id: &NodeId, condition: &Condition) -> bool {
         let binding = doc_handle.get();
         let Some(current_node) = binding.node_by_id(*current_node_id) else {
             return false;

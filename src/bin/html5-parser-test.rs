@@ -1,19 +1,18 @@
 use gosub_css3::system::Css3System;
+use gosub_html5::document::builder::DocumentBuilderImpl;
 use gosub_html5::document::document_impl::DocumentImpl;
+use gosub_html5::document::fragment::DocumentFragmentImpl;
 use gosub_html5::parser::Html5Parser;
+use gosub_shared::traits::config::{HasCssSystem, HasDocument, HasHtmlParser};
 use gosub_shared::types::Result;
 use gosub_testing::testing::tree_construction::fixture::{fixture_root_path, read_fixture_from_path};
 use gosub_testing::testing::tree_construction::Harness;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
-use gosub_html5::document::builder::DocumentBuilderImpl;
-use gosub_html5::document::fragment::DocumentFragmentImpl;
-use gosub_shared::traits::config::{HasCssSystem, HasDocument, HasHtmlParser};
 
 #[derive(Clone, Debug, PartialEq)]
 struct Config;
-
 
 impl HasCssSystem for Config {
     type CssSystem = Css3System;
@@ -23,7 +22,6 @@ impl HasDocument for Config {
     type DocumentFragment = DocumentFragmentImpl<Self>;
     type DocumentBuilder = DocumentBuilderImpl;
 }
-
 
 impl HasHtmlParser for Config {
     type HtmlParser = Html5Parser<Self>;
@@ -50,10 +48,7 @@ fn main() -> Result<()> {
         for test in &fixture.tests {
             for &scripting_enabled in test.script_modes() {
                 let result = harness
-                    .run_test::<Config>(
-                        test.clone(),
-                        scripting_enabled,
-                    )
+                    .run_test::<Config>(test.clone(), scripting_enabled)
                     .expect("problem parsing");
 
                 total += 1;

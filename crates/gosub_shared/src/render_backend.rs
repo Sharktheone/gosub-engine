@@ -1,18 +1,15 @@
+use crate::async_executor::WasmNotSendSync;
+use crate::traits::config::{HasRenderBackend, HasRenderTree};
+use crate::types::Result;
+pub use geo::*;
+use layout::TextLayout;
+use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
+use smallvec::SmallVec;
 use std::fmt::{Debug, Display, Write};
 use std::io;
 use std::ops::{Div, Mul, MulAssign};
-use std::os::unix::fs::DirEntryExt;
-use layout::TextLayout;
 use svg::SvgRenderer;
-pub use geo::*;
-use crate::async_executor::WasmNotSendSync;
-use crate::traits::css3::CssSystem;
-use crate::traits::render_tree::RenderTree;
-use crate::types::Result;
-use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
-use smallvec::SmallVec;
 use url::Url;
-use crate::traits::config::{HasRenderBackend, HasRenderTree};
 
 pub mod geo;
 pub mod layout;
@@ -22,9 +19,7 @@ pub trait WindowHandle: HasDisplayHandle + HasWindowHandle + Send + Sync + Clone
 
 impl<T> WindowHandle for T where T: HasDisplayHandle + HasWindowHandle + Send + Sync + Clone {}
 
-pub trait WindowedEventLoop<C: HasRenderTree + HasRenderBackend>:
-WasmNotSendSync + Clone + 'static
-{
+pub trait WindowedEventLoop<C: HasRenderTree + HasRenderBackend>: WasmNotSendSync + Clone + 'static {
     fn redraw(&mut self);
 
     fn add_img_cache(&mut self, url: String, buf: ImageBuffer<C::RenderBackend>, size: Option<SizeU32>);
@@ -366,15 +361,15 @@ impl From<Radius> for (FP, FP) {
 }
 
 pub trait BorderRadius:
-Sized
-+ From<FP>
-+ From<Radius>
-+ From<[FP; 4]>
-+ From<[Radius; 4]>
-+ From<[FP; 8]>
-+ From<(FP, FP, FP, FP)>
-+ From<(Radius, Radius, Radius, Radius)>
-+ From<(FP, FP, FP, FP, FP, FP, FP, FP)>
+    Sized
+    + From<FP>
+    + From<Radius>
+    + From<[FP; 4]>
+    + From<[Radius; 4]>
+    + From<[FP; 8]>
+    + From<(FP, FP, FP, FP)>
+    + From<(Radius, Radius, Radius, Radius)>
+    + From<(FP, FP, FP, FP, FP, FP, FP, FP)>
 {
     fn empty() -> Self {
         Self::uniform(0.0)

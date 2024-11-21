@@ -8,7 +8,7 @@ use gosub_html5::node::{HTML_NAMESPACE, MATHML_NAMESPACE, SVG_NAMESPACE};
 use gosub_shared::byte_stream::{ByteStream, Config, Encoding, Location};
 use gosub_shared::document::DocumentHandle;
 use gosub_shared::node::NodeId;
-use gosub_shared::traits::css3::CssSystem;
+use gosub_shared::traits::config::{HasDocument, HasHtmlParser};
 use gosub_shared::traits::document::{Document, DocumentBuilder};
 use gosub_shared::traits::html5::{Html5Parser, ParserOptions};
 use gosub_shared::types::{ParseError, Result};
@@ -16,7 +16,6 @@ use parser::{ScriptMode, TestSpec};
 use result::TestResult;
 use result::{ResultStatus, TreeLineResult};
 use std::collections::HashMap;
-use gosub_shared::traits::config::{HasDocument, HasHtmlParser};
 
 type ParseResult<T> = Result<(T, Vec<ParseError>)>;
 
@@ -78,11 +77,7 @@ impl Harness {
     }
 
     /// Runs a single test and returns the test result of that run
-    pub fn run_test<C: HasHtmlParser>(
-        &mut self,
-        test: Test,
-        scripting_enabled: bool,
-    ) -> Result<TestResult> {
+    pub fn run_test<C: HasHtmlParser>(&mut self, test: Test, scripting_enabled: bool) -> Result<TestResult> {
         self.test = test;
         self.next_document_line = 0;
 
@@ -93,10 +88,7 @@ impl Harness {
     }
 
     /// Run the html5 parser and return the document tree and errors
-    fn do_parse<C: HasHtmlParser>(
-        &mut self,
-        scripting_enabled: bool,
-    ) -> ParseResult<DocumentHandle<C>> {
+    fn do_parse<C: HasHtmlParser>(&mut self, scripting_enabled: bool) -> ParseResult<DocumentHandle<C>> {
         let options = <<C::HtmlParser as Html5Parser<C>>::Options as ParserOptions>::new(scripting_enabled);
         let mut stream = ByteStream::new(
             Encoding::UTF8,
@@ -124,7 +116,7 @@ impl Harness {
     fn parse_fragment<C: HasHtmlParser>(
         &mut self,
         fragment: String,
-        mut stream: ByteStream,
+        stream: ByteStream,
         options: <C::HtmlParser as Html5Parser<C>>::Options,
         start_location: Location,
     ) -> ParseResult<DocumentHandle<C>> {
@@ -160,13 +152,8 @@ impl Harness {
 
         let document = C::DocumentBuilder::new_document_fragment(context_node, quirks_mode);
 
-        let parser_errors = C::HtmlParser::parse_fragment(
-            stream,
-            document.clone(),
-            context_node,
-            Some(options),
-            start_location,
-        )?;
+        let parser_errors =
+            C::HtmlParser::parse_fragment(stream, document.clone(), context_node, Some(options), start_location)?;
 
         Ok((document, parser_errors))
     }

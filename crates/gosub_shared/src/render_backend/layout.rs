@@ -1,9 +1,9 @@
 use std::fmt::Debug;
 
+use super::geo::{Point, Rect, Size, SizeU32};
+use crate::traits::config::HasLayouter;
 use crate::types::Result;
 use gosub_typeface::font::{Font, Glyph};
-use crate::traits::config::{HasLayouter};
-use super::geo::{Point, Rect, Size, SizeU32};
 
 pub trait LayoutTree<C: HasLayouter<LayoutTree = Self>>: Sized + Debug + 'static {
     type NodeId: Debug + Copy + Clone + From<u64> + Into<u64> + PartialEq;
@@ -26,7 +26,7 @@ pub trait LayoutTree<C: HasLayouter<LayoutTree = Self>>: Sized + Debug + 'static
 
     fn get_node_mut(&mut self, id: Self::NodeId) -> Option<&mut Self::Node>;
     fn get_node(&self, id: Self::NodeId) -> Option<&Self::Node>;
-    
+
     fn root(&self) -> Self::NodeId;
 }
 
@@ -38,7 +38,12 @@ pub trait Layouter: Sized + Clone + Send + 'static {
 
     const COLLAPSE_INLINE: bool;
 
-    fn layout<C: HasLayouter<Layouter = Self>>(&self, tree: &mut C::LayoutTree, root: <C::LayoutTree as LayoutTree<C>>::NodeId, space: SizeU32) -> Result<()>;
+    fn layout<C: HasLayouter<Layouter = Self>>(
+        &self,
+        tree: &mut C::LayoutTree,
+        root: <C::LayoutTree as LayoutTree<C>>::NodeId,
+        space: SizeU32,
+    ) -> Result<()>;
 }
 
 pub trait LayoutCache: Default + Send + Debug {
@@ -119,7 +124,6 @@ pub trait Layout: Default + Debug {
 }
 
 pub trait LayoutNode<C: HasLayouter>: HasTextLayout<C> {
-
     fn get_property(&self, name: &str) -> Option<&C::CssProperty>;
     fn text_data(&self) -> Option<&str>;
 

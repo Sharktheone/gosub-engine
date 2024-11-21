@@ -11,8 +11,6 @@ use gosub_shared::render_backend::{
     Image as _, ImageBuffer, ImageCacheEntry, ImgCache, RenderBackend, SizeU32, WindowedEventLoop,
 };
 use gosub_shared::traits::config::HasDrawComponents;
-use gosub_shared::traits::css3::CssSystem;
-use gosub_shared::traits::render_tree::RenderTree;
 use gosub_shared::types::Result;
 
 pub fn request_img<C: HasDrawComponents>(
@@ -27,7 +25,9 @@ pub fn request_img<C: HasDrawComponents>(
 
     Ok(match img {
         ImageCacheEntry::Image(img) => img.clone(),
-        ImageCacheEntry::Pending => ImageBuffer::Image(<C::RenderBackend as RenderBackend>::Image::from_img(image::DynamicImage::new_rgba8(0, 0))),
+        ImageCacheEntry::Pending => ImageBuffer::Image(<C::RenderBackend as RenderBackend>::Image::from_img(
+            image::DynamicImage::new_rgba8(0, 0),
+        )),
         ImageCacheEntry::None => {
             img_cache.add_pending(url.to_string());
 
@@ -41,13 +41,17 @@ pub fn request_img<C: HasDrawComponents>(
                 } else {
                     el.add_img_cache(
                         url.to_string(),
-                        ImageBuffer::Image(<C::RenderBackend as RenderBackend>::Image::from_img(INVALID_IMG.clone())),
+                        ImageBuffer::Image(<C::RenderBackend as RenderBackend>::Image::from_img(
+                            INVALID_IMG.clone(),
+                        )),
                         size,
                     );
                 }
             });
 
-            ImageBuffer::Image(<C::RenderBackend as RenderBackend>::Image::from_img(DynamicImage::new_rgba8(0, 0)))
+            ImageBuffer::Image(<C::RenderBackend as RenderBackend>::Image::from_img(
+                DynamicImage::new_rgba8(0, 0),
+            ))
         }
     })
 }

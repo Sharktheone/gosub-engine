@@ -16,6 +16,7 @@ use crate::tokenizer::{ParserData, Tokenizer, CHAR_REPLACEMENT};
 use gosub_shared::byte_stream::{ByteStream, Location};
 use gosub_shared::document::DocumentHandle;
 use gosub_shared::node::NodeId;
+use gosub_shared::traits::config::HasDocument;
 use gosub_shared::traits::css3::{CssOrigin, CssSystem};
 use gosub_shared::traits::document::{Document, DocumentBuilder, DocumentFragment, DocumentType};
 use gosub_shared::traits::html5::ParserOptions;
@@ -26,7 +27,6 @@ use gosub_shared::types::{ParseError, Result};
 use gosub_shared::{timing_start, timing_stop};
 use log::warn;
 use url::Url;
-use gosub_shared::traits::config::HasDocument;
 
 mod attr_replacements;
 pub mod errors;
@@ -220,11 +220,7 @@ pub struct Html5Parser<C: HasDocument> {
 impl<C: HasDocument> gosub_shared::traits::html5::Html5Parser<C> for Html5Parser<C> {
     type Options = Html5ParserOptions;
 
-    fn parse(
-        stream: ByteStream,
-        doc: DocumentHandle<C>,
-        opts: Option<Self::Options>,
-    ) -> Result<Vec<ParseError>> {
+    fn parse(stream: ByteStream, doc: DocumentHandle<C>, opts: Option<Self::Options>) -> Result<Vec<ParseError>> {
         Self::parse_document(stream, doc, opts)
     }
 
@@ -255,8 +251,7 @@ enum DispatcherMode {
     Html,
 }
 
-impl<C: HasDocument> Html5Parser<C>
-{
+impl<C: HasDocument> Html5Parser<C> {
     // Initializes the parser for whole document parsing
     fn init(
         tokenizer: Tokenizer,
@@ -4092,7 +4087,11 @@ impl<C: HasDocument> Html5Parser<C>
     }
 
     /// Load an inline stylesheet from the <style>-node
-    fn load_inline_stylesheet(&self, origin: CssOrigin, node: &<C::Document as Document<C>>::Node) -> Option<C::Stylesheet> {
+    fn load_inline_stylesheet(
+        &self,
+        origin: CssOrigin,
+        node: &<C::Document as Document<C>>::Node,
+    ) -> Option<C::Stylesheet> {
         if !node.is_text_node() {
             return None;
         }
@@ -4272,6 +4271,7 @@ mod test {
     use super::*;
     use crate::document::builder::DocumentBuilderImpl;
     use crate::document::document_impl::DocumentImpl;
+    use crate::document::fragment::DocumentFragmentImpl;
     use crate::node::data::element::ElementData;
     use crate::node::node_impl::NodeDataTypeInternal;
     use crate::node::node_impl::NodeImpl;
@@ -4279,12 +4279,10 @@ mod test {
     use gosub_shared::byte_stream::Encoding;
     use gosub_shared::traits::config::HasCssSystem;
     use gosub_shared::traits::node::ClassList;
-    use crate::document::fragment::DocumentFragmentImpl;
 
     #[derive(Clone, Debug, PartialEq)]
     struct Config;
-    
-    
+
     impl HasCssSystem for Config {
         type CssSystem = Css3System;
     }
@@ -4293,8 +4291,7 @@ mod test {
         type DocumentFragment = DocumentFragmentImpl<Self>;
         type DocumentBuilder = DocumentBuilderImpl;
     }
-    
-    
+
     type Parser = Html5Parser<Config>;
 
     macro_rules! node_create {
@@ -4322,7 +4319,7 @@ mod test {
     #[test]
     fn is_in_scope() {
         let stream = ByteStream::new(Encoding::UTF8, None);
-        let mut parser =Parser::new_parser(stream, Location::default());
+        let mut parser = Parser::new_parser(stream, Location::default());
 
         node_create!(parser, "html");
         node_create!(parser, "div");
@@ -4337,7 +4334,7 @@ mod test {
     #[test]
     fn is_in_scope_empty_stack() {
         let stream = ByteStream::new(Encoding::UTF8, None);
-        let mut parser =Parser::new_parser(stream, Location::default());
+        let mut parser = Parser::new_parser(stream, Location::default());
 
         parser.open_elements.clear();
         assert!(!parser.is_in_scope("p", HTML_NAMESPACE, Scope::Regular));
@@ -4349,7 +4346,7 @@ mod test {
     #[test]
     fn is_in_scope_non_existing_node() {
         let stream = ByteStream::new(Encoding::UTF8, None);
-        let mut parser =Parser::new_parser(stream, Location::default());
+        let mut parser = Parser::new_parser(stream, Location::default());
 
         node_create!(parser, "html");
         node_create!(parser, "div");
@@ -4365,7 +4362,7 @@ mod test {
     #[test]
     fn is_in_scope_1() {
         let stream = ByteStream::new(Encoding::UTF8, None);
-        let mut parser =Parser::new_parser(stream, Location::default());
+        let mut parser = Parser::new_parser(stream, Location::default());
 
         node_create!(parser, "html");
         node_create!(parser, "div");
@@ -4403,7 +4400,7 @@ mod test {
     #[test]
     fn is_in_scope_2() {
         let stream = ByteStream::new(Encoding::UTF8, None);
-        let mut parser =Parser::new_parser(stream, Location::default());
+        let mut parser = Parser::new_parser(stream, Location::default());
 
         node_create!(parser, "html");
         node_create!(parser, "body");
@@ -4422,7 +4419,7 @@ mod test {
     #[test]
     fn is_in_scope_3() {
         let stream = ByteStream::new(Encoding::UTF8, None);
-        let mut parser =Parser::new_parser(stream, Location::default());
+        let mut parser = Parser::new_parser(stream, Location::default());
 
         node_create!(parser, "html");
         node_create!(parser, "body");
@@ -4441,7 +4438,7 @@ mod test {
     #[test]
     fn is_in_scope_4() {
         let stream = ByteStream::new(Encoding::UTF8, None);
-        let mut parser =Parser::new_parser(stream, Location::default());
+        let mut parser = Parser::new_parser(stream, Location::default());
 
         node_create!(parser, "html");
         node_create!(parser, "body");
@@ -4462,7 +4459,7 @@ mod test {
     #[test]
     fn is_in_scope_5() {
         let stream = ByteStream::new(Encoding::UTF8, None);
-        let mut parser =Parser::new_parser(stream, Location::default());
+        let mut parser = Parser::new_parser(stream, Location::default());
 
         node_create!(parser, "html");
         node_create!(parser, "body");
@@ -4482,7 +4479,7 @@ mod test {
     #[test]
     fn is_in_scope_6() {
         let stream = ByteStream::new(Encoding::UTF8, None);
-        let mut parser =Parser::new_parser(stream, Location::default());
+        let mut parser = Parser::new_parser(stream, Location::default());
 
         node_create!(parser, "html");
         node_create!(parser, "body");
@@ -4502,7 +4499,7 @@ mod test {
     #[test]
     fn is_in_scope_7() {
         let stream = ByteStream::new(Encoding::UTF8, None);
-        let mut parser =Parser::new_parser(stream, Location::default());
+        let mut parser = Parser::new_parser(stream, Location::default());
 
         node_create!(parser, "html");
         node_create!(parser, "body");
@@ -4521,7 +4518,7 @@ mod test {
     #[test]
     fn is_in_scope_8() {
         let stream = ByteStream::new(Encoding::UTF8, None);
-        let mut parser =Parser::new_parser(stream, Location::default());
+        let mut parser = Parser::new_parser(stream, Location::default());
 
         node_create!(parser, "html");
         node_create!(parser, "body");
@@ -4543,8 +4540,7 @@ mod test {
         stream.close();
 
         let doc_handle = DocumentBuilderImpl::new_document(None);
-        let _ =
-           Parser::parse_document(stream, doc_handle.clone(), None);
+        let _ = Parser::parse_document(stream, doc_handle.clone(), None);
 
         println!("{}", doc_handle.get());
     }
@@ -4556,8 +4552,7 @@ mod test {
         stream.close();
 
         let doc_handle = DocumentBuilderImpl::new_document(None);
-        let _ =
-           Parser::parse_document(stream, doc_handle.clone(), None);
+        let _ = Parser::parse_document(stream, doc_handle.clone(), None);
 
         let binding = doc_handle.get();
 
@@ -4586,8 +4581,7 @@ mod test {
         stream.close();
 
         let doc_handle = DocumentBuilderImpl::new_document(None);
-        let _ =
-           Parser::parse_document(stream, doc_handle.clone(), None);
+        let _ = Parser::parse_document(stream, doc_handle.clone(), None);
 
         let binding = doc_handle.get();
 
@@ -4620,8 +4614,7 @@ mod test {
         stream.close();
 
         let doc_handle = DocumentBuilderImpl::new_document(None);
-        let _ =
-           Parser::parse_document(stream, doc_handle.clone(), None);
+        let _ = Parser::parse_document(stream, doc_handle.clone(), None);
 
         // Any invalid id's are not stored in the document, and thus not searchable
         assert!(doc_handle.get().get_node_by_named_id("my id").is_none());
@@ -4639,8 +4632,7 @@ mod test {
         stream.close();
 
         let doc_handle = DocumentBuilderImpl::new_document(None);
-        let _ =
-           Parser::parse_document(stream, doc_handle.clone(), None);
+        let _ = Parser::parse_document(stream, doc_handle.clone(), None);
 
         // we are expecting the div (ID: 4) and p would be ignored
         let doc_read = doc_handle.get();

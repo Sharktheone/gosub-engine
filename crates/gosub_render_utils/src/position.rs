@@ -2,10 +2,8 @@ use std::cmp::Ordering;
 
 use rstar::{RTree, RTreeObject, AABB};
 
-use gosub_shared::render_backend::layout::{Layout, LayoutTree, Layouter};
-use gosub_shared::traits::config::{HasLayouter, HasRenderTree};
-use gosub_shared::traits::document::Document;
-use gosub_shared::traits::render_tree::RenderTree;
+use gosub_shared::render_backend::layout::{Layout, LayoutTree};
+use gosub_shared::traits::config::{HasLayouter};
 
 #[derive(Debug)]
 pub struct Element<C: HasLayouter> {
@@ -34,16 +32,12 @@ pub struct PositionTree<C: HasLayouter> {
 
 impl<C: HasLayouter> Default for PositionTree<C> {
     fn default() -> Self {
-        Self {
-            tree: RTree::default()
-        }
+        Self { tree: RTree::default() }
     }
 }
 
 impl<C: HasLayouter> PositionTree<C> {
-    pub fn from_tree(
-        from_tree: &C::LayoutTree,
-    ) -> Self {
+    pub fn from_tree(from_tree: &C::LayoutTree) -> Self {
         let mut tree = RTree::new();
 
         //TODO: we somehow need to get the border radius and a potential stacking context of the element here
@@ -146,7 +140,7 @@ impl<C: HasLayouter> PositionTree<C> {
             .map(|e| e.id)
     }
 
-pub fn get_node(&self, id: <C::LayoutTree as LayoutTree<C>>::NodeId) -> Option<&Element<C>> {
+    pub fn get_node(&self, id: <C::LayoutTree as LayoutTree<C>>::NodeId) -> Option<&Element<C>> {
         self.tree.iter().find(|e| e.id == id)
     }
 

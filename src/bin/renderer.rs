@@ -9,8 +9,10 @@ use gosub_html5::document::fragment::DocumentFragmentImpl;
 use gosub_html5::parser::Html5Parser;
 use gosub_renderer::draw::TreeDrawerImpl;
 use gosub_rendering::render_tree::RenderTree;
-use gosub_shared::traits::config::{HasCssSystem, HasDocument, HasDocumentExt, HasHtmlParser, HasLayouter, HasRenderBackend, HasRenderTree, HasTreeDrawer, ModuleConfiguration};
-use gosub_shared::traits::document::Document;
+use gosub_shared::traits::config::{
+    HasCssSystem, HasDocument, HasHtmlParser, HasLayouter, HasRenderBackend, HasRenderTree, HasTreeDrawer,
+    ModuleConfiguration,
+};
 use gosub_shared::types::Result;
 use gosub_taffy::TaffyLayouter;
 use gosub_useragent::application::{Application, CustomEventInternal, WindowOptions};
@@ -20,10 +22,8 @@ use log::LevelFilter;
 use simple_logger::SimpleLogger;
 use url::Url;
 
-
 #[derive(Clone, Debug, PartialEq)]
 struct Config;
-
 
 impl HasCssSystem for Config {
     type CssSystem = Css3System;
@@ -34,11 +34,9 @@ impl HasDocument for Config {
     type DocumentBuilder = DocumentBuilderImpl;
 }
 
-
 impl HasHtmlParser for Config {
     type HtmlParser = Html5Parser<Self>;
 }
-
 
 impl HasLayouter for Config {
     type Layouter = TaffyLayouter;
@@ -53,13 +51,11 @@ impl HasTreeDrawer for Config {
     type TreeDrawer = TreeDrawerImpl<Self>;
 }
 
-
 impl HasRenderBackend for Config {
     type RenderBackend = VelloBackend;
 }
 
 impl ModuleConfiguration for Config {}
-
 
 fn main() -> Result<()> {
     SimpleLogger::new()
@@ -90,9 +86,7 @@ fn main() -> Result<()> {
 
     // let mut rt = load_html_rendertree(&url)?;
     //
-    let mut application: Application<Config> =
-        Application::new(VelloBackend::new(), TaffyLayouter, debug);
-
+    let mut application: Application<Config> = Application::new(VelloBackend::new(), TaffyLayouter, debug);
 
     application.initial_tab(Url::parse(&url)?, WindowOptions::default());
 

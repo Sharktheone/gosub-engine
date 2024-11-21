@@ -2,7 +2,6 @@ use ::resvg::usvg;
 use gosub_shared::document::DocumentHandle;
 use gosub_shared::node::NodeId;
 use gosub_shared::traits::config::HasDocument;
-use gosub_shared::traits::css3::CssSystem;
 use gosub_shared::traits::document::Document;
 use gosub_shared::types::Result;
 

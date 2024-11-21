@@ -8,11 +8,9 @@ use core::fmt::Debug;
 use gosub_shared::byte_stream::Location;
 use gosub_shared::document::DocumentHandle;
 use gosub_shared::node::NodeId;
-use gosub_shared::traits::config::{HasCssSystem, HasDocument};
-use gosub_shared::traits::css3::CssSystem;
+use gosub_shared::traits::config::HasDocument;
 use gosub_shared::traits::node::{Node, NodeData, NodeType, QuirksMode};
 use std::collections::HashMap;
-use gosub_shared::traits::document::Document;
 
 /// Implementation of the NodeDataType trait
 #[derive(Debug, Clone, PartialEq)]
@@ -28,7 +26,6 @@ pub enum NodeDataTypeInternal<C: HasDocument> {
     /// Represents an element
     Element(ElementData<C>),
 }
-
 
 /// Node structure that resembles a DOM node
 pub struct NodeImpl<C: HasDocument> {
@@ -48,7 +45,7 @@ pub struct NodeImpl<C: HasDocument> {
     pub location: Location,
 }
 
-impl<C: HasDocument<Document = DocumentImpl<C>>> Node<C> for NodeImpl<C> {
+impl<C: HasDocument<Document=DocumentImpl<C>>> Node<C> for NodeImpl<C> {
     type DocumentData = DocumentData;
     type DocTypeData = DocTypeData;
     type TextData = TextData;
@@ -193,7 +190,7 @@ impl<C: HasDocument<Document = DocumentImpl<C>>> Node<C> for NodeImpl<C> {
     }
 }
 
-impl<C: HasDocument<Document = DocumentImpl<C>>> PartialEq for NodeImpl<C> {
+impl<C: HasDocument<Document=DocumentImpl<C>>> PartialEq for NodeImpl<C> {
     fn eq(&self, other: &Self) -> bool {
         self.id == other.id()
     }
@@ -227,11 +224,7 @@ impl<C: HasDocument> Clone for NodeImpl<C> {
 impl<C: HasDocument> NodeImpl<C> {
     /// create a new `Node`
     #[must_use]
-    pub fn new(
-        document: DocumentHandle<C>,
-        location: Location,
-        data: &NodeDataTypeInternal<C>,
-    ) -> Self {
+    pub fn new(document: DocumentHandle<C>, location: Location, data: &NodeDataTypeInternal<C>) -> Self {
         let (id, parent, children, registered) = <_>::default();
 
         Self {
@@ -247,11 +240,7 @@ impl<C: HasDocument> NodeImpl<C> {
 
     /// Create a new document node
     #[must_use]
-    pub fn new_document(
-        document: DocumentHandle<C>,
-        location: Location,
-        quirks_mode: QuirksMode,
-    ) -> Self {
+    pub fn new_document(document: DocumentHandle<C>, location: Location, quirks_mode: QuirksMode) -> Self {
         Self::new(
             document,
             location,
@@ -319,7 +308,8 @@ impl<C: HasDocument> NodeImpl<C> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use crate::document::fragment::DocumentFragmentImpl;
+use super::*;
     use crate::node::elements::SPECIAL_HTML_ELEMENTS;
     use crate::node::elements::SPECIAL_MATHML_ELEMENTS;
     use crate::node::elements::SPECIAL_SVG_ELEMENTS;
@@ -328,14 +318,13 @@ mod tests {
     use crate::node::SVG_NAMESPACE;
     use crate::DocumentBuilderImpl;
     use gosub_css3::system::Css3System;
+    use gosub_shared::traits::config::HasCssSystem;
     use gosub_shared::traits::document::DocumentBuilder;
     use gosub_shared::traits::node::ElementDataType;
     use std::collections::HashMap;
 
-
     #[derive(Clone, Debug, PartialEq)]
     struct Config;
-
 
     impl HasCssSystem for Config {
         type CssSystem = Css3System;

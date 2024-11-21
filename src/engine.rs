@@ -10,8 +10,7 @@ use {
     gosub_net::http::response::Response,
     gosub_shared::byte_stream::{ByteStream, Encoding},
     gosub_shared::document::DocumentHandle,
-    gosub_shared::traits::css3::CssSystem,
-    gosub_shared::traits::document::{Document, DocumentBuilder},
+    gosub_shared::traits::document::DocumentBuilder,
     gosub_shared::traits::html5::Html5Parser as Html5ParserT,
     gosub_shared::types::{ParseError, Result},
     gosub_shared::{timing_start, timing_stop},
@@ -174,7 +173,6 @@ mod tests {
     #[derive(Clone, Debug, PartialEq)]
     struct Config;
 
-
     impl HasCssSystem for Config {
         type CssSystem = Css3System;
     }
@@ -183,12 +181,10 @@ mod tests {
         type DocumentFragment = DocumentFragmentImpl<Self>;
         type DocumentBuilder = DocumentBuilderImpl;
     }
-    
-    
+
     impl HasHtmlParser for Config {
         type HtmlParser = Html5Parser<Self>;
     }
-
 
     #[test]
     fn test_fetch_url() {
@@ -197,8 +193,7 @@ mod tests {
         headers.set_str("User-Agent", USER_AGENT);
         let cookies = CookieJar::new();
 
-        let resp =
-            fetch_url::<Config>("GET", url, headers, cookies);
+        let resp = fetch_url::<Config>("GET", url, headers, cookies);
         assert!(resp.is_ok());
     }
 }

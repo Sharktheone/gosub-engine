@@ -1,20 +1,13 @@
 use crate::byte_stream::{ByteStream, Location};
 use crate::document::DocumentHandle;
 use crate::traits::config::HasDocument;
-use crate::traits::css3::CssSystem;
-use crate::traits::document::Document;
 
 use crate::types::{ParseError, Result};
 
 pub trait Html5Parser<C: HasDocument> {
-
     type Options: ParserOptions;
 
-    fn parse(
-        stream: ByteStream,
-        doc: DocumentHandle<C>,
-        opts: Option<Self::Options>,
-    ) -> Result<Vec<ParseError>>;
+    fn parse(stream: ByteStream, doc: DocumentHandle<C>, opts: Option<Self::Options>) -> Result<Vec<ParseError>>;
 
     #[allow(clippy::type_complexity)]
     fn parse_fragment(

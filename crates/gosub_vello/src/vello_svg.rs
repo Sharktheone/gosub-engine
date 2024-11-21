@@ -1,7 +1,7 @@
-use gosub_shared::render_backend::svg::SvgRenderer;
-use gosub_shared::render_backend::ImageBuffer;
 use gosub_shared::document::DocumentHandle;
 use gosub_shared::node::NodeId;
+use gosub_shared::render_backend::svg::SvgRenderer;
+use gosub_shared::render_backend::ImageBuffer;
 use gosub_shared::traits::css3::CssSystem;
 use gosub_shared::traits::document::Document;
 use gosub_shared::types::{Result, Size};
@@ -22,10 +22,7 @@ impl SvgRenderer<VelloBackend> for VelloSVG {
         SVGDocument::from_str(&data)
     }
 
-    fn parse_internal<C: HasDocument>(
-        tree: DocumentHandle<C>,
-        id: NodeId,
-    ) -> Result<Self::SvgDocument> {
+    fn parse_internal<C: HasDocument>(tree: DocumentHandle<C>, id: NodeId) -> Result<Self::SvgDocument> {
         SVGDocument::from_html_doc(id, tree)
     }
 

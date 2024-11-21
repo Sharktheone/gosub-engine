@@ -13,13 +13,9 @@ use winit::event_loop::{ActiveEventLoop, EventLoopProxy};
 use winit::window::{Icon, Window as WinitWindow, WindowId};
 
 use gosub_shared::render_backend::geo::SizeU32;
-use gosub_shared::render_backend::layout::{LayoutTree, Layouter};
+use gosub_shared::render_backend::layout::LayoutTree;
 use gosub_shared::render_backend::{ImageBuffer, NodeDesc, RenderBackend, WindowedEventLoop};
 use gosub_shared::traits::config::ModuleConfiguration;
-use gosub_shared::traits::css3::CssSystem;
-use gosub_shared::traits::document::Document;
-use gosub_shared::traits::html5::Html5Parser;
-use gosub_shared::traits::render_tree::RenderTree;
 use gosub_shared::types::Result;
 
 use crate::application::{CustomEventInternal, WindowOptions};
@@ -61,8 +57,7 @@ pub struct Window<'a, C: ModuleConfiguration> {
     pub(crate) mods: Modifiers,
 }
 
-impl<'a, C: ModuleConfiguration> Window<'a, C>
-{
+impl<'a, C: ModuleConfiguration> Window<'a, C> {
     pub fn new(
         event_loop: &ActiveEventLoop,
         backend: &mut C::RenderBackend,
@@ -116,12 +111,7 @@ impl<'a, C: ModuleConfiguration> Window<'a, C>
         })
     }
 
-    pub async fn open_tab(
-        &mut self,
-        url: Url,
-        layouter: C::Layouter,
-        debug: bool,
-    ) -> Result<()> {
+    pub async fn open_tab(&mut self, url: Url, layouter: C::Layouter, debug: bool) -> Result<()> {
         let tab = Tab::from_url(url, layouter, debug).await?;
         self.tabs.add_tab(tab);
         Ok(())

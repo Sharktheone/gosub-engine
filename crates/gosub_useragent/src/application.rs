@@ -10,14 +10,10 @@ use winit::event::WindowEvent;
 use winit::event_loop::{ActiveEventLoop, EventLoop, EventLoopProxy};
 use winit::window::WindowId;
 
-use gosub_shared::render_backend::layout::{LayoutTree, Layouter};
-use gosub_shared::render_backend::{ImageBuffer, ImgCache, NodeDesc, RenderBackend, SizeU32};
+use gosub_shared::render_backend::layout::{LayoutTree};
+use gosub_shared::render_backend::{ImageBuffer, ImgCache, NodeDesc, SizeU32};
 use gosub_shared::traits::config::ModuleConfiguration;
-use gosub_shared::traits::css3::CssSystem;
-use gosub_shared::traits::document::Document;
 use gosub_shared::traits::draw::TreeDrawer;
-use gosub_shared::traits::html5::Html5Parser;
-use gosub_shared::traits::render_tree::RenderTree;
 use gosub_shared::types::Result;
 
 use crate::tabs::Tab;
@@ -54,8 +50,7 @@ pub struct Application<'a, C: ModuleConfiguration> {
     debug: bool,
 }
 
-impl<C: ModuleConfiguration> ApplicationHandler<CustomEventInternal<C>> for Application<'_, C>
-{
+impl<C: ModuleConfiguration> ApplicationHandler<CustomEventInternal<C>> for Application<'_, C> {
     fn resumed(&mut self, _event_loop: &ActiveEventLoop) {
         info!("Resumed");
         for window in self.windows.values_mut() {
@@ -147,18 +142,18 @@ impl<C: ModuleConfiguration> ApplicationHandler<CustomEventInternal<C>> for Appl
                 info!("Opening initial windows");
 
                 for (urls, opts) in self.open_windows.drain(..) {
-                    let mut window =
-                        match Window::new(event_loop, &mut self.backend, opts, self.proxy.clone().unwrap()) {
-                            Ok(window) => window,
-                            Err(e) => {
-                                error!("Error opening window: {e:?}");
-                                if self.windows.is_empty() {
-                                    info!("No more windows; exiting event loop");
-                                    event_loop.exit();
-                                }
-                                return;
+                    let mut window = match Window::new(event_loop, &mut self.backend, opts, self.proxy.clone().unwrap())
+                    {
+                        Ok(window) => window,
+                        Err(e) => {
+                            error!("Error opening window: {e:?}");
+                            if self.windows.is_empty() {
+                                info!("No more windows; exiting event loop");
+                                event_loop.exit();
                             }
-                        };
+                            return;
+                        }
+                    };
 
                     if let Err(e) = window.resumed(&mut self.backend) {
                         error!("Error resuming window: {e:?}");
@@ -356,8 +351,7 @@ pub enum CustomEventInternal<C: ModuleConfiguration> {
     ReloadFrom(C::RenderTree, WindowId),
 }
 
-impl<C: ModuleConfiguration> Debug for CustomEventInternal<C>
-{
+impl<C: ModuleConfiguration> Debug for CustomEventInternal<C> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::OpenWindow(..) => f.write_str("OpenWindow"),

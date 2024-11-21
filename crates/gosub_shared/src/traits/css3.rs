@@ -2,9 +2,9 @@ use crate::async_executor::WasmNotSend;
 use crate::document::DocumentHandle;
 use crate::errors::CssResult;
 use crate::node::NodeId;
+use crate::traits::config::{HasDocument, HasRenderTree};
 use crate::traits::ParserConfig;
 use std::fmt::{Debug, Display};
-use crate::traits::config::{HasDocument, HasRenderTree};
 
 /// Defines the origin of the stylesheet (or declaration)
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -53,7 +53,6 @@ pub trait CssStylesheet: PartialEq + Debug {
 }
 
 pub trait CssPropertyMap<S: CssSystem>: Default + Debug + WasmNotSend {
-
     fn insert_inherited(&mut self, name: &str, value: S::Property);
 
     fn insert(&mut self, name: &str, value: S::Property);

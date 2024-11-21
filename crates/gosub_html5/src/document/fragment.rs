@@ -2,12 +2,9 @@ use crate::DocumentHandle;
 use core::fmt;
 use core::fmt::Debug;
 
-use crate::document::document_impl::DocumentImpl;
 use crate::node::arena::NodeArena;
-use crate::node::node_impl::NodeImpl;
 use gosub_shared::node::NodeId;
 use gosub_shared::traits::config::HasDocument;
-use gosub_shared::traits::css3::CssSystem;
 use gosub_shared::traits::document::DocumentFragment;
 
 /// Defines a document fragment which can be attached to for instance a <template> element
@@ -51,7 +48,6 @@ impl<C: HasDocument> DocumentFragmentImpl<C> {
 }
 
 impl<C: HasDocument> DocumentFragment<C> for DocumentFragmentImpl<C> {
-
     /// Returns the document handle for this document
     fn handle(&self) -> DocumentHandle<C> {
         self.handle.clone()

@@ -2,11 +2,9 @@ use crate::node::visitor::Visitor;
 use gosub_shared::document::DocumentHandle;
 use gosub_shared::node::NodeId;
 use gosub_shared::traits::config::HasDocument;
-use gosub_shared::traits::css3::CssSystem;
 use gosub_shared::traits::document::Document;
 use gosub_shared::traits::node::ElementDataType;
 use gosub_shared::traits::node::{CommentDataType, DocTypeDataType, Node, NodeType, TextDataType};
-use crate::document::document_impl::DocumentImpl;
 
 // Writer to convert a document to a string
 pub struct DocumentWriter {

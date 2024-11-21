@@ -13,18 +13,10 @@ pub use render_tree::*;
 pub use tree_drawer::*;
 
 pub trait ModuleConfiguration:
-Sized
-+ HasCssSystem
-+ HasDocument
-+ HasHtmlParser
-+ HasLayouter
-+ HasRenderTree
-+ HasTreeDrawer
-+ HasRenderBackend
-{}
+    Sized + HasCssSystem + HasDocument + HasHtmlParser + HasLayouter + HasRenderTree + HasTreeDrawer + HasRenderBackend
+{
+}
 
-
-pub trait HasDrawComponents: HasRenderTree + HasRenderBackend
-{}
+pub trait HasDrawComponents: HasRenderTree + HasRenderBackend {}
 
 impl<C: HasRenderTree + HasRenderBackend> HasDrawComponents for C {}

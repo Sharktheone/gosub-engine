@@ -1,8 +1,10 @@
 use gosub_html5::document::document_impl::TreeIterator;
 use gosub_shared::document::DocumentHandle;
 use gosub_shared::node::NodeId;
-use gosub_shared::render_backend::layout::{HasTextLayout, Layout, LayoutCache, LayoutNode, LayoutTree, Layouter, TextLayout};
-use gosub_shared::render_backend::{layout, Size};
+use gosub_shared::render_backend::layout::{
+    HasTextLayout, Layout, LayoutCache, LayoutNode, LayoutTree, Layouter, TextLayout,
+};
+use gosub_shared::render_backend::Size;
 use gosub_shared::traits::config::{HasDocument, HasLayouter, HasRenderTree};
 use gosub_shared::traits::css3::{CssProperty, CssPropertyMap, CssSystem};
 use gosub_shared::traits::document::Document;
@@ -52,29 +54,29 @@ impl<C: HasLayouter<LayoutTree=Self>> LayoutTree<C> for RenderTree<C> {
         self.get_node(id).and_then(|node| node.parent)
     }
 
-    fn get_cache(&self, id: Self::NodeId) -> Option<&<C:: Layouter as Layouter>::Cache> {
+    fn get_cache(&self, id: Self::NodeId) -> Option<&<C::Layouter as Layouter>::Cache> {
         self.get_node(id).map(|node| &node.cache)
     }
 
-    fn get_layout(&self, id: Self::NodeId) -> Option<&<C:: Layouter as Layouter>::Layout> {
+    fn get_layout(&self, id: Self::NodeId) -> Option<&<C::Layouter as Layouter>::Layout> {
         self.get_node(id).map(|node| &node.layout)
     }
 
-    fn get_cache_mut(&mut self, id: Self::NodeId) -> Option<&mut <C:: Layouter as Layouter>::Cache> {
+    fn get_cache_mut(&mut self, id: Self::NodeId) -> Option<&mut <C::Layouter as Layouter>::Cache> {
         self.get_node_mut(id).map(|node| &mut node.cache)
     }
 
-    fn get_layout_mut(&mut self, id: Self::NodeId) -> Option<&mut <C:: Layouter as Layouter>::Layout> {
+    fn get_layout_mut(&mut self, id: Self::NodeId) -> Option<&mut <C::Layouter as Layouter>::Layout> {
         self.get_node_mut(id).map(|node| &mut node.layout)
     }
 
-    fn set_cache(&mut self, id: Self::NodeId, cache: <C:: Layouter as Layouter>::Cache) {
+    fn set_cache(&mut self, id: Self::NodeId, cache: <C::Layouter as Layouter>::Cache) {
         if let Some(node) = self.get_node_mut(id) {
             node.cache = cache;
         }
     }
 
-    fn set_layout(&mut self, id: Self::NodeId, layout: <C:: Layouter as Layouter>::Layout) {
+    fn set_layout(&mut self, id: Self::NodeId, layout: <C::Layouter as Layouter>::Layout) {
         if let Some(node) = self.get_node_mut(id) {
             node.layout = layout;
         }
@@ -105,7 +107,7 @@ impl<C: HasLayouter<LayoutTree=Self>> LayoutTree<C> for RenderTree<C> {
     }
 }
 
-impl<C: HasLayouter<LayoutTree = Self>> RenderTree<C> {
+impl<C: HasLayouter<LayoutTree=Self>> RenderTree<C> {
     // Generates a new render tree with a root node
     pub fn with_capacity(capacity: usize) -> Self {
         let mut tree = Self {
@@ -125,8 +127,8 @@ impl<C: HasLayouter<LayoutTree = Self>> RenderTree<C> {
                 name: String::from("root"),
                 namespace: None,
                 data: RenderNodeData::Document,
-                cache: <C:: Layouter as Layouter>::Cache::default(),
-                layout: <C:: Layouter as Layouter>::Layout::default(),
+                cache: <C::Layouter as Layouter>::Cache::default(),
+                layout: <C::Layouter as Layouter>::Layout::default(),
             },
         );
 
@@ -158,8 +160,8 @@ impl<C: HasLayouter<LayoutTree = Self>> RenderTree<C> {
             data: RenderNodeData::Element {
                 attributes: HashMap::new(),
             },
-            cache: <C:: Layouter as Layouter>::Cache::default(),
-            layout: <C:: Layouter as Layouter>::Layout::default(),
+            cache: <C::Layouter as Layouter>::Cache::default(),
+            layout: <C::Layouter as Layouter>::Layout::default(),
         };
 
         self.attach_node(node);
@@ -184,8 +186,8 @@ impl<C: HasLayouter<LayoutTree = Self>> RenderTree<C> {
             name,
             namespace: None,
             data,
-            cache: <C:: Layouter as Layouter>::Cache::default(),
-            layout: <C:: Layouter as Layouter>::Layout::default(),
+            cache: <C::Layouter as Layouter>::Cache::default(),
+            layout: <C::Layouter as Layouter>::Layout::default(),
         };
 
         self.attach_node(node);
@@ -210,7 +212,6 @@ impl<C: HasLayouter<LayoutTree = Self>> RenderTree<C> {
     pub fn get_root(&self) -> &RenderTreeNode<C> {
         self.nodes.get(&self.root).expect("root node")
     }
-
 
     /// Returns the children of the given node
     pub fn get_children(&self, id: NodeId) -> Option<&Vec<NodeId>> {
@@ -356,8 +357,8 @@ impl<C: HasLayouter<LayoutTree = Self>> RenderTree<C> {
                         name: "#anonymous".to_string(),
                         namespace: None,
                         data: RenderNodeData::AnonymousInline,
-                        cache: <C:: Layouter as Layouter>::Cache::default(),
-                        layout: <C:: Layouter as Layouter>::Layout::default(),
+                        cache: <C::Layouter as Layouter>::Cache::default(),
+                        layout: <C::Layouter as Layouter>::Layout::default(),
                     };
                     let id = wrapper_node.id;
 
@@ -439,8 +440,7 @@ impl<C: HasLayouter<LayoutTree = Self>> RenderTree<C> {
     }
 }
 
-
-impl<C: HasRenderTree<LayoutTree = Self, RenderTree = Self> + HasDocument> RenderTree<C> {
+impl<C: HasRenderTree<LayoutTree=Self, RenderTree=Self> + HasDocument> RenderTree<C> {
     pub fn from_document(document: DocumentHandle<C>) -> Self {
         let mut render_tree = RenderTree::with_capacity(document.get().node_count());
 
@@ -459,8 +459,12 @@ impl<C: HasRenderTree<LayoutTree = Self, RenderTree = Self> + HasDocument> Rende
         for current_node_id in TreeIterator::new(iter_handle) {
             let node = doc.node_by_id(current_node_id).unwrap();
 
-            let Some(properties) = <C::CssSystem as CssSystem>::properties_from_node(node, doc.stylesheets(), handle.clone(), current_node_id)
-            else {
+            let Some(properties) = <C::CssSystem as CssSystem>::properties_from_node(
+                node,
+                doc.stylesheets(),
+                handle.clone(),
+                current_node_id,
+            ) else {
                 if let Some(parent) = node.parent_id() {
                     if let Some(parent) = self.get_node_mut(parent) {
                         parent.children.retain(|id| *id != current_node_id)
@@ -527,8 +531,8 @@ impl<C: HasRenderTree<LayoutTree = Self, RenderTree = Self> + HasDocument> Rende
                 name, // We might be able to move node into render_tree_node
                 namespace,
                 data: render_data,
-                cache: <C:: Layouter as Layouter>::Cache::default(),
-                layout: <C:: Layouter as Layouter>::Layout::default(),
+                cache: <C::Layouter as Layouter>::Cache::default(),
+                layout: <C::Layouter as Layouter>::Layout::default(),
             };
 
             self.nodes.insert(current_node_id, render_tree_node);
@@ -540,13 +544,13 @@ impl<C: HasRenderTree<LayoutTree = Self, RenderTree = Self> + HasDocument> Rende
 
         <C::CssSystem as CssSystem>::inheritance::<C>(self);
 
-        if <C:: Layouter as Layouter>::COLLAPSE_INLINE {
+        if <C::Layouter as Layouter>::COLLAPSE_INLINE {
             self.collapse_inline(self.root);
         }
     }
 }
 
-impl<C: HasLayouter<LayoutTree = Self>> render_tree::RenderTree<C> for RenderTree<C> {
+impl<C: HasLayouter<LayoutTree=Self>> render_tree::RenderTree<C> for RenderTree<C> {
     type NodeId = NodeId;
     type Node = RenderTreeNode<C>;
 
@@ -583,7 +587,7 @@ impl<C: HasLayouter> render_tree::RenderTreeNode<C> for RenderTreeNode<C> {
     fn layout(&self) -> &<C::Layouter as Layouter>::Layout {
         &self.layout
     }
-    
+
     fn layout_mut(&mut self) -> &mut <C::Layouter as Layouter>::Layout {
         &mut self.layout
     }
@@ -598,9 +602,9 @@ impl<C: HasLayouter> render_tree::RenderTreeNode<C> for RenderTreeNode<C> {
 
     fn text_data(&self) -> Option<(&str, Option<&<C::Layouter as Layouter>::TextLayout>)> {
         if let RenderNodeData::Text(data) = &self.data {
-            return Some((&data.text, data.layout.as_ref()))
+            return Some((&data.text, data.layout.as_ref()));
         }
-        
+
         None
     }
 
@@ -773,7 +777,7 @@ impl<C: HasLayouter> RenderTreeNode<C> {
 }
 
 impl<C: HasLayouter> HasTextLayout<C> for RenderTreeNode<C> {
-    fn set_text_layout(&mut self, layout: <C:: Layouter as Layouter>::TextLayout) {
+    fn set_text_layout(&mut self, layout: <C::Layouter as Layouter>::TextLayout) {
         if let RenderNodeData::Text(text) = &mut self.data {
             text.layout = Some(layout);
         }
@@ -806,7 +810,7 @@ impl<C: HasLayouter> LayoutNode<C> for RenderTreeNode<C> {
 }
 
 /// Generates a render tree for the given document based on its loaded stylesheets
-pub fn generate_render_tree<C: HasDocument + HasRenderTree<LayoutTree = RenderTree<C>, RenderTree = RenderTree<C>>>(
+pub fn generate_render_tree<C: HasDocument + HasRenderTree<LayoutTree=RenderTree<C>, RenderTree=RenderTree<C>>>(
     document: DocumentHandle<C>,
 ) -> Result<RenderTree<C>> {
     let render_tree = RenderTree::from_document(document);

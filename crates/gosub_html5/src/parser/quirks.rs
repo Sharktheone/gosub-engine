@@ -1,8 +1,6 @@
 use crate::parser::Html5Parser;
 use gosub_shared::traits::config::HasDocument;
-use gosub_shared::traits::css3::CssSystem;
-use gosub_shared::traits::document::{Document, DocumentFragment};
-use gosub_shared::traits::node::{ElementDataType, Node, QuirksMode};
+use gosub_shared::traits::node::QuirksMode;
 
 impl<C: HasDocument> Html5Parser<C> {
     // returns the correct quirk mode for the given doctype
@@ -151,15 +149,17 @@ static LIMITED_QUIRKS_PUB_IDENTIFIER_PREFIX_NOT_MISSING_SYS: &[&str] = &[
 
 #[cfg(test)]
 mod tests {
-    use crate::document::document_impl::DocumentImpl;
+    use crate::document::fragment::DocumentFragmentImpl;
+use crate::document::document_impl::DocumentImpl;
     use crate::parser::Html5Parser;
     use crate::parser::QuirksMode;
+    use crate::DocumentBuilderImpl;
     use gosub_css3::system::Css3System;
     use gosub_shared::byte_stream::{ByteStream, Encoding, Location};
+    use gosub_shared::traits::config::{HasCssSystem, HasDocument};
 
-    #[derive(Clone, Debug)]
+    #[derive(Clone, Debug, PartialEq)]
     struct Config;
-
 
     impl HasCssSystem for Config {
         type CssSystem = Css3System;
@@ -169,7 +169,6 @@ mod tests {
         type DocumentFragment = DocumentFragmentImpl<Self>;
         type DocumentBuilder = DocumentBuilderImpl;
     }
-
 
     type Parser = Html5Parser<Config>;
 

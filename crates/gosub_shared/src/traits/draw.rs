@@ -1,13 +1,12 @@
+use crate::async_executor::WasmNotSend;
+use crate::render_backend::layout::LayoutTree;
+use crate::render_backend::{ImgCache, NodeDesc, Point, RenderBackend, SizeU32, WindowedEventLoop, FP};
+use crate::traits::config::HasDrawComponents;
 use std::future::Future;
 use std::sync::mpsc::Sender;
 use url::Url;
-use crate::async_executor::WasmNotSend;
-use crate::traits::config::{HasDrawComponents, HasLayouter, HasRenderBackend, HasRenderTree};
-use crate::render_backend::{ImgCache, NodeDesc, Point, RenderBackend, SizeU32, WindowedEventLoop, FP};
-use crate::render_backend::layout::LayoutTree;
 
-pub trait TreeDrawer<C: HasDrawComponents>: WasmNotSend + 'static
-{
+pub trait TreeDrawer<C: HasDrawComponents>: WasmNotSend + 'static {
     type ImgCache: ImgCache<C::RenderBackend>;
 
     fn draw(
@@ -20,7 +19,11 @@ pub trait TreeDrawer<C: HasDrawComponents>: WasmNotSend + 'static
     fn mouse_move(&mut self, backend: &mut C::RenderBackend, x: FP, y: FP) -> bool;
 
     fn scroll(&mut self, point: Point);
-    fn from_url(url: Url, layouter: C::Layouter, debug: bool) -> impl Future<Output =crate::types::Result<Self>> + WasmNotSend
+    fn from_url(
+        url: Url,
+        layouter: C::Layouter,
+        debug: bool,
+    ) -> impl Future<Output = crate::types::Result<Self>> + WasmNotSend
     where
         Self: Sized;
 

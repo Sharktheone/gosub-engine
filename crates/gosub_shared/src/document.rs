@@ -1,4 +1,3 @@
-use crate::traits::document::Document;
 use std::cell::{Ref, RefCell, RefMut};
 use std::fmt::{Debug, Display, Formatter};
 use std::rc::Rc;
@@ -50,10 +49,7 @@ where
     }
 }
 
-impl<C: HasDocument> Eq for DocumentHandle<C> 
-where
-    C::Document: Eq,
-{}
+impl<C: HasDocument> Eq for DocumentHandle<C> where C::Document: Eq {}
 
 // NOTE: it is preferred to use Document::clone() when
 // copying a DocumentHandle reference. However, for
