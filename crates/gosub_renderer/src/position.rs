@@ -3,8 +3,8 @@ use std::marker::PhantomData;
 
 use rstar::{RTree, RTreeObject, AABB};
 
-use gosub_render_backend::layout::Layouter;
-use gosub_render_backend::RenderBackend;
+use gosub_shared::render_backend::layout::Layouter;
+use gosub_shared::render_backend::RenderBackend;
 use gosub_shared::node::NodeId;
 use gosub_shared::traits::css3::CssSystem;
 use gosub_shared::traits::document::Document;

@@ -1,5 +1,5 @@
-use gosub_render_backend::svg::SvgRenderer;
-use gosub_render_backend::ImageBuffer;
+use gosub_shared::render_backend::svg::SvgRenderer;
+use gosub_shared::render_backend::ImageBuffer;
 use gosub_shared::document::DocumentHandle;
 use gosub_shared::node::NodeId;
 use gosub_shared::traits::css3::CssSystem;

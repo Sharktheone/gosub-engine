@@ -4,8 +4,8 @@ use winit::event_loop::ActiveEventLoop;
 use winit::keyboard::{KeyCode, ModifiersState, PhysicalKey};
 
 use crate::window::{Window, WindowState};
-use gosub_render_backend::layout::{LayoutTree, Layouter};
-use gosub_render_backend::{Point, RenderBackend, SizeU32, WindowedEventLoop, FP};
+use gosub_shared::render_backend::layout::{LayoutTree, Layouter};
+use gosub_shared::render_backend::{Point, RenderBackend, SizeU32, WindowedEventLoop, FP};
 use gosub_renderer::draw::SceneDrawer;
 use gosub_shared::traits::css3::CssSystem;
 use gosub_shared::traits::document::Document;

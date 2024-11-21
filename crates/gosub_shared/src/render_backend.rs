@@ -12,6 +12,7 @@ use crate::types::Result;
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 use smallvec::SmallVec;
 use url::Url;
+use crate::traits::config::{HasRenderBackend, HasRenderTree};
 
 pub mod geo;
 pub mod layout;
@@ -21,14 +22,14 @@ pub trait WindowHandle: HasDisplayHandle + HasWindowHandle + Send + Sync + Clone
 
 impl<T> WindowHandle for T where T: HasDisplayHandle + HasWindowHandle + Send + Sync + Clone {}
 
-pub trait WindowedEventLoop<B: RenderBackend, RT: RenderTree<C>, C: CssSystem>:
+pub trait WindowedEventLoop<C: HasRenderTree + HasRenderBackend>:
 WasmNotSendSync + Clone + 'static
 {
     fn redraw(&mut self);
 
-    fn add_img_cache(&mut self, url: String, buf: ImageBuffer<B>, size: Option<SizeU32>);
+    fn add_img_cache(&mut self, url: String, buf: ImageBuffer<C::RenderBackend>, size: Option<SizeU32>);
 
-    fn reload_from(&mut self, rt: RT);
+    fn reload_from(&mut self, rt: C::RenderTree);
 
     fn open_tab(&mut self, url: Url);
 }

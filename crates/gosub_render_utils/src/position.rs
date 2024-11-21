@@ -2,12 +2,11 @@ use std::cmp::Ordering;
 
 use rstar::{RTree, RTreeObject, AABB};
 
-use crate::render_tree::RenderTree;
-use gosub_render_backend::layout::{Layout, LayoutTree, Layouter};
-use gosub_render_backend::RenderBackend;
 use gosub_shared::node::NodeId;
-use gosub_shared::traits::css3::CssSystem;
+use gosub_shared::render_backend::layout::{Layout, LayoutTree, Layouter};
+use gosub_shared::traits::config::HasRenderTree;
 use gosub_shared::traits::document::Document;
+use gosub_shared::traits::render_tree::RenderTree;
 
 #[derive(Debug)]
 pub struct Element {
@@ -35,20 +34,20 @@ pub struct PositionTree {
 }
 
 impl PositionTree {
-    pub fn from_tree<B: RenderBackend, L: Layouter, D: Document<C>, C: CssSystem>(
-        from_tree: &RenderTree<L, C>,
+    pub fn from_tree<C: HasRenderTree>(
+        from_tree: &C::RenderTree,
     ) -> Self {
         let mut tree = RTree::new();
 
         //TODO: we somehow need to get the border radius and a potential stacking context of the element here
 
-        Self::add_node_to_tree::<L, D, C>(from_tree, from_tree.root, 0, &mut tree, (0.0, 0.0));
+        Self::add_node_to_tree::<C>(from_tree, from_tree.root(), 0, &mut tree, (0.0, 0.0));
 
         Self { tree }
     }
 
-    fn add_node_to_tree<L: Layouter, D: Document<C>, C: CssSystem>(
-        from_tree: &RenderTree<L, C>,
+    fn add_node_to_tree<C: HasRenderTree>(
+        from_tree: &C::RenderTree,
         id: NodeId,
         z_index: i32,
         tree: &mut RTree<Element>,
@@ -77,7 +76,7 @@ impl PositionTree {
         tree.insert(element);
 
         for child in from_tree.children(id).unwrap_or_default() {
-            Self::add_node_to_tree::<L, D, C>(from_tree, child, z_index + 1, tree, pos);
+            Self::add_node_to_tree::<C>(from_tree, child, z_index + 1, tree, pos);
         }
     }
 

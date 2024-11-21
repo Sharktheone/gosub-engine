@@ -1,6 +1,6 @@
 use crate::render_tree::TreeDrawer;
-use gosub_render_backend::layout::Layouter;
-use gosub_render_backend::RenderBackend;
+use gosub_shared::render_backend::layout::Layouter;
+use gosub_shared::render_backend::RenderBackend;
 use gosub_rendering::render_tree::{RenderNodeData, TextData};
 use gosub_shared::node::NodeId;
 use gosub_shared::traits::css3::{CssProperty, CssPropertyMap, CssSystem, CssValue};

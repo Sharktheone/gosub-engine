@@ -1,11 +1,13 @@
 use crate::traits::config::css_system::HasCssSystem;
-use crate::traits::document::{Document, DocumentFragment};
+use crate::traits::document::{Document, DocumentBuilder, DocumentFragment};
 use crate::traits::html5::Html5Parser;
 use crate::traits::node::{CommentDataType, DocTypeDataType, DocumentDataType, ElementDataType, Node, TextDataType};
 
 pub trait HasDocument: Sized + HasCssSystem + HasDocumentExt<Self> {
     type Document: Document<Self>;
     type DocumentFragment: DocumentFragment<Self>;
+    
+    type DocumentBuilder: DocumentBuilder<Self>;
 }
 
 pub trait HasHtmlParser: HasDocument {

@@ -1,5 +1,5 @@
-use gosub_render_backend::layout::{LayoutTree, Layouter};
-use gosub_render_backend::{NodeDesc, RenderBackend, WindowedEventLoop};
+use gosub_shared::render_backend::layout::{LayoutTree, Layouter};
+use gosub_shared::render_backend::{NodeDesc, RenderBackend, WindowedEventLoop};
 use gosub_renderer::draw::SceneDrawer;
 use gosub_shared::traits::css3::CssSystem;
 use gosub_shared::traits::document::Document;

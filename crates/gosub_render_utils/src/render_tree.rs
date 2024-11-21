@@ -1,6 +1,6 @@
 use gosub_html5::document::document_impl::TreeIterator;
-use gosub_render_backend::layout::{HasTextLayout, Layout, LayoutCache, LayoutTree, Layouter, TextLayout};
-use gosub_render_backend::{layout, Size};
+use gosub_shared::render_backend::layout::{HasTextLayout, Layout, LayoutCache, LayoutTree, Layouter, TextLayout};
+use gosub_shared::render_backend::{layout, Size};
 use gosub_shared::document::DocumentHandle;
 use gosub_shared::node::NodeId;
 use gosub_shared::traits::css3::{CssProperty, CssPropertyMap, CssSystem};
@@ -11,6 +11,8 @@ use gosub_shared::types::Result;
 use log::info;
 use std::collections::HashMap;
 use std::fmt::{Debug, Formatter};
+use gosub_shared::render_backend::layout::Layouter;
+use gosub_shared::traits::config::HasLayouter;
 
 mod desc;
 
@@ -22,8 +24,8 @@ const INLINE_ELEMENTS: [&str; 31] = [
 
 /// Map of all declared values for all nodes in the document
 #[derive(Debug)]
-pub struct RenderTree<L: Layouter, C: CssSystem> {
-    pub nodes: HashMap<NodeId, RenderTreeNode<L, C>>,
+pub struct RenderTree<C: HasLayouter> {
+    pub nodes: HashMap<NodeId, RenderTreeNode<C>>,
     pub root: NodeId,
     pub dirty: bool,
     next_id: NodeId,
@@ -664,16 +666,16 @@ fn pre_transform_text(text: String) -> String {
     new_text
 }
 
-pub struct RenderTreeNode<L: Layouter, C: CssSystem> {
+pub struct RenderTreeNode<C: HasLayouter> {
     pub id: NodeId,
-    pub properties: C::PropertyMap,
+    pub properties: C::CssPropertyMap,
     pub children: Vec<NodeId>,
     pub parent: Option<NodeId>,
     pub name: String,
     pub namespace: Option<String>,
-    pub data: RenderNodeData<L>,
-    pub cache: L::Cache,
-    pub layout: L::Layout,
+    pub data: RenderNodeData<C::Layouter>,
+    pub cache: <C::Layouter as Layouter>::Cache,
+    pub layout: <C::Layouter as Layouter>::Layout,
 }
 
 impl<L: Layouter, C: CssSystem> Debug for RenderTreeNode<L, C> {

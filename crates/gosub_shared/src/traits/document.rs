@@ -35,8 +35,6 @@ pub trait DocumentFragment<C: HasDocument>: Sized {
 
 pub trait Document<C: HasDocument<Document = Self>>: Sized + Display + 'static {
     type Node: Node<C>;
-    type Fragment: DocumentFragment<C>;
-    type Builder: DocumentBuilder<C>;
 
     // Creates a new doc with an optional document root node
     fn new(document_type: DocumentType, url: Option<Url>, root_node: Option<Self::Node>) -> DocumentHandle<C>;

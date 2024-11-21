@@ -12,9 +12,9 @@ use winit::event::Modifiers;
 use winit::event_loop::{ActiveEventLoop, EventLoopProxy};
 use winit::window::{Icon, Window as WinitWindow, WindowId};
 
-use gosub_render_backend::geo::SizeU32;
-use gosub_render_backend::layout::{LayoutTree, Layouter};
-use gosub_render_backend::{ImageBuffer, NodeDesc, RenderBackend, WindowedEventLoop};
+use gosub_shared::render_backend::geo::SizeU32;
+use gosub_shared::render_backend::layout::{LayoutTree, Layouter};
+use gosub_shared::render_backend::{ImageBuffer, NodeDesc, RenderBackend, WindowedEventLoop};
 use gosub_renderer::draw::SceneDrawer;
 use gosub_shared::traits::css3::CssSystem;
 use gosub_shared::traits::document::Document;

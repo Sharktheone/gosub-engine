@@ -1,7 +1,7 @@
 use taffy::Style;
 
 use crate::Display;
-use gosub_render_backend::layout::Node;
+use gosub_shared::render_backend::layout::Node;
 
 mod parse;
 mod parse_properties;

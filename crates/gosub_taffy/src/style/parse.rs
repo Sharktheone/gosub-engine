@@ -4,8 +4,8 @@ use taffy::{
     NonRepeatedTrackSizingFunction, TrackSizingFunction,
 };
 
-use gosub_render_backend::geo::Size;
-use gosub_render_backend::layout::Node;
+use gosub_shared::render_backend::geo::Size;
+use gosub_shared::render_backend::layout::Node;
 use gosub_shared::traits::css3::CssProperty;
 
 pub fn parse_len(node: &mut impl Node, name: &str) -> LengthPercentage {
