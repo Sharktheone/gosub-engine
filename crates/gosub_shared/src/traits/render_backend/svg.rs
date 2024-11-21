@@ -1,10 +1,9 @@
-use gosub_shared::document::DocumentHandle;
-use gosub_shared::node::NodeId;
-use gosub_shared::traits::css3::CssSystem;
-use gosub_shared::traits::document::Document;
-use gosub_shared::types::{Result, Size};
+use crate::document::DocumentHandle;
+use crate::node::NodeId;
+use crate::traits::config::{HasDocument, HasRenderBackend};
+use crate::types::{Result, Size};
 
-use crate::{ImageBuffer, RenderBackend};
+use super::{ImageBuffer, RenderBackend};
 
 pub trait SvgRenderer<B: RenderBackend>: Send {
     type SvgDocument;
@@ -12,8 +11,8 @@ pub trait SvgRenderer<B: RenderBackend>: Send {
     fn new() -> Self;
 
     fn parse_external(data: String) -> Result<Self::SvgDocument>;
-    fn parse_internal<D: Document<C>, C: CssSystem>(
-        tree: DocumentHandle<D, C>,
+    fn parse_internal<C: HasDocument>(
+        tree: DocumentHandle<C>,
         id: NodeId,
     ) -> Result<Self::SvgDocument>;
 

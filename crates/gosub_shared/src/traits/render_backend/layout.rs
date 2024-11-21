@@ -1,25 +1,24 @@
-use gosub_shared::traits::css3::CssProperty;
 use std::fmt::Debug;
 
-use gosub_shared::types::Result;
+use crate::types::Result;
 use gosub_typeface::font::{Font, Glyph};
+use crate::traits::config::{HasLayouter};
+use super::geo::{Point, Rect, Size, SizeU32};
 
-use crate::geo::{Point, Rect, Size, SizeU32};
-
-pub trait LayoutTree<L: Layouter>: Sized + 'static {
+pub trait LayoutTree<C: HasLayouter<LayoutTree = Self>>: Sized + 'static {
     type NodeId: Copy + Clone + From<u64> + Into<u64>;
-    type Node: Node + HasTextLayout<L>;
+    type Node: LayoutNode<C>;
 
     fn children(&self, id: Self::NodeId) -> Option<Vec<Self::NodeId>>;
     fn contains(&self, id: &Self::NodeId) -> bool;
     fn child_count(&self, id: Self::NodeId) -> usize;
     fn parent_id(&self, id: Self::NodeId) -> Option<Self::NodeId>;
-    fn get_cache(&self, id: Self::NodeId) -> Option<&L::Cache>;
-    fn get_layout(&self, id: Self::NodeId) -> Option<&L::Layout>;
-    fn get_cache_mut(&mut self, id: Self::NodeId) -> Option<&mut L::Cache>;
-    fn get_layout_mut(&mut self, id: Self::NodeId) -> Option<&mut L::Layout>;
-    fn set_cache(&mut self, id: Self::NodeId, cache: L::Cache);
-    fn set_layout(&mut self, id: Self::NodeId, layout: L::Layout);
+    fn get_cache(&self, id: Self::NodeId) -> Option<&<C::Layouter as Layouter>::Cache>;
+    fn get_layout(&self, id: Self::NodeId) -> Option<&<C::Layouter as Layouter>::Layout>;
+    fn get_cache_mut(&mut self, id: Self::NodeId) -> Option<&mut <C::Layouter as Layouter>::Cache>;
+    fn get_layout_mut(&mut self, id: Self::NodeId) -> Option<&mut <C::Layouter as Layouter>::Layout>;
+    fn set_cache(&mut self, id: Self::NodeId, cache: <C::Layouter as Layouter>::Cache);
+    fn set_layout(&mut self, id: Self::NodeId, layout: <C::Layouter as Layouter>::Layout);
 
     fn style_dirty(&self, id: Self::NodeId) -> bool;
 
@@ -36,7 +35,7 @@ pub trait Layouter: Sized + Clone + Send + 'static {
 
     const COLLAPSE_INLINE: bool;
 
-    fn layout<LT: LayoutTree<Self>>(&self, tree: &mut LT, root: LT::NodeId, space: SizeU32) -> Result<()>;
+    fn layout<C: HasLayouter<Layouter = Self>>(&self, tree: &mut C::LayoutTree, root: <C::LayoutTree as LayoutTree<C>>::NodeId, space: SizeU32) -> Result<()>;
 }
 
 pub trait LayoutCache: Default + Send + Debug {
@@ -116,10 +115,9 @@ pub trait Layout: Default + Debug {
     }
 }
 
-pub trait Node {
-    type Property: CssProperty;
+pub trait LayoutNode<C: HasLayouter>: HasTextLayout<C> {
 
-    fn get_property(&self, name: &str) -> Option<&Self::Property>;
+    fn get_property(&self, name: &str) -> Option<&C::Property>;
     fn text_data(&self) -> Option<&str>;
 
     fn text_size(&self) -> Option<Size>;
@@ -129,8 +127,8 @@ pub trait Node {
     fn is_anon_inline_parent(&self) -> bool;
 }
 
-pub trait HasTextLayout<L: Layouter> {
-    fn set_text_layout(&mut self, layout: L::TextLayout);
+pub trait HasTextLayout<C: HasLayouter> {
+    fn set_text_layout(&mut self, layout: <C::Layouter as Layouter>::TextLayout);
 }
 
 pub trait TextLayout {

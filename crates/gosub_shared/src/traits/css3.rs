@@ -6,6 +6,7 @@ use crate::traits::document::Document;
 use crate::traits::render_tree::RenderTree;
 use crate::traits::ParserConfig;
 use std::fmt::{Debug, Display};
+use crate::traits::config::HasDocument;
 
 /// Defines the origin of the stylesheet (or declaration)
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -23,19 +24,20 @@ pub enum CssOrigin {
 pub trait CssSystem: Clone + 'static {
     type Stylesheet: CssStylesheet;
 
-    type PropertyMap: CssPropertyMap<Property = Self::Property>;
+    type PropertyMap: CssPropertyMap<Self>;
 
-    type Property: CssProperty;
+    type Property: CssProperty<Self>;
+    type Value: CssValue;
 
     /// Parses a string into a CSS3 stylesheet
     fn parse_str(str: &str, config: ParserConfig, origin: CssOrigin, source_url: &str) -> CssResult<Self::Stylesheet>;
 
     /// Returns the properties of a node
     /// If `None` is returned, the node is not renderable
-    fn properties_from_node<D: Document<Self>>(
-        node: &D::Node,
+    fn properties_from_node<C: HasDocument>(
+        node: &C::Node,
         sheets: &[Self::Stylesheet],
-        handle: DocumentHandle<D, Self>,
+        handle: DocumentHandle<C>,
         id: NodeId,
     ) -> Option<Self::PropertyMap>;
 
@@ -52,29 +54,26 @@ pub trait CssStylesheet: PartialEq {
     fn url(&self) -> &str;
 }
 
-pub trait CssPropertyMap: Default + Debug + WasmNotSend {
-    type Property: CssProperty;
+pub trait CssPropertyMap<S: CssSystem>: Default + Debug + WasmNotSend {
 
-    fn insert_inherited(&mut self, name: &str, value: Self::Property);
+    fn insert_inherited(&mut self, name: &str, value: S::Property);
 
-    fn insert(&mut self, name: &str, value: Self::Property);
+    fn insert(&mut self, name: &str, value: S::Property);
 
-    fn get(&self, name: &str) -> Option<&Self::Property>;
+    fn get(&self, name: &str) -> Option<&S::Property>;
 
-    fn get_mut(&mut self, name: &str) -> Option<&mut Self::Property>;
+    fn get_mut(&mut self, name: &str) -> Option<&mut S::Property>;
 
     fn make_dirty(&mut self);
 
-    fn iter(&self) -> impl Iterator<Item = (&str, &Self::Property)> + '_;
+    fn iter(&self) -> impl Iterator<Item = (&str, &S::Property)> + '_;
 
-    fn iter_mut(&mut self) -> impl Iterator<Item = (&str, &mut Self::Property)> + '_;
+    fn iter_mut(&mut self) -> impl Iterator<Item = (&str, &mut S::Property)> + '_;
 
     fn make_clean(&mut self);
     fn is_dirty(&self) -> bool;
 }
-pub trait CssProperty: Debug + Display + Sized + From<Self::Value> {
-    type Value: CssValue;
-
+pub trait CssProperty<S: CssSystem>: Debug + Display + Sized + From<S::Value> {
     fn compute_value(&mut self); // this should probably be removed
 
     fn unit_to_px(&self) -> f32;
@@ -87,9 +86,9 @@ pub trait CssProperty: Debug + Display + Sized + From<Self::Value> {
     fn parse_color(&self) -> Option<(f32, f32, f32, f32)>;
 
     fn as_number(&self) -> Option<f32>;
-    fn as_list(&self) -> Option<&[Self::Value]>;
+    fn as_list(&self) -> Option<&[S::Value]>;
 
-    fn as_function(&self) -> Option<(&str, &[Self::Value])>;
+    fn as_function(&self) -> Option<(&str, &[S::Value])>;
 
     fn is_none(&self) -> bool;
 }
