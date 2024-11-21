@@ -3,10 +3,18 @@ use crate::traits::document::{Document, DocumentBuilder, DocumentFragment};
 use crate::traits::html5::Html5Parser;
 use crate::traits::node::{CommentDataType, DocTypeDataType, DocumentDataType, ElementDataType, Node, TextDataType};
 
-pub trait HasDocument: Sized + HasCssSystem + HasDocumentExt<Self> {
+pub trait HasDocument: Sized + HasCssSystem +
+HasDocumentExt<Self,
+    Node=<Self::Document as Document<Self>>::Node,
+    DocumentData=<<Self::Document as Document<Self>>::Node as Node<Self>>::DocumentData,
+    DocTypeData=<<Self::Document as Document<Self>>::Node as Node<Self>>::DocTypeData,
+    TextData=<<Self::Document as Document<Self>>::Node as Node<Self>>::TextData,
+    CommentData=<<Self::Document as Document<Self>>::Node as Node<Self>>::CommentData,
+    ElementData=<<Self::Document as Document<Self>>::Node as Node<Self>>::ElementData,
+> {
     type Document: Document<Self>;
     type DocumentFragment: DocumentFragment<Self>;
-    
+
     type DocumentBuilder: DocumentBuilder<Self>;
 }
 
@@ -27,9 +35,9 @@ pub trait HasDocumentExt<C: HasDocument> {
 
 impl<C: HasDocument> HasDocumentExt<C> for C {
     type Node = <C::Document as Document<Self>>::Node;
-    type DocumentData = <Self::Node as Node<C>>::DocumentData;
-    type DocTypeData = <Self::Node as Node<C>>::DocTypeData;
-    type TextData = <Self::Node as Node<C>>::TextData;
-    type CommentData = <Self::Node as Node<C>>::CommentData;
-    type ElementData = <Self::Node as Node<C>>::ElementData;
+    type DocumentData = <<C::Document as Document<Self>>::Node as Node<Self>>::DocumentData;
+    type DocTypeData = <<C::Document as Document<Self>>::Node as Node<Self>>::DocTypeData;
+    type TextData = <<C::Document as Document<Self>>::Node as Node<Self>>::TextData;
+    type CommentData = <<C::Document as Document<Self>>::Node as Node<Self>>::CommentData;
+    type ElementData = <<C::Document as Document<Self>>::Node as Node<Self>>::ElementData;
 }  

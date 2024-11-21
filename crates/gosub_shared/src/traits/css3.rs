@@ -2,11 +2,9 @@ use crate::async_executor::WasmNotSend;
 use crate::document::DocumentHandle;
 use crate::errors::CssResult;
 use crate::node::NodeId;
-use crate::traits::document::Document;
-use crate::traits::render_tree::RenderTree;
 use crate::traits::ParserConfig;
 use std::fmt::{Debug, Display};
-use crate::traits::config::HasDocument;
+use crate::traits::config::{HasDocument, HasRenderTree};
 
 /// Defines the origin of the stylesheet (or declaration)
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -34,14 +32,14 @@ pub trait CssSystem: Clone + 'static {
 
     /// Returns the properties of a node
     /// If `None` is returned, the node is not renderable
-    fn properties_from_node<C: HasDocument>(
+    fn properties_from_node<C: HasDocument<CssSystem = Self>>(
         node: &C::Node,
         sheets: &[Self::Stylesheet],
         handle: DocumentHandle<C>,
         id: NodeId,
     ) -> Option<Self::PropertyMap>;
 
-    fn inheritance<T: RenderTree<Self>>(tree: &mut T);
+    fn inheritance<C: HasRenderTree<CssSystem = Self>>(tree: &mut C::RenderTree);
 
     fn load_default_useragent_stylesheet() -> Self::Stylesheet;
 }
