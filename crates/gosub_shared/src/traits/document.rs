@@ -6,6 +6,7 @@ use crate::traits::node::{Node, QuirksMode};
 use std::collections::HashMap;
 use std::fmt::Display;
 use url::Url;
+use crate::traits::config::HasDocument;
 
 /// Type of the given document
 #[derive(PartialEq, Debug, Copy, Clone)]
@@ -16,10 +17,10 @@ pub enum DocumentType {
     IframeSrcDoc,
 }
 
-pub trait DocumentBuilder<C: CssSystem> {
+pub trait DocumentBuilder<C: HasDocument<Document = Self::Document>> {
     type Document: Document<C>;
 
-    fn new_document(url: Option<Url>) -> DocumentHandle<Self::Document, C>;
+    fn new_document(url: Option<Url>) -> DocumentHandle<C>;
     fn new_document_fragment(
         context_node: &<Self::Document as Document<C>>::Node,
         quirks_mode: QuirksMode,
@@ -35,7 +36,7 @@ pub trait DocumentFragment<C: CssSystem>: Sized {
     fn new(handle: DocumentHandle<Self::Document, C>, node_id: NodeId) -> Self;
 }
 
-pub trait Document<C: CssSystem>: Sized + Display + 'static {
+pub trait Document<C: HasDocument<Document = Self>>: Sized + Display + 'static {
     type Node: Node<C, Document = Self>;
     type Fragment: DocumentFragment<C, Document = Self>;
     type Builder: DocumentBuilder<C, Document = Self>;

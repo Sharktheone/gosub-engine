@@ -6,6 +6,7 @@ pub mod html5;
 pub mod node;
 
 pub mod render_tree;
+pub mod config;
 
 /// Context defines how the data needs to be parsed
 #[derive(Debug, Clone, Copy, PartialEq)]

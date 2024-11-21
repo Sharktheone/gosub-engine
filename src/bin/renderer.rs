@@ -1,7 +1,11 @@
-use std::sync::mpsc;
 use std::{io, thread};
+use std::sync::mpsc;
 
 use clap::ArgAction;
+use log::LevelFilter;
+use simple_logger::SimpleLogger;
+use url::Url;
+
 use gosub_css3::system::Css3System;
 use gosub_html5::document::document_impl::DocumentImpl;
 use gosub_html5::parser::Html5Parser;
@@ -12,9 +16,6 @@ use gosub_taffy::TaffyLayouter;
 use gosub_useragent::application::{Application, CustomEventInternal, WindowOptions};
 use gosub_useragent::winit::window::WindowId;
 use gosub_vello::VelloBackend;
-use log::LevelFilter;
-use simple_logger::SimpleLogger;
-use url::Url;
 
 type Backend = VelloBackend;
 type Layouter = TaffyLayouter;
@@ -59,6 +60,24 @@ fn main() -> Result<()> {
     //
     let mut application: Application<Drawer, Backend, Layouter, Tree, Document, CssSystem, HtmlParser, Tree> =
         Application::new(VelloBackend::new(), TaffyLayouter, debug);
+
+
+    #[allow(clippy::type_complexity)]
+    let mut application: Application<
+        TreeDrawer<VelloBackend, TaffyLayouter, DocumentImpl<Css3System>, Css3System>,
+        VelloBackend,
+        TaffyLayouter,
+        RenderTree<TaffyLayouter, Css3System>,
+        DocumentImpl<Css3System>,
+        Css3System,
+        Html5Parser<DocumentImpl<Css3System>, Css3System>,
+        RenderTree<TaffyLayouter, Css3System>
+    > =
+        Application::new(VelloBackend::new(), TaffyLayouter, debug);
+
+
+    #[allow(clippy::type_complexity)]
+    let mut application: Application<TreeDrawer<VelloBackend, TaffyLayouter, DocumentImpl<Css3System>, Css3System>, VelloBackend, TaffyLayouter, RenderTree<TaffyLayouter, Css3System>, DocumentImpl<Css3System>, Css3System, Html5Parser<DocumentImpl<Css3System>, Css3System>, RenderTree<TaffyLayouter, Css3System>> = Application::new(VelloBackend::new(), TaffyLayouter, debug);
 
     application.initial_tab(Url::parse(&url)?, WindowOptions::default());
 
