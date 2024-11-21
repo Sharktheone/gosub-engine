@@ -20,7 +20,7 @@ pub enum CcrState {
     NumericalCharacterReferenceEnd,
 }
 
-impl Tokenizer<'_> {
+impl Tokenizer {
     /// Consumes a character reference and places this in the tokenizer consume buffer
     /// ref: 8.2.4.69 Tokenizing character references
     ///
@@ -371,7 +371,7 @@ mod tests {
                     stream.close();
 
                     let error_logger = Rc::new(RefCell::new(ErrorLogger::new()));
-                    let mut tokenizer = Tokenizer::new(&mut stream, None, error_logger.clone(), Location::default());
+                    let mut tokenizer = Tokenizer::new(stream, None, error_logger.clone(), Location::default());
 
                     let token = tokenizer.next_token(ParserData::default()).unwrap();
                     assert_eq!(expected, token.to_string());

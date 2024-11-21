@@ -13,10 +13,29 @@ use std::fs;
 use std::process::exit;
 use std::str::FromStr;
 use url::Url;
+use gosub_html5::document::fragment::DocumentFragmentImpl;
+use gosub_shared::traits::config::{HasCssSystem, HasDocument, HasHtmlParser};
 
 fn bail(message: &str) -> ! {
     println!("{message}");
     exit(1);
+}
+#[derive(Clone, Debug, PartialEq)]
+struct Config;
+
+
+impl HasCssSystem for Config {
+    type CssSystem = Css3System;
+}
+impl HasDocument for Config {
+    type Document = DocumentImpl<Self>;
+    type DocumentFragment = DocumentFragmentImpl<Self>;
+    type DocumentBuilder = DocumentBuilderImpl;
+}
+
+
+impl HasHtmlParser for Config {
+    type HtmlParser = Html5Parser<Self>;
 }
 
 fn main() -> Result<()> {
@@ -61,9 +80,9 @@ fn main() -> Result<()> {
     // SimpleLogger::new().init().unwrap();
 
     // Create a new document that will be filled in by the parser
-    let doc_handle: DocumentHandle<DocumentImpl<Css3System>, Css3System> = DocumentBuilderImpl::new_document(Some(url));
+    let doc_handle: DocumentHandle<Config> = DocumentBuilderImpl::new_document(Some(url));
     let parse_errors =
-        Html5Parser::<DocumentImpl<Css3System>, Css3System>::parse_document(&mut stream, doc_handle.clone(), None)?;
+        Html5Parser::<Config>::parse_document(stream, doc_handle.clone(), None)?;
 
     println!("Found {} stylesheets", doc_handle.get().stylesheets.len());
     for sheet in &doc_handle.get().stylesheets {

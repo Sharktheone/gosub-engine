@@ -113,7 +113,7 @@ impl Harness {
             self.parse_fragment::<C>(fragment, stream, options, Location::default())?
         } else {
             let document = C::DocumentBuilder::new_document(None);
-            let parser_errors = C::HtmlParser::parse(&mut stream, DocumentHandle::clone(&document), Some(options))?;
+            let parser_errors = C::HtmlParser::parse(stream, DocumentHandle::clone(&document), Some(options))?;
 
             (document, parser_errors)
         };
@@ -161,7 +161,7 @@ impl Harness {
         let document = C::DocumentBuilder::new_document_fragment(context_node, quirks_mode);
 
         let parser_errors = C::HtmlParser::parse_fragment(
-            &mut stream,
+            stream,
             document.clone(),
             context_node,
             Some(options),

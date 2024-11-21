@@ -7,7 +7,27 @@ use gosub_testing::testing::tree_construction::Harness;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
+use gosub_html5::document::builder::DocumentBuilderImpl;
+use gosub_html5::document::fragment::DocumentFragmentImpl;
+use gosub_shared::traits::config::{HasCssSystem, HasDocument, HasHtmlParser};
 
+#[derive(Clone, Debug, PartialEq)]
+struct Config;
+
+
+impl HasCssSystem for Config {
+    type CssSystem = Css3System;
+}
+impl HasDocument for Config {
+    type Document = DocumentImpl<Self>;
+    type DocumentFragment = DocumentFragmentImpl<Self>;
+    type DocumentBuilder = DocumentBuilderImpl;
+}
+
+
+impl HasHtmlParser for Config {
+    type HtmlParser = Html5Parser<Self>;
+}
 fn main() -> Result<()> {
     let mut files = get_files_from_path(fixture_root_path());
     files.sort();
@@ -30,7 +50,7 @@ fn main() -> Result<()> {
         for test in &fixture.tests {
             for &scripting_enabled in test.script_modes() {
                 let result = harness
-                    .run_test::<Html5Parser<DocumentImpl<Css3System>, Css3System>, Css3System>(
+                    .run_test::<Config>(
                         test.clone(),
                         scripting_enabled,
                     )

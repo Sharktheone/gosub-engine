@@ -4,7 +4,7 @@ use gosub_shared::traits::css3::CssSystem;
 use gosub_shared::traits::document::{Document, DocumentFragment};
 use gosub_shared::traits::node::{ElementDataType, Node, QuirksMode};
 
-impl<C: HasDocument> Html5Parser<'_, C> {
+impl<C: HasDocument> Html5Parser<C> {
     // returns the correct quirk mode for the given doctype
     pub(crate) fn identify_quirks_mode(
         &self,
@@ -171,11 +171,11 @@ mod tests {
     }
 
 
-    type Parser<'a> = Html5Parser<'a, Config>;
+    type Parser = Html5Parser<Config>;
 
     #[test]
     fn test_quirks_mode() {
-        let stream = &mut ByteStream::new(Encoding::UTF8, None);
+        let stream = ByteStream::new(Encoding::UTF8, None);
         let parser = Parser::new_parser(stream, Location::default());
 
         assert_eq!(
@@ -261,7 +261,7 @@ mod tests {
 
     #[test]
     fn test_quirks_mode_force() {
-        let stream = &mut ByteStream::new(Encoding::UTF8, None);
+        let stream = ByteStream::new(Encoding::UTF8, None);
         let parser = Parser::new_parser(stream, Location::default());
 
         assert_eq!(
@@ -335,7 +335,7 @@ mod tests {
 
     #[test]
     fn test_quirks_mode_sys() {
-        let stream = &mut ByteStream::new(Encoding::UTF8, None);
+        let stream = ByteStream::new(Encoding::UTF8, None);
         let parser = Parser::new_parser(stream, Location::default());
 
         assert_eq!(
@@ -360,7 +360,7 @@ mod tests {
 
     #[test]
     fn test_quirks_mode_sys_missing() {
-        let stream = &mut ByteStream::new(Encoding::UTF8, None);
+        let stream = ByteStream::new(Encoding::UTF8, None);
         let parser = Parser::new_parser(stream, Location::default());
 
         assert_eq!(

@@ -146,7 +146,7 @@ fn fetch_url<C: HasHtmlParser>(
     let _ = stream.read_from_bytes(&fetch_response.response.body);
     fetch_response.document = C::DocumentBuilder::new_document(Some(parts));
 
-    match C::HtmlParser::parse(&mut stream, DocumentHandle::clone(&fetch_response.document), None) {
+    match C::HtmlParser::parse(stream, DocumentHandle::clone(&fetch_response.document), None) {
         Ok(parse_errors) => {
             fetch_response.parse_errors = parse_errors;
         }

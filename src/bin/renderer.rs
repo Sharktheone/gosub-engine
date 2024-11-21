@@ -1,33 +1,65 @@
-use std::{io, thread};
 use std::sync::mpsc;
+use std::{io, thread};
 
 use clap::ArgAction;
-use log::LevelFilter;
-use simple_logger::SimpleLogger;
-use url::Url;
-
 use gosub_css3::system::Css3System;
+use gosub_html5::document::builder::DocumentBuilderImpl;
 use gosub_html5::document::document_impl::DocumentImpl;
+use gosub_html5::document::fragment::DocumentFragmentImpl;
 use gosub_html5::parser::Html5Parser;
-use gosub_renderer::render_tree::TreeDrawer;
+use gosub_renderer::draw::TreeDrawerImpl;
 use gosub_rendering::render_tree::RenderTree;
+use gosub_shared::traits::config::{HasCssSystem, HasDocument, HasDocumentExt, HasHtmlParser, HasLayouter, HasRenderBackend, HasRenderTree, HasTreeDrawer, ModuleConfiguration};
+use gosub_shared::traits::document::Document;
 use gosub_shared::types::Result;
 use gosub_taffy::TaffyLayouter;
 use gosub_useragent::application::{Application, CustomEventInternal, WindowOptions};
 use gosub_useragent::winit::window::WindowId;
 use gosub_vello::VelloBackend;
+use log::LevelFilter;
+use simple_logger::SimpleLogger;
+use url::Url;
 
-type Backend = VelloBackend;
-type Layouter = TaffyLayouter;
 
-type CssSystem = Css3System;
+#[derive(Clone, Debug, PartialEq)]
+struct Config;
 
-type Document = DocumentImpl<CssSystem>;
 
-type HtmlParser<'a> = Html5Parser<'a, Document, CssSystem>;
+impl HasCssSystem for Config {
+    type CssSystem = Css3System;
+}
+impl HasDocument for Config {
+    type Document = DocumentImpl<Self>;
+    type DocumentFragment = DocumentFragmentImpl<Self>;
+    type DocumentBuilder = DocumentBuilderImpl;
+}
 
-type Drawer = TreeDrawer<Backend, Layouter, Document, CssSystem>;
-type Tree = RenderTree<Layouter, CssSystem>;
+
+impl HasHtmlParser for Config {
+    type HtmlParser = Html5Parser<Self>;
+}
+
+
+impl HasLayouter for Config {
+    type Layouter = TaffyLayouter;
+    type LayoutTree = RenderTree<Self>;
+}
+
+impl HasRenderTree for Config {
+    type RenderTree = RenderTree<Self>;
+}
+
+impl HasTreeDrawer for Config {
+    type TreeDrawer = TreeDrawerImpl<Self>;
+}
+
+
+impl HasRenderBackend for Config {
+    type RenderBackend = VelloBackend;
+}
+
+impl ModuleConfiguration for Config {}
+
 
 fn main() -> Result<()> {
     SimpleLogger::new()
@@ -58,26 +90,9 @@ fn main() -> Result<()> {
 
     // let mut rt = load_html_rendertree(&url)?;
     //
-    let mut application: Application<Drawer, Backend, Layouter, Tree, Document, CssSystem, HtmlParser, Tree> =
+    let mut application: Application<Config> =
         Application::new(VelloBackend::new(), TaffyLayouter, debug);
 
-
-    #[allow(clippy::type_complexity)]
-    let mut application: Application<
-        TreeDrawer<VelloBackend, TaffyLayouter, DocumentImpl<Css3System>, Css3System>,
-        VelloBackend,
-        TaffyLayouter,
-        RenderTree<TaffyLayouter, Css3System>,
-        DocumentImpl<Css3System>,
-        Css3System,
-        Html5Parser<DocumentImpl<Css3System>, Css3System>,
-        RenderTree<TaffyLayouter, Css3System>
-    > =
-        Application::new(VelloBackend::new(), TaffyLayouter, debug);
-
-
-    #[allow(clippy::type_complexity)]
-    let mut application: Application<TreeDrawer<VelloBackend, TaffyLayouter, DocumentImpl<Css3System>, Css3System>, VelloBackend, TaffyLayouter, RenderTree<TaffyLayouter, Css3System>, DocumentImpl<Css3System>, Css3System, Html5Parser<DocumentImpl<Css3System>, Css3System>, RenderTree<TaffyLayouter, Css3System>> = Application::new(VelloBackend::new(), TaffyLayouter, debug);
 
     application.initial_tab(Url::parse(&url)?, WindowOptions::default());
 

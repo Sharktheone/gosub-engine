@@ -11,14 +11,14 @@ pub trait Html5Parser<C: HasDocument> {
     type Options: ParserOptions;
 
     fn parse(
-        stream: &mut ByteStream,
+        stream: ByteStream,
         doc: DocumentHandle<C>,
         opts: Option<Self::Options>,
     ) -> Result<Vec<ParseError>>;
 
     #[allow(clippy::type_complexity)]
     fn parse_fragment(
-        stream: &mut ByteStream,
+        stream: ByteStream,
         doc: DocumentHandle<C>,
         context_node: &C::Node,
         options: Option<Self::Options>,
