@@ -6,27 +6,18 @@ use winit::keyboard::{KeyCode, ModifiersState, PhysicalKey};
 use crate::window::{Window, WindowState};
 use gosub_shared::render_backend::layout::{LayoutTree, Layouter};
 use gosub_shared::render_backend::{Point, RenderBackend, SizeU32, WindowedEventLoop, FP};
-use gosub_renderer::draw::SceneDrawer;
-use gosub_shared::traits::css3::CssSystem;
+use gosub_shared::traits::config::ModuleConfiguration;
 use gosub_shared::traits::document::Document;
+use gosub_shared::traits::draw::TreeDrawer;
 use gosub_shared::traits::html5::Html5Parser;
-use gosub_shared::traits::render_tree::RenderTree;
 use gosub_shared::types::Result;
 
-impl<
-        D: SceneDrawer<B, L, LT, Doc, C, RT>,
-        B: RenderBackend,
-        L: Layouter,
-        LT: LayoutTree<L>,
-        Doc: Document<C>,
-        C: CssSystem,
-        RT: RenderTree<C>,
-    > Window<'_, D, B, L, LT, Doc, C, RT>
+impl<C: ModuleConfiguration> Window<'_, C>
 {
-    pub fn event<P: Html5Parser<C, Document = Doc>>(
+    pub fn event(
         &mut self,
         el: &ActiveEventLoop,
-        backend: &mut B,
+        backend: &mut C::RenderBackend,
         event: WindowEvent,
     ) -> Result<()> {
         let WindowState::Active {
@@ -115,7 +106,7 @@ impl<
                             self.window.request_redraw();
                         }
                         KeyCode::F5 => {
-                            tab.reload::<P>(self.el.clone());
+                            tab.reload(self.el.clone());
                         }
                         KeyCode::ArrowRight => {
                             if self.mods.state().contains(ModifiersState::CONTROL) {

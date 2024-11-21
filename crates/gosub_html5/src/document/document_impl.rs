@@ -628,7 +628,7 @@ mod tests {
     use std::collections::HashMap;
 
 
-    #[derive(Clone, Debug)]
+    #[derive(Clone, Debug, PartialEq)]
     struct Config;
 
 
