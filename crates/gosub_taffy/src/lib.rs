@@ -213,7 +213,7 @@ impl<LT: LayoutTree<TaffyLayouter>> TraversePartialTree for LayoutDocument<'_, L
 
 impl<LT: LayoutTree<TaffyLayouter>> LayoutDocument<'_, LT> {
     fn update_style(&mut self, node_id: LT::NodeId) {
-        let Some(node) = self.0.get_node(node_id) else {
+        let Some(node) = self.0.get_node_mut(node_id) else {
             return;
         };
 
@@ -288,7 +288,7 @@ impl<LT: LayoutTree<TaffyLayouter>> LayoutPartialTree for LayoutDocument<'_, LT>
         compute_cached_layout(self, node_id, inputs, |tree, node_id_taffy, inputs| {
             let node_id = LT::NodeId::from(node_id_taffy.into());
 
-            if let Some(node) = tree.0.get_node(node_id) {
+            if let Some(node) = tree.0.get_node_mut(node_id) {
                 if node.is_anon_inline_parent() {
                     return compute_inline_layout(tree, node_id, inputs);
                 }

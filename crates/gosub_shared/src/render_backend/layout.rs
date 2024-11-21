@@ -24,7 +24,8 @@ pub trait LayoutTree<C: HasLayouter<LayoutTree = Self>>: Sized + 'static {
 
     fn clean_style(&mut self, id: Self::NodeId);
 
-    fn get_node(&mut self, id: Self::NodeId) -> Option<&mut Self::Node>;
+    fn get_node_mut(&mut self, id: Self::NodeId) -> Option<&mut Self::Node>;
+    fn get_node(&self, id: Self::NodeId) -> Option<&Self::Node>;
 }
 
 pub trait Layouter: Sized + Clone + Send + 'static {
@@ -117,7 +118,7 @@ pub trait Layout: Default + Debug {
 
 pub trait LayoutNode<C: HasLayouter>: HasTextLayout<C> {
 
-    fn get_property(&self, name: &str) -> Option<&C::Property>;
+    fn get_property(&self, name: &str) -> Option<&C::CssProperty>;
     fn text_data(&self) -> Option<&str>;
 
     fn text_size(&self) -> Option<Size>;

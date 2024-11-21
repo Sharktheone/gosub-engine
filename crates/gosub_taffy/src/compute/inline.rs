@@ -49,7 +49,7 @@ pub fn compute_inline_layout<LT: LayoutTree<TaffyLayouter>>(
     for child in &children {
         let node_id = NodeId::from((*child).into());
 
-        let Some(node) = tree.0.get_node(*child) else {
+        let Some(node) = tree.0.get_node_mut(*child) else {
             continue;
         };
 
@@ -99,7 +99,7 @@ pub fn compute_inline_layout<LT: LayoutTree<TaffyLayouter>>(
             let color = node.get_property("color").and_then(|s| s.parse_color());
 
             if let Some(actual_parent) = tree.0.parent_id(nod_id) {
-                if let Some(node) = tree.0.get_node(actual_parent) {
+                if let Some(node) = tree.0.get_node_mut(actual_parent) {
                     let decoration_line = node.get_property("text-decoration-line");
 
                     if let Some(decoration_line) = decoration_line {
@@ -445,7 +445,7 @@ pub fn compute_inline_layout<LT: LayoutTree<TaffyLayouter>>(
                         decoration,
                     };
 
-                    let Some(node) = tree.0.get_node(current_node_id) else {
+                    let Some(node) = tree.0.get_node_mut(current_node_id) else {
                         continue;
                     };
 

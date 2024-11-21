@@ -8,7 +8,7 @@ pub trait HasCssSystem: Sized + HasCssSystemExt<Self> {
 pub trait HasCssSystemExt<C: HasCssSystem> {
     type Stylesheet: CssStylesheet;
     type CssPropertyMap: CssPropertyMap<C::CssSystem>;
-    type Property: CssProperty<C::CssSystem>;
+    type CssProperty: CssProperty<C::CssSystem>;
     type CssValue: CssValue;
 }
 
@@ -16,6 +16,6 @@ pub trait HasCssSystemExt<C: HasCssSystem> {
 impl<C: HasCssSystem> HasCssSystemExt<C> for C {
     type Stylesheet = <C::CssSystem as CssSystem>::Stylesheet;
     type CssPropertyMap = <C::CssSystem as CssSystem>::PropertyMap;
-    type Property =  <C::CssSystem as CssSystem>::Property;
+    type CssProperty =  <C::CssSystem as CssSystem>::Property;
     type CssValue =  <C::CssSystem as CssSystem>::Value;
 }

@@ -16,7 +16,7 @@ pub trait RenderTree<C: HasLayouter>: Send + 'static {
 
     fn get_children(&self, id: Self::NodeId) -> Option<Vec<Self::NodeId>>;
     
-    fn get_layout(&self, id: Self::NodeId) -> &<C::Layouter as Layouter>::Layout;
+    fn get_layout(&self, id: Self::NodeId) -> Option<&<C::Layouter as Layouter>::Layout>;
     
     
 }
