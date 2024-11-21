@@ -36,7 +36,7 @@ pub struct PositionTree<D, C> {
     phantom_data_c: PhantomData<C>,
 }
 
-impl<D: Document<C>, C: CssSystem> PositionTree<D, C> {
+impl<C: HasDocument> PositionTree<D, C> {
     pub fn from_tree<B: RenderBackend, L: Layouter>(from_tree: &MacOSRenderTree<D, C>) -> Self {
         let mut tree = RTree::new();
 

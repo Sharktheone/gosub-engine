@@ -21,7 +21,7 @@ impl SVGDocument {
         Ok(Self { tree })
     }
 
-    pub fn from_html_doc<D: Document<C>, C: CssSystem>(id: NodeId, doc: DocumentHandle<D, C>) -> Result<Self> {
+    pub fn from_html_doc<C: HasDocument>(id: NodeId, doc: DocumentHandle<C>) -> Result<Self> {
         let doc = doc.get();
 
         let str = doc.write_from_node(id);

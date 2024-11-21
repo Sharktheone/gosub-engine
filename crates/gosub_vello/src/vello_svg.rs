@@ -22,8 +22,8 @@ impl SvgRenderer<VelloBackend> for VelloSVG {
         SVGDocument::from_str(&data)
     }
 
-    fn parse_internal<D: Document<C>, C: CssSystem>(
-        tree: DocumentHandle<D, C>,
+    fn parse_internal<C: HasDocument>(
+        tree: DocumentHandle<C>,
         id: NodeId,
     ) -> Result<Self::SvgDocument> {
         SVGDocument::from_html_doc(id, tree)

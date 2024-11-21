@@ -26,13 +26,13 @@ const MAX_BYTES: u64 = 10_000_000;
 
 /// Response that is returned from the fetch function
 #[cfg(not(target_arch = "wasm32"))]
-pub struct FetchResponse<D: Document<C>, C: CssSystem> {
+pub struct FetchResponse<C: HasDocument> {
     /// Request that has been send
     pub request: Request,
     /// Response that has been received
     pub response: Response,
     /// Document tree that is made from the response
-    pub document: DocumentHandle<D, C>,
+    pub document: DocumentHandle<C>,
     /// Parse errors that occurred while parsing the document tree
     pub parse_errors: Vec<ParseError>,
     /// Rendertree that is generated from the document tree and css tree

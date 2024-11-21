@@ -4,6 +4,7 @@ use crate::node::NodeId;
 use crate::traits::config::HasDocument;
 use std::collections::hash_map::IntoIter;
 use std::collections::HashMap;
+use std::fmt::Debug;
 
 #[derive(PartialEq, Debug, Copy, Clone)]
 pub enum QuirksMode {
@@ -131,7 +132,7 @@ pub trait ElementDataType<C: HasDocument> {
     fn set_template_contents(&mut self, template_contents: C::DocumentFragment);
 }
 
-pub trait Node<C: HasDocument>: Clone + PartialEq {
+pub trait Node<C: HasDocument>: Clone + Debug + PartialEq {
     type DocumentData: DocumentDataType;
     type DocTypeData: DocTypeDataType;
     type TextData: TextDataType;

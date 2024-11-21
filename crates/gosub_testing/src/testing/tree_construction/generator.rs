@@ -6,14 +6,14 @@ use gosub_shared::traits::document::Document;
 use gosub_shared::traits::node::{CommentDataType, DocTypeDataType, ElementDataType, Node, NodeType, TextDataType};
 
 /// Generates a tree output that can be used for matching with the expected output
-pub struct TreeOutputGenerator<D: Document<C>, C: CssSystem> {
-    document: DocumentHandle<D, C>,
+pub struct TreeOutputGenerator<C: HasDocument> {
+    document: DocumentHandle<C>,
 }
 
-impl<D: Document<C>, C: CssSystem> TreeOutputGenerator<D, C> {
+impl<C: HasDocument> TreeOutputGenerator<D, C> {
     /// Initializes a new tree output generator
     #[must_use]
-    pub fn new(document: DocumentHandle<D, C>) -> Self {
+    pub fn new(document: DocumentHandle<C>) -> Self {
         Self { document }
     }
 

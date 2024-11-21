@@ -7,6 +7,7 @@ use crate::document::document_impl::DocumentImpl;
 use crate::parser::Html5Parser;
 use gosub_shared::byte_stream::{ByteStream, Encoding};
 use gosub_shared::document::DocumentHandle;
+use gosub_shared::traits::config::HasDocument;
 use gosub_shared::traits::css3::CssSystem;
 use gosub_shared::traits::document::DocumentBuilder as _;
 
@@ -20,7 +21,7 @@ pub mod tokenizer;
 pub mod writer;
 
 /// Parses the given HTML string and returns a handle to the resulting DOM tree.
-pub fn html_compile<C: CssSystem>(html: &str) -> DocumentHandle<DocumentImpl<C>, C> {
+pub fn html_compile<C: HasDocument>(html: &str) -> DocumentHandle<C> {
     let mut stream = ByteStream::new(Encoding::UTF8, None);
     stream.read_from_str(html, Some(Encoding::UTF8));
     stream.close();

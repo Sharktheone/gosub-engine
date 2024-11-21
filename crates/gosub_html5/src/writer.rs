@@ -1,10 +1,12 @@
 use crate::node::visitor::Visitor;
 use gosub_shared::document::DocumentHandle;
 use gosub_shared::node::NodeId;
+use gosub_shared::traits::config::HasDocument;
 use gosub_shared::traits::css3::CssSystem;
 use gosub_shared::traits::document::Document;
 use gosub_shared::traits::node::ElementDataType;
 use gosub_shared::traits::node::{CommentDataType, DocTypeDataType, Node, NodeType, TextDataType};
+use crate::document::document_impl::DocumentImpl;
 
 // Writer to convert a document to a string
 pub struct DocumentWriter {
@@ -15,7 +17,7 @@ pub struct DocumentWriter {
 }
 
 impl DocumentWriter {
-    pub fn write_from_node<D: Document<C>, C: CssSystem>(node: NodeId, handle: DocumentHandle<D, C>) -> String {
+    pub fn write_from_node<C: HasDocument>(node: NodeId, handle: DocumentHandle<C>) -> String {
         let mut w = Self {
             comments: false,
             buffer: String::new(),
@@ -25,7 +27,7 @@ impl DocumentWriter {
         w.buffer
     }
 
-    pub fn visit_node<D: Document<C>, C: CssSystem>(&mut self, id: NodeId, handle: DocumentHandle<D, C>) {
+    pub fn visit_node<C: HasDocument>(&mut self, id: NodeId, handle: DocumentHandle<C>) {
         let binding = handle.get();
         let node = match binding.node_by_id(id) {
             Some(node) => node,
@@ -61,19 +63,19 @@ impl DocumentWriter {
         }
     }
 
-    pub fn visit_children<D: Document<C>, C: CssSystem>(&mut self, children: &[NodeId], handle: DocumentHandle<D, C>) {
+    pub fn visit_children<C: HasDocument>(&mut self, children: &[NodeId], handle: DocumentHandle<C>) {
         for child in children {
             self.visit_node(*child, handle.clone());
         }
     }
 }
 
-impl<N: Node<C>, C: CssSystem> Visitor<N, C> for DocumentWriter {
-    fn document_enter(&mut self, _node: &N) {}
+impl<C: HasDocument> Visitor<C> for DocumentWriter {
+    fn document_enter(&mut self, _node: &C::Node) {}
 
-    fn document_leave(&mut self, _node: &N) {}
+    fn document_leave(&mut self, _node: &C::Node) {}
 
-    fn doctype_enter(&mut self, node: &N) {
+    fn doctype_enter(&mut self, node: &C::Node) {
         if let Some(data) = node.get_doctype_data() {
             self.buffer.push_str("<!DOCTYPE ");
             self.buffer.push_str(data.name());
@@ -81,17 +83,17 @@ impl<N: Node<C>, C: CssSystem> Visitor<N, C> for DocumentWriter {
         }
     }
 
-    fn doctype_leave(&mut self, _node: &N) {}
+    fn doctype_leave(&mut self, _node: &C::Node) {}
 
-    fn text_enter(&mut self, node: &N) {
+    fn text_enter(&mut self, node: &C::Node) {
         if let Some(data) = node.get_text_data() {
             self.buffer.push_str(data.value());
         }
     }
 
-    fn text_leave(&mut self, _node: &N) {}
+    fn text_leave(&mut self, _node: &C::Node) {}
 
-    fn comment_enter(&mut self, node: &N) {
+    fn comment_enter(&mut self, node: &C::Node) {
         if let Some(data) = node.get_comment_data() {
             self.buffer.push_str("<!--");
             self.buffer.push_str(data.value());
@@ -99,9 +101,9 @@ impl<N: Node<C>, C: CssSystem> Visitor<N, C> for DocumentWriter {
         }
     }
 
-    fn comment_leave(&mut self, _node: &N) {}
+    fn comment_leave(&mut self, _node: &C::Node) {}
 
-    fn element_enter(&mut self, node: &N) {
+    fn element_enter(&mut self, node: &C::Node) {
         if let Some(data) = node.get_element_data() {
             self.buffer.push('<');
             self.buffer.push_str(data.name());
@@ -118,7 +120,7 @@ impl<N: Node<C>, C: CssSystem> Visitor<N, C> for DocumentWriter {
         }
     }
 
-    fn element_leave(&mut self, node: &N) {
+    fn element_leave(&mut self, node: &C::Node) {
         if let Some(data) = node.get_element_data() {
             self.buffer.push_str("</");
             self.buffer.push_str(data.name().to_string().as_str());

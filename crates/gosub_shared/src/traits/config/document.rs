@@ -1,9 +1,10 @@
+use std::fmt::Debug;
 use crate::traits::config::css_system::HasCssSystem;
 use crate::traits::document::{Document, DocumentBuilder, DocumentFragment};
 use crate::traits::html5::Html5Parser;
 use crate::traits::node::{CommentDataType, DocTypeDataType, DocumentDataType, ElementDataType, Node, TextDataType};
 
-pub trait HasDocument: Sized + HasCssSystem +
+pub trait HasDocument: Sized + Clone + Debug + PartialEq + HasCssSystem + 'static +
 HasDocumentExt<Self,
     Node=<Self::Document as Document<Self>>::Node,
     DocumentData=<<Self::Document as Document<Self>>::Node as Node<Self>>::DocumentData,

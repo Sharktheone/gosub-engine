@@ -8,13 +8,15 @@ use core::fmt::Debug;
 use gosub_shared::byte_stream::Location;
 use gosub_shared::document::DocumentHandle;
 use gosub_shared::node::NodeId;
+use gosub_shared::traits::config::{HasCssSystem, HasDocument};
 use gosub_shared::traits::css3::CssSystem;
 use gosub_shared::traits::node::{Node, NodeData, NodeType, QuirksMode};
 use std::collections::HashMap;
+use gosub_shared::traits::document::Document;
 
 /// Implementation of the NodeDataType trait
 #[derive(Debug, Clone, PartialEq)]
-pub enum NodeDataTypeInternal<C: CssSystem> {
+pub enum NodeDataTypeInternal<C: HasDocument> {
     /// Represents a document
     Document(DocumentData),
     // Represents a doctype
@@ -27,8 +29,9 @@ pub enum NodeDataTypeInternal<C: CssSystem> {
     Element(ElementData<C>),
 }
 
+
 /// Node structure that resembles a DOM node
-pub struct NodeImpl<C: CssSystem> {
+pub struct NodeImpl<C: HasDocument> {
     /// ID of the node, 0 is always the root / document node
     pub id: NodeId,
     /// parent of the node, if any
@@ -38,20 +41,34 @@ pub struct NodeImpl<C: CssSystem> {
     /// actual data of the node
     pub data: NodeDataTypeInternal<C>,
     /// Handle to the document in which this node resides
-    pub document: DocumentHandle<DocumentImpl<C>, C>,
+    pub document: DocumentHandle<C>,
     // Returns true when the given node is registered into the document arena
     pub registered: bool,
     // Location of the node in the source code
     pub location: Location,
 }
 
-impl<C: CssSystem> Node<C> for NodeImpl<C> {
-    type Document = DocumentImpl<C>;
+impl<C: HasDocument<Document = DocumentImpl<C>>> Node<C> for NodeImpl<C> {
     type DocumentData = DocumentData;
     type DocTypeData = DocTypeData;
     type TextData = TextData;
     type CommentData = CommentData;
     type ElementData = ElementData<C>;
+
+    /// Creates a new node based on the original node, but without any attachments (childs, parents) or a node-id
+    fn new_from_node(org_node: &Self) -> Self {
+        let (id, parent, children, registered) = <_>::default();
+
+        Self {
+            id,
+            parent,
+            children,
+            data: org_node.data.clone(),
+            document: org_node.document.clone(),
+            registered,
+            location: org_node.location(),
+        }
+    }
 
     fn id(&self) -> NodeId {
         self.id
@@ -149,7 +166,7 @@ impl<C: CssSystem> Node<C> for NodeImpl<C> {
         None
     }
 
-    fn handle(&self) -> DocumentHandle<Self::Document, C> {
+    fn handle(&self) -> DocumentHandle<C> {
         self.document.clone()
     }
 
@@ -165,7 +182,7 @@ impl<C: CssSystem> Node<C> for NodeImpl<C> {
         self.children.push(node_id);
     }
 
-    fn data(&self) -> NodeData<C, Self> {
+    fn data(&self) -> NodeData<C> {
         match self.data {
             NodeDataTypeInternal::Document(ref data) => NodeData::Document(data),
             NodeDataTypeInternal::DocType(ref data) => NodeData::DocType(data),
@@ -174,30 +191,15 @@ impl<C: CssSystem> Node<C> for NodeImpl<C> {
             NodeDataTypeInternal::Element(ref data) => NodeData::Element(data),
         }
     }
-
-    /// Creates a new node based on the original node, but without any attachments (childs, parents) or a node-id
-    fn new_from_node(org_node: &Self) -> Self {
-        let (id, parent, children, registered) = <_>::default();
-
-        Self {
-            id,
-            parent,
-            children,
-            data: org_node.data.clone(),
-            document: org_node.document.clone(),
-            registered,
-            location: org_node.location(),
-        }
-    }
 }
 
-impl<C: CssSystem> PartialEq for NodeImpl<C> {
+impl<C: HasDocument<Document = DocumentImpl<C>>> PartialEq for NodeImpl<C> {
     fn eq(&self, other: &Self) -> bool {
         self.id == other.id()
     }
 }
 
-impl<C: CssSystem> Debug for NodeImpl<C> {
+impl<C: HasDocument> Debug for NodeImpl<C> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut debug = f.debug_struct("Node");
         debug.field("id", &self.id);
@@ -208,7 +210,7 @@ impl<C: CssSystem> Debug for NodeImpl<C> {
     }
 }
 
-impl<C: CssSystem> Clone for NodeImpl<C> {
+impl<C: HasDocument> Clone for NodeImpl<C> {
     fn clone(&self) -> Self {
         NodeImpl {
             id: self.id,
@@ -222,11 +224,11 @@ impl<C: CssSystem> Clone for NodeImpl<C> {
     }
 }
 
-impl<C: CssSystem> NodeImpl<C> {
+impl<C: HasDocument> NodeImpl<C> {
     /// create a new `Node`
     #[must_use]
     pub fn new(
-        document: DocumentHandle<DocumentImpl<C>, C>,
+        document: DocumentHandle<C>,
         location: Location,
         data: &NodeDataTypeInternal<C>,
     ) -> Self {
@@ -246,7 +248,7 @@ impl<C: CssSystem> NodeImpl<C> {
     /// Create a new document node
     #[must_use]
     pub fn new_document(
-        document: DocumentHandle<DocumentImpl<C>, C>,
+        document: DocumentHandle<C>,
         location: Location,
         quirks_mode: QuirksMode,
     ) -> Self {
@@ -259,7 +261,7 @@ impl<C: CssSystem> NodeImpl<C> {
 
     #[must_use]
     pub fn new_doctype(
-        document: DocumentHandle<DocumentImpl<C>, C>,
+        document: DocumentHandle<C>,
         location: Location,
         name: &str,
         pub_identifier: &str,
@@ -275,7 +277,7 @@ impl<C: CssSystem> NodeImpl<C> {
     /// Create a new element node with the given name and attributes and namespace
     #[must_use]
     pub fn new_element(
-        doc_handle: DocumentHandle<DocumentImpl<C>, C>,
+        doc_handle: DocumentHandle<C>,
         location: Location,
         name: &str,
         namespace: Option<&str>,
@@ -296,7 +298,7 @@ impl<C: CssSystem> NodeImpl<C> {
 
     /// Creates a new comment node
     #[must_use]
-    pub fn new_comment(doc_handle: DocumentHandle<DocumentImpl<C>, C>, location: Location, value: &str) -> Self {
+    pub fn new_comment(doc_handle: DocumentHandle<C>, location: Location, value: &str) -> Self {
         Self::new(
             doc_handle.clone(),
             location,
@@ -306,7 +308,7 @@ impl<C: CssSystem> NodeImpl<C> {
 
     /// Creates a new text node
     #[must_use]
-    pub fn new_text(doc_handle: DocumentHandle<DocumentImpl<C>, C>, location: Location, value: &str) -> Self {
+    pub fn new_text(doc_handle: DocumentHandle<C>, location: Location, value: &str) -> Self {
         Self::new(
             doc_handle.clone(),
             location,
@@ -330,9 +332,24 @@ mod tests {
     use gosub_shared::traits::node::ElementDataType;
     use std::collections::HashMap;
 
+
+    #[derive(Clone, Debug, PartialEq)]
+    struct Config;
+
+
+    impl HasCssSystem for Config {
+        type CssSystem = Css3System;
+    }
+    impl HasDocument for Config {
+        type Document = DocumentImpl<Self>;
+        type DocumentFragment = DocumentFragmentImpl<Self>;
+        type DocumentBuilder = DocumentBuilderImpl;
+    }
+    type Handle = DocumentHandle<Config>;
+
     #[test]
     fn new_document() {
-        let doc_handle: DocumentHandle<DocumentImpl<Css3System>, Css3System> = DocumentBuilderImpl::new_document(None);
+        let doc_handle: Handle = DocumentBuilderImpl::new_document(None);
 
         let node = NodeImpl::new_document(doc_handle.clone(), Location::default(), QuirksMode::NoQuirks);
         assert_eq!(node.id, NodeId::default());
@@ -346,7 +363,7 @@ mod tests {
 
     #[test]
     fn new_element() {
-        let doc_handle: DocumentHandle<DocumentImpl<Css3System>, Css3System> = DocumentBuilderImpl::new_document(None);
+        let doc_handle: Handle = DocumentBuilderImpl::new_document(None);
 
         let mut attributes = HashMap::new();
         attributes.insert("id".to_string(), "test".to_string());
@@ -374,7 +391,7 @@ mod tests {
 
     #[test]
     fn new_comment() {
-        let doc_handle: DocumentHandle<DocumentImpl<Css3System>, Css3System> = DocumentBuilderImpl::new_document(None);
+        let doc_handle: Handle = DocumentBuilderImpl::new_document(None);
 
         let node = NodeImpl::new_comment(doc_handle.clone(), Location::default(), "test");
         assert_eq!(node.id, NodeId::default());
@@ -388,7 +405,7 @@ mod tests {
 
     #[test]
     fn new_text() {
-        let doc_handle: DocumentHandle<DocumentImpl<Css3System>, Css3System> = DocumentBuilderImpl::new_document(None);
+        let doc_handle: Handle = DocumentBuilderImpl::new_document(None);
 
         let node = NodeImpl::new_text(doc_handle.clone(), Location::default(), "test");
         assert_eq!(node.id, NodeId::default());
@@ -402,7 +419,7 @@ mod tests {
 
     #[test]
     fn is_special() {
-        let doc_handle: DocumentHandle<DocumentImpl<Css3System>, Css3System> = DocumentBuilderImpl::new_document(None);
+        let doc_handle: Handle = DocumentBuilderImpl::new_document(None);
 
         let mut attributes = HashMap::new();
         attributes.insert("id".to_string(), "test".to_string());
@@ -419,7 +436,7 @@ mod tests {
 
     #[test]
     fn type_of() {
-        let doc_handle: DocumentHandle<DocumentImpl<Css3System>, Css3System> = DocumentBuilderImpl::new_document(None);
+        let doc_handle: Handle = DocumentBuilderImpl::new_document(None);
 
         let node = NodeImpl::new_document(doc_handle.clone(), Location::default(), QuirksMode::NoQuirks);
         assert_eq!(node.type_of(), NodeType::DocumentNode);
@@ -441,7 +458,7 @@ mod tests {
 
     #[test]
     fn special_html_elements() {
-        let doc_handle: DocumentHandle<DocumentImpl<Css3System>, Css3System> = DocumentBuilderImpl::new_document(None);
+        let doc_handle: Handle = DocumentBuilderImpl::new_document(None);
 
         for element in SPECIAL_HTML_ELEMENTS.iter() {
             let mut attributes = HashMap::new();
@@ -461,7 +478,7 @@ mod tests {
 
     #[test]
     fn special_mathml_elements() {
-        let doc_handle: DocumentHandle<DocumentImpl<Css3System>, Css3System> = DocumentBuilderImpl::new_document(None);
+        let doc_handle: Handle = DocumentBuilderImpl::new_document(None);
 
         for element in SPECIAL_MATHML_ELEMENTS.iter() {
             let mut attributes = HashMap::new();
@@ -480,7 +497,7 @@ mod tests {
 
     #[test]
     fn special_svg_elements() {
-        let doc_handle: DocumentHandle<DocumentImpl<Css3System>, Css3System> = DocumentBuilderImpl::new_document(None);
+        let doc_handle: Handle = DocumentBuilderImpl::new_document(None);
 
         for element in SPECIAL_SVG_ELEMENTS.iter() {
             let mut attributes = HashMap::new();
@@ -498,7 +515,7 @@ mod tests {
 
     #[test]
     fn type_of_node() {
-        let doc_handle: DocumentHandle<DocumentImpl<Css3System>, Css3System> = DocumentBuilderImpl::new_document(None);
+        let doc_handle: Handle = DocumentBuilderImpl::new_document(None);
 
         let node = NodeImpl::new_document(doc_handle.clone(), Location::default(), QuirksMode::NoQuirks);
         assert_eq!(node.type_of(), NodeType::DocumentNode);

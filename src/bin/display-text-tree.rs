@@ -46,7 +46,7 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn display_node<D: Document<C>, C: CssSystem>(
+fn display_node<C: HasDocument>(
     doc_handle: DocumentHandle<DocumentImpl<Css3System>, Css3System>,
     node_id: NodeId,
 ) {

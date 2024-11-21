@@ -1,12 +1,12 @@
 use crate::byte_stream::Location;
 use crate::document::DocumentHandle;
 use crate::node::NodeId;
+use crate::traits::config::HasDocument;
 use crate::traits::css3::CssSystem;
 use crate::traits::node::{Node, QuirksMode};
 use std::collections::HashMap;
-use std::fmt::Display;
+use std::fmt::{Debug, Display};
 use url::Url;
-use crate::traits::config::HasDocument;
 
 /// Type of the given document
 #[derive(PartialEq, Debug, Copy, Clone)]
@@ -25,15 +25,14 @@ pub trait DocumentBuilder<C: HasDocument> {
     ) -> DocumentHandle<C>;
 }
 
-pub trait DocumentFragment<C: HasDocument>: Sized {
-
+pub trait DocumentFragment<C: HasDocument>: Sized + Clone + PartialEq{
     /// Returns the document handle for this document
     fn handle(&self) -> DocumentHandle<C>;
 
     fn new(handle: DocumentHandle<C>, node_id: NodeId) -> Self;
 }
 
-pub trait Document<C: HasDocument<Document = Self>>: Sized + Display + 'static {
+pub trait Document<C: HasDocument<Document=Self>>: Sized + Display + Debug + PartialEq + 'static {
     type Node: Node<C>;
 
     // Creates a new doc with an optional document root node

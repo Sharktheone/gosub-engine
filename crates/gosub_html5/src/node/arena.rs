@@ -1,27 +1,25 @@
 use gosub_shared::node::NodeId;
+use gosub_shared::traits::config::HasDocument;
 use gosub_shared::traits::css3::CssSystem;
 use gosub_shared::traits::node::Node;
 use std::collections::HashMap;
-use std::marker::PhantomData;
 
 /// The node arena is the single source for nodes in a document (or fragment).
 #[derive(Debug, Clone)]
-pub struct NodeArena<N: Node<C>, C: CssSystem> {
+pub struct NodeArena<C: HasDocument> {
     /// Current nodes stored as <id, node>
-    nodes: HashMap<NodeId, N>,
+    nodes: HashMap<NodeId, C::Node>,
     /// Next node ID to use
     next_id: NodeId,
-
-    _marker: PhantomData<C>,
 }
 
-impl<C: CssSystem, N: Node<C>> NodeArena<N, C> {
+impl<C: HasDocument> NodeArena<C> {
     pub fn node_count(&self) -> usize {
         self.nodes.len()
     }
 }
 
-impl<C: CssSystem, N: Node<C>> PartialEq for NodeArena<N, C> {
+impl<C: HasDocument> PartialEq for NodeArena<C> {
     fn eq(&self, other: &Self) -> bool {
         if self.next_id != other.next_id {
             return false;
@@ -31,14 +29,13 @@ impl<C: CssSystem, N: Node<C>> PartialEq for NodeArena<N, C> {
     }
 }
 
-impl<N: Node<C>, C: CssSystem> NodeArena<N, C> {
+impl<C: HasDocument> NodeArena<C> {
     /// Creates a new NodeArena
     #[must_use]
     pub fn new() -> Self {
         Self {
             nodes: HashMap::new(),
             next_id: NodeId::default(),
-            _marker: PhantomData,
         }
     }
 
@@ -56,12 +53,12 @@ impl<N: Node<C>, C: CssSystem> NodeArena<N, C> {
     }
 
     /// Gets the node with the given id
-    pub fn node_ref(&self, node_id: NodeId) -> Option<&N> {
+    pub fn node_ref(&self, node_id: NodeId) -> Option<&C::Node> {
         self.nodes.get(&node_id)
     }
 
     /// Gets the node with the given id
-    pub fn node(&self, node_id: NodeId) -> Option<N> {
+    pub fn node(&self, node_id: NodeId) -> Option<C::Node> {
         self.nodes.get(&node_id).cloned()
     }
 
@@ -74,11 +71,11 @@ impl<N: Node<C>, C: CssSystem> NodeArena<N, C> {
         self.nodes.remove(&node_id);
     }
 
-    pub fn update_node(&mut self, node: N) {
+    pub fn update_node(&mut self, node: C::Node) {
         self.nodes.insert(node.id(), node);
     }
 
-    pub fn register_node_with_node_id(&mut self, mut node: N, node_id: NodeId) {
+    pub fn register_node_with_node_id(&mut self, mut node: C::Node, node_id: NodeId) {
         assert!(!node.is_registered(), "Node is already attached to an arena");
 
         node.set_id(node_id);
@@ -88,7 +85,7 @@ impl<N: Node<C>, C: CssSystem> NodeArena<N, C> {
     }
 
     /// Registered an unregistered node into the arena
-    pub fn register_node(&mut self, mut node: N) -> NodeId {
+    pub fn register_node(&mut self, mut node: C::Node) -> NodeId {
         assert!(!node.is_registered(), "Node is already attached to an arena");
 
         let id = self.next_id;
@@ -101,12 +98,12 @@ impl<N: Node<C>, C: CssSystem> NodeArena<N, C> {
         id
     }
 
-    pub fn nodes(&self) -> &HashMap<NodeId, N> {
+    pub fn nodes(&self) -> &HashMap<NodeId, C::Node> {
         &self.nodes
     }
 }
 
-impl<N: Node<C>, C: CssSystem> Default for NodeArena<N, C> {
+impl<C: HasDocument> Default for NodeArena<C> {
     fn default() -> Self {
         Self::new()
     }
