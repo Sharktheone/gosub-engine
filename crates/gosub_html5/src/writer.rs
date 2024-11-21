@@ -36,29 +36,31 @@ impl DocumentWriter {
 
         match node.type_of() {
             NodeType::DocumentNode => {
-                self.document_enter(node);
+                // self.document_enter(node);
+                <DocumentWriter as Visitor<C>>::document_enter(self, node);
+
                 self.visit_children(node.children(), handle.clone());
-                self.document_leave(node);
+                <DocumentWriter as Visitor<C>>::document_leave(self, node);
             }
             NodeType::DocTypeNode => {
-                self.doctype_enter(node);
+                <DocumentWriter as Visitor<C>>::doctype_enter(self, node);
                 self.visit_children(node.children(), handle.clone());
-                self.doctype_leave(node);
+                <DocumentWriter as Visitor<C>>::doctype_leave(self, node);
             }
             NodeType::TextNode => {
-                self.text_enter(node);
+                <DocumentWriter as Visitor<C>>::text_enter(self, node);
                 self.visit_children(node.children(), handle.clone());
-                self.text_leave(node);
+                <DocumentWriter as Visitor<C>>::text_leave(self, node);
             }
             NodeType::CommentNode => {
-                self.comment_enter(node);
+                <DocumentWriter as Visitor<C>>::comment_enter(self, node);
                 self.visit_children(node.children(), handle.clone());
-                self.comment_leave(node);
+                <DocumentWriter as Visitor<C>>::comment_leave(self, node);
             }
             NodeType::ElementNode => {
-                self.element_enter(node);
+                <DocumentWriter as Visitor<C>>::element_enter(self, node);
                 self.visit_children(node.children(), handle.clone());
-                self.element_leave(node);
+                <DocumentWriter as Visitor<C>>::element_leave(self, node);
             }
         }
     }

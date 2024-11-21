@@ -10,9 +10,9 @@ use gosub_shared::traits::document::{Document, DocumentBuilder};
 use gosub_shared::traits::html5::Html5Parser;
 use std::fs;
 use url::Url;
-use gosub_shared::traits::config::{HasCssSystem, HasHtmlParser, HasLayouter};
+use gosub_shared::traits::config::{HasCssSystem, HasHtmlParser, HasLayouter, HasRenderTree};
 
-pub(crate) async fn load_html_rendertree<C: HasLayouter + HasHtmlParser>(
+pub(crate) async fn load_html_rendertree<C: HasRenderTree<LayoutTree = RenderTree<C>, RenderTree = RenderTree<C>> + HasHtmlParser>(
     url: Url,
 ) -> gosub_shared::types::Result<(RenderTree<C>, Fetcher)> {
     let fetcher = Fetcher::new(url.clone());
@@ -22,7 +22,7 @@ pub(crate) async fn load_html_rendertree<C: HasLayouter + HasHtmlParser>(
     Ok((rt, fetcher))
 }
 
-pub(crate) async fn load_html_rendertree_fetcher<C: HasLayouter + HasHtmlParser>(
+pub(crate) async fn load_html_rendertree_fetcher<C: HasRenderTree<LayoutTree = RenderTree<C>, RenderTree = RenderTree<C>> + HasHtmlParser>(
     url: Url,
     fetcher: &Fetcher,
 ) -> gosub_shared::types::Result<RenderTree<C>> {

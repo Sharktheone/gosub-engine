@@ -62,7 +62,7 @@ impl<C: HasDocument<Document=Self>> Document<C> for DocumentImpl<C> {
     /// Creates a new document without a doc handle
     #[must_use]
     fn new(document_type: DocumentType, url: Option<Url>, root_node: Option<Self::Node>) -> DocumentHandle<C> {
-        let doc = Self {
+        let mut doc = Self {
             url,
             arena: NodeArena::new(),
             named_id_elements: HashMap::new(),
@@ -71,16 +71,19 @@ impl<C: HasDocument<Document=Self>> Document<C> for DocumentImpl<C> {
             stylesheets: Vec::new(),
         };
 
-        let mut doc_handle = DocumentHandle(Rc::new(RefCell::new(doc)));
 
         if let Some(node) = root_node {
-            doc_handle.get_mut().register_node(node);
+            doc.register_node(node);
+            
+            DocumentHandle::create(doc)
         } else {
+            let mut doc_handle = DocumentHandle::create(doc);
             let node = Self::Node::new_document(doc_handle.clone(), Location::default(), QuirksMode::NoQuirks);
             doc_handle.get_mut().arena.register_node(node);
+            
+            doc_handle
         }
 
-        doc_handle
     }
 
     /// Returns the URL of the document, or "" when no location is set

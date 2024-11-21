@@ -2,15 +2,14 @@ use std::cmp::Ordering;
 
 use rstar::{RTree, RTreeObject, AABB};
 
-use gosub_shared::node::NodeId;
 use gosub_shared::render_backend::layout::{Layout, LayoutTree, Layouter};
-use gosub_shared::traits::config::HasRenderTree;
+use gosub_shared::traits::config::{HasLayouter, HasRenderTree};
 use gosub_shared::traits::document::Document;
 use gosub_shared::traits::render_tree::RenderTree;
 
 #[derive(Debug)]
-pub struct Element {
-    id: NodeId,
+pub struct Element<C: HasLayouter> {
+    id: <C::LayoutTree as LayoutTree<C>>::NodeId,
     x: f32,
     y: f32,
     width: f32,
@@ -19,7 +18,7 @@ pub struct Element {
     z_index: i32,
 }
 
-impl RTreeObject for Element {
+impl<C: HasLayouter> RTreeObject for Element<C> {
     type Envelope = AABB<(f32, f32)>;
     fn envelope(&self) -> Self::Envelope {
         let lower = (self.x, self.y);
@@ -28,29 +27,37 @@ impl RTreeObject for Element {
     }
 }
 
-#[derive(Default, Debug)]
-pub struct PositionTree {
-    tree: RTree<Element>,
+#[derive(Debug)]
+pub struct PositionTree<C: HasLayouter> {
+    tree: RTree<Element<C>>,
 }
 
-impl PositionTree {
-    pub fn from_tree<C: HasRenderTree>(
-        from_tree: &C::RenderTree,
+impl<C: HasLayouter> Default for PositionTree<C> {
+    fn default() -> Self {
+        Self {
+            tree: RTree::default()
+        }
+    }
+}
+
+impl<C: HasLayouter> PositionTree<C> {
+    pub fn from_tree(
+        from_tree: &C::LayoutTree,
     ) -> Self {
         let mut tree = RTree::new();
 
         //TODO: we somehow need to get the border radius and a potential stacking context of the element here
 
-        Self::add_node_to_tree::<C>(from_tree, from_tree.root(), 0, &mut tree, (0.0, 0.0));
+        Self::add_node_to_tree(from_tree, from_tree.root(), 0, &mut tree, (0.0, 0.0));
 
         Self { tree }
     }
 
-    fn add_node_to_tree<C: HasRenderTree>(
-        from_tree: &C::RenderTree,
-        id: NodeId,
+    fn add_node_to_tree(
+        from_tree: &C::LayoutTree,
+        id: <C::LayoutTree as LayoutTree<C>>::NodeId,
         z_index: i32,
-        tree: &mut RTree<Element>,
+        tree: &mut RTree<Element<C>>,
         mut pos: (f32, f32),
     ) {
         let Some(layout) = from_tree.get_layout(id) else {
@@ -76,11 +83,11 @@ impl PositionTree {
         tree.insert(element);
 
         for child in from_tree.children(id).unwrap_or_default() {
-            Self::add_node_to_tree::<C>(from_tree, child, z_index + 1, tree, pos);
+            Self::add_node_to_tree(from_tree, child, z_index + 1, tree, pos);
         }
     }
 
-    pub fn find(&self, x: f32, y: f32) -> Option<NodeId> {
+    pub fn find(&self, x: f32, y: f32) -> Option<<C::LayoutTree as LayoutTree<C>>::NodeId> {
         let envelope = AABB::from_point((x, y));
 
         self.tree
@@ -139,11 +146,11 @@ impl PositionTree {
             .map(|e| e.id)
     }
 
-    pub fn get_node(&self, id: NodeId) -> Option<&Element> {
+pub fn get_node(&self, id: <C::LayoutTree as LayoutTree<C>>::NodeId) -> Option<&Element<C>> {
         self.tree.iter().find(|e| e.id == id)
     }
 
-    pub fn position(&self, id: NodeId) -> Option<(f32, f32)> {
+    pub fn position(&self, id: <C::LayoutTree as LayoutTree<C>>::NodeId) -> Option<(f32, f32)> {
         self.get_node(id).map(|e| (e.x, e.y))
     }
 }

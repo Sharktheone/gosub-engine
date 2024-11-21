@@ -65,13 +65,13 @@ impl<C: ModuleConfiguration> Tabs<C>
         Ok(Self::new(tab))
     }
 
-    pub fn select_element(&mut self, id: C::LayoutTree::NodeId) {
+    pub fn select_element(&mut self, id: <C::LayoutTree as LayoutTree<C>>::NodeId) {
         if let Some(tab) = self.get_current_tab() {
             tab.data.select_element(id);
         }
     }
 
-    pub fn info(&mut self, id: C::LayoutTree::NodeId, sender: Sender<NodeDesc>) {
+    pub fn info(&mut self, id: <C::LayoutTree as LayoutTree<C>>::NodeId, sender: Sender<NodeDesc>) {
         if let Some(tab) = self.get_current_tab() {
             tab.data.info(id, sender);
         }

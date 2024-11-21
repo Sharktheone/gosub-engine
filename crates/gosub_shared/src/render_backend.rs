@@ -1,7 +1,7 @@
 use std::fmt::{Debug, Display, Write};
 use std::io;
 use std::ops::{Div, Mul, MulAssign};
-
+use std::os::unix::fs::DirEntryExt;
 use layout::TextLayout;
 use svg::SvgRenderer;
 pub use geo::*;
@@ -431,7 +431,7 @@ Sized
     fn bottom_right_radius(&mut self, radius: Radius);
 }
 
-pub trait Transform: Sized + Mul<Self> + MulAssign + Clone + Send {
+pub trait Transform: Sized + Mul<Self> + MulAssign + Clone + Send + Debug {
     const IDENTITY: Self;
     const FLIP_X: Self;
     const FLIP_Y: Self;

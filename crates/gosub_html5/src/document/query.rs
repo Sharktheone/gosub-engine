@@ -10,7 +10,7 @@ use gosub_shared::traits::node::ElementDataType;
 use gosub_shared::traits::node::Node;
 
 pub struct DocumentQuery<C: HasDocument> {
-    _phantom: std::marker::PhantomData<(C)>,
+    _phantom: std::marker::PhantomData<C>,
 }
 
 impl<C: HasDocument> DocumentQuery<C> {

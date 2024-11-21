@@ -5,8 +5,8 @@ use gosub_typeface::font::{Font, Glyph};
 use crate::traits::config::{HasLayouter};
 use super::geo::{Point, Rect, Size, SizeU32};
 
-pub trait LayoutTree<C: HasLayouter<LayoutTree = Self>>: Sized + 'static {
-    type NodeId: Copy + Clone + From<u64> + Into<u64>;
+pub trait LayoutTree<C: HasLayouter<LayoutTree = Self>>: Sized + Debug + 'static {
+    type NodeId: Debug + Copy + Clone + From<u64> + Into<u64> + PartialEq;
     type Node: LayoutNode<C>;
 
     fn children(&self, id: Self::NodeId) -> Option<Vec<Self::NodeId>>;
@@ -26,6 +26,8 @@ pub trait LayoutTree<C: HasLayouter<LayoutTree = Self>>: Sized + 'static {
 
     fn get_node_mut(&mut self, id: Self::NodeId) -> Option<&mut Self::Node>;
     fn get_node(&self, id: Self::NodeId) -> Option<&Self::Node>;
+    
+    fn root(&self) -> Self::NodeId;
 }
 
 pub trait Layouter: Sized + Clone + Send + 'static {

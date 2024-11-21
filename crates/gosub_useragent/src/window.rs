@@ -55,7 +55,7 @@ static ICON: LazyCell<Icon> = LazyCell::new(|| {
 pub struct Window<'a, C: ModuleConfiguration> {
     pub(crate) state: WindowState<'a, C::RenderBackend>,
     pub(crate) window: Arc<WinitWindow>,
-    pub(crate) renderer_data: C::RenderBackend::WindowData<'a>,
+    pub(crate) renderer_data: <C::RenderBackend as RenderBackend>::WindowData<'a>,
     pub(crate) tabs: Tabs<C>,
     pub(crate) el: WindowEventLoop<C>,
     pub(crate) mods: Modifiers,
@@ -182,11 +182,11 @@ impl<'a, C: ModuleConfiguration> Window<'a, C>
         }
     }
 
-    pub fn select_element(&mut self, id: C::LayoutTree::NodeId) {
+    pub fn select_element(&mut self, id: <C::LayoutTree as LayoutTree<C>>::NodeId) {
         self.tabs.select_element(id);
     }
 
-    pub fn info(&mut self, id: C::LayoutTree::NodeId, sender: Sender<NodeDesc>) {
+    pub fn info(&mut self, id: <C::LayoutTree as LayoutTree<C>>::NodeId, sender: Sender<NodeDesc>) {
         self.tabs.info(id, sender);
     }
 

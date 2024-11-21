@@ -353,7 +353,7 @@ pub enum CustomEventInternal<C: ModuleConfiguration> {
     Unselect,
     Redraw(WindowId),
     AddImg(String, ImageBuffer<C::RenderBackend>, Option<SizeU32>, WindowId),
-    ReloadFrom(C::Layouter, WindowId),
+    ReloadFrom(C::RenderTree, WindowId),
 }
 
 impl<C: ModuleConfiguration> Debug for CustomEventInternal<C>

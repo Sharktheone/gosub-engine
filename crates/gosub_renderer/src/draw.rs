@@ -22,6 +22,7 @@ use gosub_shared::traits::document::Document;
 use gosub_shared::traits::draw::TreeDrawer;
 use gosub_shared::traits::html5::Html5Parser;
 use gosub_shared::traits::render_tree;
+use gosub_shared::traits::render_tree::{RenderTreeNode as _};
 use gosub_shared::types::Result;
 use log::{error, info, warn};
 use std::future::Future;
@@ -29,7 +30,6 @@ use std::marker::PhantomData;
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
 use url::Url;
-use gosub_shared::traits::render_tree::{RenderTree as _, RenderTreeNode as _};
 
 mod img;
 pub mod img_cache;
@@ -49,7 +49,7 @@ pub struct TreeDrawerImpl<C: HasDrawComponents> {
     pub(crate) fetcher: Arc<Fetcher>,
     pub(crate) layouter: C::Layouter,
     pub(crate) size: Option<SizeU32>,
-    pub(crate) position: PositionTree,
+    pub(crate) position: PositionTree<C>,
     pub(crate) last_hover: Option<NodeId>,
     pub(crate) debug: bool,
     pub(crate) dirty: bool,
@@ -80,23 +80,23 @@ impl<C: HasDrawComponents> TreeDrawerImpl<C> {
     }
 }
 
-impl<C: HasDrawComponents + HasHtmlParser> TreeDrawer<C> for TreeDrawerImpl<C>
+impl<C: HasDrawComponents<RenderTree=RenderTree<C>, LayoutTree=RenderTree<C>> + HasHtmlParser> TreeDrawer<C> for TreeDrawerImpl<C>
 where
-    Text::Font: From<TextLayout::Font>,
+    <<C::RenderBackend as RenderBackend>::Text as Text>::Font: From<<<C::Layouter as Layouter>::TextLayout as TextLayout>::Font>,
 {
     type ImgCache = ImageCache<C::RenderBackend>;
 
     fn draw(
         &mut self,
         backend: &mut C::RenderBackend,
-        data: &mut C::RenderBackend::WindowData<'_>,
+        data: &mut <C::RenderBackend as RenderBackend>::WindowData<'_>,
         size: SizeU32,
         el: &impl WindowedEventLoop<C>,
     ) -> bool {
         if self.tree_scene.is_none() || self.size != Some(size) || !self.dirty {
             self.size = Some(size);
 
-            let mut scene = C::RenderBackend::Scene::new();
+            let mut scene = <C::RenderBackend as RenderBackend>::Scene::new();
 
             // Apply new maximums to the scene transform
             if let Some(scene_transform) = self.scene_transform.as_mut() {
@@ -114,7 +114,7 @@ where
             let mut drawer = Drawer {
                 scene: &mut scene,
                 drawer: self,
-                svg: Arc::new(Mutex::new(C::RenderBackend::SVGRenderer::new())),
+                svg: Arc::new(Mutex::new(<C::RenderBackend as RenderBackend>::SVGRenderer::new())),
                 el,
             };
 
@@ -312,26 +312,26 @@ where
 }
 
 struct Drawer<'s, 't, C: HasDrawComponents + HasHtmlParser, EL: WindowedEventLoop<C>> {
-    scene: &'s mut C::RenderBackend::Scene,
+    scene: &'s mut <C::RenderBackend as RenderBackend>::Scene,
     drawer: &'t mut TreeDrawerImpl<C>,
-    svg: Arc<Mutex<C::RenderBackend::SVGRenderer>>,
+    svg: Arc<Mutex<<C::RenderBackend as RenderBackend>::SVGRenderer>>,
     el: &'t EL,
 }
 
-impl<C: HasDrawComponents + HasHtmlParser, EL: WindowedEventLoop<C>> Drawer<'_, '_, C, EL>
+impl<C: HasDrawComponents<LayoutTree=RenderTree<C>, RenderTree=RenderTree<C>> + HasHtmlParser, EL: WindowedEventLoop<C>> Drawer<'_, '_, C, EL>
 where
-    Text::Font: From<TextLayout::Font>,
+    <<C::RenderBackend as RenderBackend>::Text as Text>::Font: From<<<C::Layouter as Layouter>::TextLayout as TextLayout>::Font>,
 {
     pub(crate) fn render(&mut self, size: SizeU32) {
         let root = self.drawer.tree.root();
-        if let Err(e) = self.drawer.layouter.layout(&mut self.drawer.tree, root, size) {
+        if let Err(e) = self.drawer.layouter.layout::<C>(&mut self.drawer.tree, root, size) {
             eprintln!("Failed to compute layout: {:?}", e);
             return;
         }
 
         // print_tree(&self.taffy, self.root, &self.style);
 
-        self.drawer.position = PositionTree::from_tree::<C>(&self.drawer.tree);
+        self.drawer.position = PositionTree::<C>::from_tree(&self.drawer.tree);
 
         self.render_node_with_children(self.drawer.tree.root(), Point::ZERO);
     }
@@ -400,7 +400,7 @@ where
 
                 let size = size.unwrap_or(img.size()).f32();
 
-                render_image::<C>(img, *pos, size, border_radius, fit, self.scene)?;
+                render_image::<C::RenderBackend>(img, *pos, size, border_radius, fit, self.scene)?;
             }
         }
 
@@ -413,7 +413,7 @@ where
                 .get_node_mut(id)
                 .ok_or(anyhow!("Node {id} not found"))?;
 
-            node.layout().set_size(new);
+            node.layout_mut().set_size(new);
 
             self.drawer.set_needs_redraw()
         }
@@ -423,11 +423,12 @@ where
 }
 
 fn render_text<C: HasDrawComponents>(
-    node: &C::RenderTree::Node,
+    node: &<C::RenderTree as render_tree::RenderTree<C>>::Node,
     pos: &Point,
-    scene: &mut C::RenderBackend::Scene,
-) where
-    Text::Font: From<TextLayout::Font>,
+    scene: &mut <C::RenderBackend as RenderBackend>::Scene,
+)
+where
+    <<C::RenderBackend as RenderBackend>::Text as Text>::Font: From<<<C::Layouter as Layouter>::TextLayout as TextLayout>::Font>,
 {
     // if u64::from(node.id) < 204 && u64::from(node.id) > 202 {
     //     return;
@@ -438,21 +439,21 @@ fn render_text<C: HasDrawComponents>(
     // }
 
     let color = node
-        .properties
+        .props()
         .get("color")
         .and_then(|prop| prop.parse_color())
         .map(|color| Color::rgba(color.0 as u8, color.1 as u8, color.2 as u8, color.3 as u8))
         .unwrap_or(Color::BLACK);
 
-    if let RenderNodeData::Text(text) = &node.data {
-        let Some(layout) = text.layout.as_ref() else {
+    if let Some((_, layout)) = &node.text_data() {
+        let Some(layout) = layout else {
             warn!("No layout for text node");
             return;
         };
 
-        let text: C::RenderBackend::Text = Text::new::<C::Layouter::TextLayout>(layout);
+        let text: <C::RenderBackend as RenderBackend>::Text = Text::new::<<C::Layouter as Layouter>::TextLayout>(layout);
 
-        let size = node.layout.size();
+        let size = node.layout().size();
 
         let rect = Rect::new(pos.x as FP, pos.y as FP, size.width as FP, size.height as FP);
 
@@ -614,40 +615,40 @@ pub fn print_tree<B: RenderBackend, L: Layouter>(
 */
 
 fn render_bg<C: HasDrawComponents>(
-    node: &C::RenderTree::Node,
-    scene: &mut C::RenderBackend::Scene,
+    node: &<C::RenderTree as render_tree::RenderTree<C>>::Node,
+    scene: &mut <C::RenderBackend as RenderBackend>::Scene,
     pos: &Point,
-    svg: Arc<Mutex<C::RenderBackend::SVGRenderer>>,
+    svg: Arc<Mutex<<C::RenderBackend as RenderBackend>::SVGRenderer>>,
     fetcher: Arc<Fetcher>,
     img_cache: &mut ImageCache<C::RenderBackend>,
     el: &impl WindowedEventLoop<C>,
 ) -> ((FP, FP, FP, FP), Option<SizeU32>) {
     let bg_color = node
-        .properties
+        .props()
         .get("background-color")
         .and_then(|prop| prop.parse_color())
         .map(|color| Color::rgba(color.0 as u8, color.1 as u8, color.2 as u8, color.3 as u8));
 
     let border_radius_left = node
-        .properties
+        .props()
         .get("border-radius-left")
         .map(|prop| prop.unit_to_px() as f64)
         .unwrap_or(0.0);
 
     let border_radius_right = node
-        .properties
+        .props()
         .get("border-radius-right")
         .map(|prop| prop.unit_to_px() as f64)
         .unwrap_or(0.0);
 
     let border_radius_top = node
-        .properties
+        .props()
         .get("border-radius-top")
         .map(|prop| prop.unit_to_px() as f64)
         .unwrap_or(0.0);
 
     let border_radius_bottom = node
-        .properties
+        .props()
         .get("border-radius-bottom")
         .map(|prop| prop.unit_to_px() as f64)
         .unwrap_or(0.0);
@@ -662,14 +663,14 @@ fn render_bg<C: HasDrawComponents>(
     let border = get_border::<C>(node).map(|border| RenderBorder::new(border));
 
     if let Some(bg_color) = bg_color {
-        let size = node.layout.size();
+        let size = node.layout().size();
 
         let rect = Rect::new(pos.x as FP, pos.y as FP, size.width as FP, size.height as FP);
 
         let rect = RenderRect {
             rect,
             transform: None,
-            radius: Some(C::RenderBackend::BorderRadius::from(border_radius)),
+            radius: Some(<C::RenderBackend as RenderBackend>::BorderRadius::from(border_radius)),
             brush: Brush::color(bg_color),
             brush_transform: None,
             border,
@@ -677,14 +678,14 @@ fn render_bg<C: HasDrawComponents>(
 
         scene.draw_rect(&rect);
     } else if let Some(border) = border {
-        let size = node.layout.size();
+        let size = node.layout().size();
 
         let rect = Rect::new(pos.x as FP, pos.y as FP, size.width as FP, size.height as FP);
 
         let rect = RenderRect {
             rect,
             transform: None,
-            radius: Some(C::RenderBackend::BorderRadius::from(border_radius)),
+            radius: Some(<C::RenderBackend as RenderBackend>::BorderRadius::from(border_radius)),
             brush: Brush::color(Color::TRANSPARENT),
             brush_transform: None,
             border: Some(border),
@@ -694,7 +695,7 @@ fn render_bg<C: HasDrawComponents>(
     }
 
     let background_image = node
-        .properties
+        .props()
         .get("background-image")
         .and_then(|prop| prop.as_function());
 
@@ -706,7 +707,7 @@ fn render_bg<C: HasDrawComponents>(
         match function {
             "url" => {
                 if let Some(url) = args.first().and_then(|url| url.as_string()) {
-                    let size = node.layout.size_or().map(|x| x.u32());
+                    let size = node.layout().size_or().map(|x| x.u32());
 
                     let img = match request_img::<C>(fetcher.clone(), svg.clone(), url, size, img_cache, el) {
                         Ok(img) => img,
@@ -721,7 +722,7 @@ fn render_bg<C: HasDrawComponents>(
                     }
 
                     let _ =
-                        render_image::<C::RenderBackend>(img, *pos, node.layout.size(), border_radius, "fill", scene).map_err(|e| {
+                        render_image::<C::RenderBackend>(img, *pos, node.layout().size(), border_radius, "fill", scene).map_err(|e| {
                             eprintln!("Error rendering image: {:?}", e);
                         });
                 }
@@ -734,7 +735,7 @@ fn render_bg<C: HasDrawComponents>(
     (border_radius, img_size)
 }
 
-fn get_border<C: HasDrawComponents>(node: C::RenderTree::Node) -> Option<C::RenderBackend::Border> {
+fn get_border<C: HasDrawComponents>(node: &<C::RenderTree as render_tree::RenderTree<C>>::Node) -> Option<<C::RenderBackend as RenderBackend>::Border> {
     let left = get_border_side::<C>(node, Side::Left);
     let right = get_border_side::<C>(node, Side::Right);
     let top = get_border_side::<C>(node, Side::Top);
@@ -744,7 +745,7 @@ fn get_border<C: HasDrawComponents>(node: C::RenderTree::Node) -> Option<C::Rend
         return None;
     }
 
-    let mut border = C::RenderBackend::Border::empty();
+    let mut border = <C::RenderBackend as RenderBackend>::Border::empty();
 
     if let Some(left) = left {
         border.left(left)
@@ -766,21 +767,21 @@ fn get_border<C: HasDrawComponents>(node: C::RenderTree::Node) -> Option<C::Rend
 }
 
 fn get_border_side<C: HasDrawComponents>(
-    node: &C::RenderTree::Node,
+    node: &<C::RenderTree as render_tree::RenderTree<C>>::Node,
     side: Side,
-) -> Option<C::RenderBackend::BorderSide> {
+) -> Option<<C::RenderBackend as RenderBackend>::BorderSide> {
     let width = node
-        .properties
+        .props()
         .get(&format!("border-{}-width", side.to_str()))
         .map(|prop| prop.unit_to_px())?;
 
     let color = node
-        .properties
+        .props()
         .get(&format!("border-{}-color", side.to_str()))
         .and_then(|prop| prop.parse_color())?;
 
     let style = node
-        .properties
+        .props()
         .get(&format!("border-{}-style", side.to_str()))
         .and_then(|prop| prop.as_string())
         .unwrap_or("none");
@@ -810,13 +811,13 @@ impl Side {
     }
 }
 
-impl<C: HasDrawComponents> TreeDrawerImpl<C> {
+impl<C: HasDrawComponents<RenderTree = RenderTree<C>, LayoutTree = RenderTree<C>>> TreeDrawerImpl<C> {
     fn debug_annotate(&mut self, e: NodeId) -> bool {
         let Some(node) = self.tree.get_node(e) else {
             return false;
         };
 
-        let mut scene = C::RenderBackend::Scene::new();
+        let mut scene = <C::RenderBackend as RenderBackend>::Scene::new();
 
         let Some(layout) = self.tree.get_layout(e) else {
             return false;
@@ -835,12 +836,12 @@ impl<C: HasDrawComponents> TreeDrawerImpl<C> {
 
         let content_rect = Rect::new(x, y, size.width as FP, size.height as FP);
 
-        let padding_brush = C::RenderBackend::Brush::color(C::RenderBackend::Color::tuple3(DEBUG_PADDING_COLOR).alpha(127));
-        let content_brush = C::RenderBackend::Brush::color(C::RenderBackend::Color::tuple3(DEBUG_CONTENT_COLOR).alpha(127));
-        // let margin_brush = C::RenderBackend::Brush::color(C::RenderBackend::Color::tuple3(DEBUG_MARGIN_COLOR).alpha(127));
-        let border_brush = C::RenderBackend::Brush::color(C::RenderBackend::Color::tuple3(DEBUG_BORDER_COLOR).alpha(127));
+        let padding_brush = <C::RenderBackend as RenderBackend>::Brush::color(<C::RenderBackend as RenderBackend>::Color::tuple3(DEBUG_PADDING_COLOR).alpha(127));
+        let content_brush = <C::RenderBackend as RenderBackend>::Brush::color(<C::RenderBackend as RenderBackend>::Color::tuple3(DEBUG_CONTENT_COLOR).alpha(127));
+        // let margin_brush = <C::RenderBackend as RenderBackend>::Brush::color(<C::RenderBackend as RenderBackend>::Color::tuple3(DEBUG_MARGIN_COLOR).alpha(127));
+        let border_brush = <C::RenderBackend as RenderBackend>::Brush::color(<C::RenderBackend as RenderBackend>::Color::tuple3(DEBUG_BORDER_COLOR).alpha(127));
 
-        let mut border = C::RenderBackend::Border::empty();
+        let mut border = <C::RenderBackend as RenderBackend>::Border::empty();
 
         border.left(BorderSide::new(
             padding.x2 as FP,
@@ -875,7 +876,7 @@ impl<C: HasDrawComponents> TreeDrawerImpl<C> {
 
         scene.draw_rect(&render_rect);
 
-        let mut border_border = C::RenderBackend::Border::empty();
+        let mut border_border = <C::RenderBackend as RenderBackend>::Border::empty();
 
         border_border.left(BorderSide::new(
             border_size.x2 as FP,
