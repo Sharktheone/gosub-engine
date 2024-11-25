@@ -8,7 +8,6 @@ use gosub_shared::traits::config::{HasCssSystem, HasDocument, HasHtmlParser};
 use gosub_testing::testing::tree_construction;
 use gosub_testing::testing::tree_construction::Harness;
 
-
 #[derive(Clone, Debug, PartialEq)]
 struct Config;
 
@@ -40,10 +39,7 @@ fn criterion_benchmark(c: &mut Criterion) {
             for root in &fixtures {
                 for test in &root.tests {
                     for &scripting_enabled in test.script_modes() {
-                        let _ = harness.run_test::<Config>(
-                            test.clone(),
-                            scripting_enabled,
-                        );
+                        let _ = harness.run_test::<Config>(test.clone(), scripting_enabled);
                     }
                 }
             }
