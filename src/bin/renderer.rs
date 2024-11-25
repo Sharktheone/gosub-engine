@@ -35,7 +35,7 @@ impl HasDocument for Config {
 }
 
 impl HasHtmlParser for Config {
-    type HtmlParser = Html5Parser<Self>;
+    type HtmlParser = Html5Parser<'static, Self>;
 }
 
 impl HasLayouter for Config {

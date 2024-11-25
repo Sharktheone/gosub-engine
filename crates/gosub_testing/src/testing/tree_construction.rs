@@ -105,7 +105,7 @@ impl Harness {
             self.parse_fragment::<C>(fragment, stream, options, Location::default())?
         } else {
             let document = C::DocumentBuilder::new_document(None);
-            let parser_errors = C::HtmlParser::parse(stream, DocumentHandle::clone(&document), Some(options))?;
+            let parser_errors = C::HtmlParser::parse(&mut stream, DocumentHandle::clone(&document), Some(options))?;
 
             (document, parser_errors)
         };
@@ -116,7 +116,7 @@ impl Harness {
     fn parse_fragment<C: HasHtmlParser>(
         &mut self,
         fragment: String,
-        stream: ByteStream,
+        mut stream: ByteStream,
         options: <C::HtmlParser as Html5Parser<C>>::Options,
         start_location: Location,
     ) -> ParseResult<DocumentHandle<C>> {
@@ -153,7 +153,7 @@ impl Harness {
         let document = C::DocumentBuilder::new_document_fragment(context_node, quirks_mode);
 
         let parser_errors =
-            C::HtmlParser::parse_fragment(stream, document.clone(), context_node, Some(options), start_location)?;
+            C::HtmlParser::parse_fragment(&mut stream, document.clone(), context_node, Some(options), start_location)?;
 
         Ok((document, parser_errors))
     }

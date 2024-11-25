@@ -47,7 +47,7 @@ pub(crate) async fn load_html_rendertree_fetcher<
     stream.close();
 
     let mut doc_handle = C::DocumentBuilder::new_document(Some(url));
-    let parse_errors = C::HtmlParser::parse(stream, DocumentHandle::clone(&doc_handle), None)?;
+    let parse_errors = C::HtmlParser::parse(&mut stream, DocumentHandle::clone(&doc_handle), None)?;
 
     for error in parse_errors {
         eprintln!("Parse error: {:?}", error);

@@ -2,7 +2,7 @@ use crate::parser::Html5Parser;
 use gosub_shared::traits::config::HasDocument;
 use gosub_shared::traits::node::QuirksMode;
 
-impl<C: HasDocument> Html5Parser<C> {
+impl<C: HasDocument> Html5Parser<'_, C> {
     // returns the correct quirk mode for the given doctype
     pub(crate) fn identify_quirks_mode(
         &self,
@@ -170,12 +170,12 @@ use crate::document::document_impl::DocumentImpl;
         type DocumentBuilder = DocumentBuilderImpl;
     }
 
-    type Parser = Html5Parser<Config>;
+    type Parser<'a> = Html5Parser<'a, Config>;
 
     #[test]
     fn test_quirks_mode() {
-        let stream = ByteStream::new(Encoding::UTF8, None);
-        let parser = Parser::new_parser(stream, Location::default());
+        let mut stream = ByteStream::new(Encoding::UTF8, None);
+        let parser = Parser::new_parser(&mut stream, Location::default());
 
         assert_eq!(
             parser.identify_quirks_mode(&None, None, None, false),
@@ -260,8 +260,8 @@ use crate::document::document_impl::DocumentImpl;
 
     #[test]
     fn test_quirks_mode_force() {
-        let stream = ByteStream::new(Encoding::UTF8, None);
-        let parser = Parser::new_parser(stream, Location::default());
+        let mut stream = ByteStream::new(Encoding::UTF8, None);
+        let parser = Parser::new_parser(&mut stream, Location::default());
 
         assert_eq!(
             parser.identify_quirks_mode(&Some("html".to_string()), None, None, true),
@@ -334,8 +334,8 @@ use crate::document::document_impl::DocumentImpl;
 
     #[test]
     fn test_quirks_mode_sys() {
-        let stream = ByteStream::new(Encoding::UTF8, None);
-        let parser = Parser::new_parser(stream, Location::default());
+        let mut stream = ByteStream::new(Encoding::UTF8, None);
+        let parser = Parser::new_parser(&mut stream, Location::default());
 
         assert_eq!(
             parser.identify_quirks_mode(
@@ -359,8 +359,8 @@ use crate::document::document_impl::DocumentImpl;
 
     #[test]
     fn test_quirks_mode_sys_missing() {
-        let stream = ByteStream::new(Encoding::UTF8, None);
-        let parser = Parser::new_parser(stream, Location::default());
+        let mut stream = ByteStream::new(Encoding::UTF8, None);
+        let parser = Parser::new_parser(&mut stream, Location::default());
 
         assert_eq!(
             parser.identify_quirks_mode(

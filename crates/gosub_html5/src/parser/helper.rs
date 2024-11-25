@@ -29,7 +29,7 @@ pub enum BookMark<NodeId> {
     InsertAfter(NodeId),
 }
 
-impl<C: HasDocument> Html5Parser<C> {
+impl<C: HasDocument> Html5Parser<'_, C> {
     fn find_position_in_active_format(&self, node_id: NodeId) -> Option<usize> {
         self.active_formatting_elements
             .iter()

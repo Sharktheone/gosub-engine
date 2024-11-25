@@ -24,7 +24,7 @@ impl HasDocument for Config {
 }
 
 impl HasHtmlParser for Config {
-    type HtmlParser = Html5Parser<Self>;
+    type HtmlParser = Html5Parser<'static, Self>;
 }
 fn main() -> Result<()> {
     let mut files = get_files_from_path(fixture_root_path());

@@ -158,9 +158,9 @@ impl Default for Html5ParserOptions {
 }
 
 /// The main parser object
-pub struct Html5Parser<C: HasDocument> {
+pub struct Html5Parser<'tokens, C: HasDocument> {
     /// tokenizer object
-    tokenizer: Tokenizer,
+    tokenizer: Tokenizer<'tokens>,
     /// current insertion mode
     insertion_mode: InsertionMode,
     /// original insertion mode (used for text mode)
@@ -217,15 +217,15 @@ pub struct Html5Parser<C: HasDocument> {
     context_doc: Option<DocumentHandle<C>>,
 }
 
-impl<C: HasDocument> gosub_shared::traits::html5::Html5Parser<C> for Html5Parser<C> {
+impl<C: HasDocument> gosub_shared::traits::html5::Html5Parser<C> for Html5Parser<'_, C> {
     type Options = Html5ParserOptions;
 
-    fn parse(stream: ByteStream, doc: DocumentHandle<C>, opts: Option<Self::Options>) -> Result<Vec<ParseError>> {
+    fn parse(stream: &mut ByteStream, doc: DocumentHandle<C>, opts: Option<Self::Options>) -> Result<Vec<ParseError>> {
         Self::parse_document(stream, doc, opts)
     }
 
     fn parse_fragment(
-        stream: ByteStream,
+        stream: &mut ByteStream,
         doc: DocumentHandle<C>,
         context_node: &C::Node,
         options: Option<Self::Options>,
@@ -251,10 +251,10 @@ enum DispatcherMode {
     Html,
 }
 
-impl<C: HasDocument> Html5Parser<C> {
+impl<'a, C: HasDocument> Html5Parser<'a, C> {
     // Initializes the parser for whole document parsing
     fn init(
-        tokenizer: Tokenizer,
+        tokenizer: Tokenizer<'a>,
         document: DocumentHandle<C>,
         error_logger: Rc<RefCell<ErrorLogger>>,
         options: Option<Html5ParserOptions>,
@@ -295,7 +295,7 @@ impl<C: HasDocument> Html5Parser<C> {
 
     /// Creates a new parser with a dummy document and dummy tokenizer. This is ONLY used for testing purposes.
     /// Regular users should use the parse_document() and parse_fragment() functions instead.
-    pub fn new_parser(stream: ByteStream, start_location: Location) -> Self {
+    pub fn new_parser(stream: &'a mut ByteStream, start_location: Location) -> Self {
         let doc_handle = C::DocumentBuilder::new_document(None);
         let error_logger = Rc::new(RefCell::new(ErrorLogger::new()));
         let tokenizer = Tokenizer::new(stream, None, error_logger.clone(), start_location);
@@ -337,7 +337,7 @@ impl<C: HasDocument> Html5Parser<C> {
     /// Parses a fragment of HTML instead of a whole document. It will run the parser in a slightly different mode.
     /// This is used for parsing innerHTML and document fragments.
     pub fn parse_fragment(
-        stream: ByteStream,
+        stream: &mut ByteStream,
         mut document: DocumentHandle<C>,
         context_node: &C::Node,
         options: Option<Html5ParserOptions>,
@@ -410,7 +410,7 @@ impl<C: HasDocument> Html5Parser<C> {
     /// node that should not be used. The children of the root-node should be used on the context
     /// node where this document fragment needs to be inserted into.
     pub fn parse_document(
-        stream: ByteStream,
+        stream: &mut ByteStream,
         document: DocumentHandle<C>,
         options: Option<Html5ParserOptions>,
     ) -> Result<Vec<ParseError>> {
@@ -4292,7 +4292,7 @@ mod test {
         type DocumentBuilder = DocumentBuilderImpl;
     }
 
-    type Parser = Html5Parser<Config>;
+    type Parser<'a> = Html5Parser<'a, Config>;
 
     macro_rules! node_create {
         ($self:expr, $name:expr) => {{
@@ -4318,8 +4318,8 @@ mod test {
 
     #[test]
     fn is_in_scope() {
-        let stream = ByteStream::new(Encoding::UTF8, None);
-        let mut parser = Parser::new_parser(stream, Location::default());
+        let mut stream = ByteStream::new(Encoding::UTF8, None);
+        let mut parser = Parser::new_parser(&mut stream, Location::default());
 
         node_create!(parser, "html");
         node_create!(parser, "div");
@@ -4333,8 +4333,8 @@ mod test {
 
     #[test]
     fn is_in_scope_empty_stack() {
-        let stream = ByteStream::new(Encoding::UTF8, None);
-        let mut parser = Parser::new_parser(stream, Location::default());
+        let mut stream = ByteStream::new(Encoding::UTF8, None);
+        let mut parser = Parser::new_parser(&mut stream, Location::default());
 
         parser.open_elements.clear();
         assert!(!parser.is_in_scope("p", HTML_NAMESPACE, Scope::Regular));
@@ -4345,8 +4345,8 @@ mod test {
 
     #[test]
     fn is_in_scope_non_existing_node() {
-        let stream = ByteStream::new(Encoding::UTF8, None);
-        let mut parser = Parser::new_parser(stream, Location::default());
+        let mut stream = ByteStream::new(Encoding::UTF8, None);
+        let mut parser = Parser::new_parser(&mut stream, Location::default());
 
         node_create!(parser, "html");
         node_create!(parser, "div");
@@ -4361,8 +4361,8 @@ mod test {
 
     #[test]
     fn is_in_scope_1() {
-        let stream = ByteStream::new(Encoding::UTF8, None);
-        let mut parser = Parser::new_parser(stream, Location::default());
+        let mut stream = ByteStream::new(Encoding::UTF8, None);
+        let mut parser = Parser::new_parser(&mut stream, Location::default());
 
         node_create!(parser, "html");
         node_create!(parser, "div");
@@ -4399,8 +4399,8 @@ mod test {
 
     #[test]
     fn is_in_scope_2() {
-        let stream = ByteStream::new(Encoding::UTF8, None);
-        let mut parser = Parser::new_parser(stream, Location::default());
+        let mut stream = ByteStream::new(Encoding::UTF8, None);
+        let mut parser = Parser::new_parser(&mut stream, Location::default());
 
         node_create!(parser, "html");
         node_create!(parser, "body");
@@ -4418,8 +4418,8 @@ mod test {
 
     #[test]
     fn is_in_scope_3() {
-        let stream = ByteStream::new(Encoding::UTF8, None);
-        let mut parser = Parser::new_parser(stream, Location::default());
+        let mut stream = ByteStream::new(Encoding::UTF8, None);
+        let mut parser = Parser::new_parser(&mut stream, Location::default());
 
         node_create!(parser, "html");
         node_create!(parser, "body");
@@ -4437,8 +4437,8 @@ mod test {
 
     #[test]
     fn is_in_scope_4() {
-        let stream = ByteStream::new(Encoding::UTF8, None);
-        let mut parser = Parser::new_parser(stream, Location::default());
+        let mut stream = ByteStream::new(Encoding::UTF8, None);
+        let mut parser = Parser::new_parser(&mut stream, Location::default());
 
         node_create!(parser, "html");
         node_create!(parser, "body");
@@ -4458,8 +4458,8 @@ mod test {
 
     #[test]
     fn is_in_scope_5() {
-        let stream = ByteStream::new(Encoding::UTF8, None);
-        let mut parser = Parser::new_parser(stream, Location::default());
+        let mut stream = ByteStream::new(Encoding::UTF8, None);
+        let mut parser = Parser::new_parser(&mut stream, Location::default());
 
         node_create!(parser, "html");
         node_create!(parser, "body");
@@ -4478,8 +4478,8 @@ mod test {
 
     #[test]
     fn is_in_scope_6() {
-        let stream = ByteStream::new(Encoding::UTF8, None);
-        let mut parser = Parser::new_parser(stream, Location::default());
+        let mut stream = ByteStream::new(Encoding::UTF8, None);
+        let mut parser = Parser::new_parser(&mut stream, Location::default());
 
         node_create!(parser, "html");
         node_create!(parser, "body");
@@ -4498,8 +4498,8 @@ mod test {
 
     #[test]
     fn is_in_scope_7() {
-        let stream = ByteStream::new(Encoding::UTF8, None);
-        let mut parser = Parser::new_parser(stream, Location::default());
+        let mut stream = ByteStream::new(Encoding::UTF8, None);
+        let mut parser = Parser::new_parser(&mut stream, Location::default());
 
         node_create!(parser, "html");
         node_create!(parser, "body");
@@ -4517,8 +4517,8 @@ mod test {
 
     #[test]
     fn is_in_scope_8() {
-        let stream = ByteStream::new(Encoding::UTF8, None);
-        let mut parser = Parser::new_parser(stream, Location::default());
+        let mut stream = ByteStream::new(Encoding::UTF8, None);
+        let mut parser = Parser::new_parser(&mut stream, Location::default());
 
         node_create!(parser, "html");
         node_create!(parser, "body");
@@ -4540,7 +4540,7 @@ mod test {
         stream.close();
 
         let doc_handle = DocumentBuilderImpl::new_document(None);
-        let _ = Parser::parse_document(stream, doc_handle.clone(), None);
+        let _ = Parser::parse_document(&mut stream, doc_handle.clone(), None);
 
         println!("{}", doc_handle.get());
     }
@@ -4552,7 +4552,7 @@ mod test {
         stream.close();
 
         let doc_handle = DocumentBuilderImpl::new_document(None);
-        let _ = Parser::parse_document(stream, doc_handle.clone(), None);
+        let _ = Parser::parse_document(&mut stream, doc_handle.clone(), None);
 
         let binding = doc_handle.get();
 
@@ -4581,7 +4581,7 @@ mod test {
         stream.close();
 
         let doc_handle = DocumentBuilderImpl::new_document(None);
-        let _ = Parser::parse_document(stream, doc_handle.clone(), None);
+        let _ = Parser::parse_document(&mut stream, doc_handle.clone(), None);
 
         let binding = doc_handle.get();
 
@@ -4614,7 +4614,7 @@ mod test {
         stream.close();
 
         let doc_handle = DocumentBuilderImpl::new_document(None);
-        let _ = Parser::parse_document(stream, doc_handle.clone(), None);
+        let _ = Parser::parse_document(&mut stream, doc_handle.clone(), None);
 
         // Any invalid id's are not stored in the document, and thus not searchable
         assert!(doc_handle.get().get_node_by_named_id("my id").is_none());
@@ -4632,7 +4632,7 @@ mod test {
         stream.close();
 
         let doc_handle = DocumentBuilderImpl::new_document(None);
-        let _ = Parser::parse_document(stream, doc_handle.clone(), None);
+        let _ = Parser::parse_document(&mut stream, doc_handle.clone(), None);
 
         // we are expecting the div (ID: 4) and p would be ignored
         let doc_read = doc_handle.get();

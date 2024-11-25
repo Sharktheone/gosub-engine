@@ -7,11 +7,11 @@ use crate::types::{ParseError, Result};
 pub trait Html5Parser<C: HasDocument> {
     type Options: ParserOptions;
 
-    fn parse(stream: ByteStream, doc: DocumentHandle<C>, opts: Option<Self::Options>) -> Result<Vec<ParseError>>;
+    fn parse(stream: &mut ByteStream, doc: DocumentHandle<C>, opts: Option<Self::Options>) -> Result<Vec<ParseError>>;
 
     #[allow(clippy::type_complexity)]
     fn parse_fragment(
-        stream: ByteStream,
+        stream: &mut ByteStream,
         doc: DocumentHandle<C>,
         context_node: &C::Node,
         options: Option<Self::Options>,

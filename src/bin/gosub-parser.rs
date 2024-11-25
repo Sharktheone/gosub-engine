@@ -33,7 +33,7 @@ impl HasDocument for Config {
 }
 
 impl HasHtmlParser for Config {
-    type HtmlParser = Html5Parser<Self>;
+    type HtmlParser = Html5Parser<'static, Self>;
 }
 
 fn main() -> Result<()> {
@@ -79,7 +79,7 @@ fn main() -> Result<()> {
 
     // Create a new document that will be filled in by the parser
     let doc_handle: DocumentHandle<Config> = DocumentBuilderImpl::new_document(Some(url));
-    let parse_errors = Html5Parser::<Config>::parse_document(stream, doc_handle.clone(), None)?;
+    let parse_errors = Html5Parser::<Config>::parse_document(&mut stream, doc_handle.clone(), None)?;
 
     println!("Found {} stylesheets", doc_handle.get().stylesheets.len());
     for sheet in &doc_handle.get().stylesheets {

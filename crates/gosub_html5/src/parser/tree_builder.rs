@@ -36,6 +36,29 @@ mod tests {
     use gosub_testing::testing::tree_construction::fixture::{fixture_root_path, read_fixture_from_path};
     use gosub_testing::testing::tree_construction::Harness;
     use test_case::test_case;
+    use gosub_shared::document::DocumentHandle;
+    use gosub_shared::traits::config::{HasCssSystem, HasDocument, HasHtmlParser};
+    use crate::document::builder::DocumentBuilderImpl;
+    use crate::document::fragment::DocumentFragmentImpl;
+    
+
+    #[derive(Clone, Debug, PartialEq)]
+    struct Config;
+
+    impl HasCssSystem for Config {
+        type CssSystem = Css3System;
+    }
+    impl HasDocument for Config {
+        type Document = DocumentImpl<Self>;
+        type DocumentFragment = DocumentFragmentImpl<Self>;
+        type DocumentBuilder = DocumentBuilderImpl;
+    }
+    
+    impl HasHtmlParser for Config {
+        type HtmlParser = Html5Parser<'static, Self>;
+    }
+
+    type Handle = DocumentHandle<Config>;
 
     const DISABLED_CASES: &[&str] = &[
         // tests18.dat
@@ -112,7 +135,7 @@ mod tests {
             // for each test, run it with and without scripting enabled based on the test file
             for &scripting_enabled in test.script_modes() {
                 let result = harness
-                    .run_test::<Html5Parser<DocumentImpl<Css3System>, Css3System>, Css3System>(
+                    .run_test::<Config>(
                         test.clone(),
                         scripting_enabled,
                     )

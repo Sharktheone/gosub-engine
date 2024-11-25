@@ -110,21 +110,38 @@ impl<C: HasDocument> Default for NodeArena<C> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use gosub_shared::traits::document::Document;
+use super::*;
     use crate::document::document_impl::DocumentImpl;
     use gosub_css3::system::Css3System;
     use gosub_shared::byte_stream::Location;
-
+    use gosub_shared::document::DocumentHandle;
+    use gosub_shared::traits::config::HasCssSystem;
     use crate::document::builder::DocumentBuilderImpl;
     use gosub_shared::traits::document::DocumentBuilder;
-
+    use crate::document::fragment::DocumentFragmentImpl;
     use crate::node::HTML_NAMESPACE;
 
+
+    #[derive(Clone, Debug, PartialEq)]
+    struct Config;
+
+    impl HasCssSystem for Config {
+        type CssSystem = Css3System;
+    }
+    impl HasDocument for Config {
+        type Document = DocumentImpl<Self>;
+        type DocumentFragment = DocumentFragmentImpl<Self>;
+        type DocumentBuilder = DocumentBuilderImpl;
+    }
+    type Handle = DocumentHandle<Config>;
+    
+    
     #[test]
     fn register_node() {
-        let mut doc_handle = DocumentBuilderImpl::new_document(None);
+        let mut doc_handle: DocumentHandle<Config> = DocumentBuilderImpl::new_document(None);
 
-        let node = DocumentImpl::<Css3System>::new_element_node(
+        let node = DocumentImpl::<Config>::new_element_node(
             doc_handle.clone(),
             "test",
             Some(HTML_NAMESPACE),
@@ -145,7 +162,7 @@ mod tests {
     fn register_node_twice() {
         let mut doc_handle = DocumentBuilderImpl::new_document(None);
 
-        let node = DocumentImpl::<Css3System>::new_element_node(
+        let node = DocumentImpl::<Config>::new_element_node(
             doc_handle.clone(),
             "test",
             Some(HTML_NAMESPACE),
@@ -162,7 +179,7 @@ mod tests {
     fn get_node() {
         let mut doc_handle = DocumentBuilderImpl::new_document(None);
 
-        let node = DocumentImpl::<Css3System>::new_element_node(
+        let node = DocumentImpl::<Config>::new_element_node(
             doc_handle.clone(),
             "test",
             Some(HTML_NAMESPACE),
@@ -182,7 +199,7 @@ mod tests {
     // fn get_node_mut() {
     //     let mut doc_handle = DocumentBuilderImpl::new_document(None);
     //
-    //     let node = DocumentImpl::<Css3System>::new_element_node(
+    //     let node = DocumentImpl::<Config>::new_element_node(
     //         doc_handle.clone(),
     //         "test",
     //         Some(HTML_NAMESPACE),
@@ -202,14 +219,14 @@ mod tests {
     fn register_node_through_document() {
         let mut doc_handle = DocumentBuilderImpl::new_document(None);
 
-        let parent = DocumentImpl::<Css3System>::new_element_node(
+        let parent = DocumentImpl::<Config>::new_element_node(
             doc_handle.clone(),
             "parent",
             Some(HTML_NAMESPACE),
             HashMap::new(),
             Location::default(),
         );
-        let child = DocumentImpl::<Css3System>::new_element_node(
+        let child = DocumentImpl::<Config>::new_element_node(
             doc_handle.clone(),
             "child",
             Some(HTML_NAMESPACE),

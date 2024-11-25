@@ -25,7 +25,7 @@ pub fn html_compile<C: HasDocument>(html: &str) -> DocumentHandle<C> {
     stream.close();
 
     let doc_handle = DocumentBuilderImpl::new_document(None);
-    let _ = Html5Parser::parse_document(stream, doc_handle.clone(), None);
+    let _ = Html5Parser::parse_document(&mut stream, doc_handle.clone(), None);
 
     doc_handle
 }

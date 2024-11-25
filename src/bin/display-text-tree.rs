@@ -26,7 +26,7 @@ impl HasDocument for Config {
 }
 
 impl HasHtmlParser for Config {
-    type HtmlParser = Html5Parser<Self>;
+    type HtmlParser = Html5Parser<'static, Self>;
 }
 
 fn main() -> Result<()> {
@@ -51,7 +51,7 @@ fn main() -> Result<()> {
     stream.close();
 
     let doc_handle: DocumentHandle<Config> = DocumentBuilderImpl::new_document(None);
-    let parse_errors = Html5Parser::<Config>::parse_document(stream, doc_handle.clone(), None)?;
+    let parse_errors = Html5Parser::<Config>::parse_document(&mut stream, doc_handle.clone(), None)?;
 
     for e in parse_errors {
         println!("Parse Error: {}", e.message);

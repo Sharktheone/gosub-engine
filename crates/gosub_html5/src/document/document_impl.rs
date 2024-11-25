@@ -594,7 +594,8 @@ impl<C: HasDocument> Iterator for TreeIterator<C> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use crate::document::fragment::DocumentFragmentImpl;
+use super::*;
     use crate::document::builder::DocumentBuilderImpl;
     use crate::document::query::DocumentQuery;
     use crate::document::task_queue::DocumentTaskQueue;
@@ -708,16 +709,16 @@ mod tests {
 
     #[test]
     fn verify_node_ids_in_element_data() {
-        let mut doc_handle = DocumentBuilderImpl::new_document(None);
+        let mut doc_handle: DocumentHandle<Config> = DocumentBuilderImpl::new_document(None);
 
-        let node_1: NodeImpl<Css3System> = DocumentImpl::new_element_node(
+        let node_1: NodeImpl<Config> = DocumentImpl::new_element_node(
             doc_handle.clone(),
             "div",
             Some(HTML_NAMESPACE),
             HashMap::new(),
             Location::default(),
         );
-        let node_2: NodeImpl<Css3System> = DocumentImpl::new_element_node(
+        let node_2: NodeImpl<Config> = DocumentImpl::new_element_node(
             doc_handle.clone(),
             "div",
             Some(HTML_NAMESPACE),

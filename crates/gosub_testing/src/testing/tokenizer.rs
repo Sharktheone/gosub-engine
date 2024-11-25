@@ -22,7 +22,7 @@ use std::{
 };
 
 pub struct TokenizerBuilder {
-    stream: Option<ByteStream>,
+    stream: ByteStream,
     state: TokenState,
     last_start_tag: Option<String>,
 }
@@ -31,7 +31,7 @@ impl TokenizerBuilder {
     pub fn build(&mut self) -> Tokenizer {
         let error_logger = Rc::new(RefCell::new(ErrorLogger::new()));
         Tokenizer::new(
-            self.stream.take().unwrap(),
+            &mut self.stream,
             Some(Options {
                 initial_state: self.state,
                 last_start_tag: self.last_start_tag.clone().unwrap_or_default(),
@@ -206,7 +206,7 @@ impl TestSpec {
             stream.close();
 
             let builder = TokenizerBuilder {
-                stream: Some(stream),
+                stream,
                 last_start_tag: self.last_start_tag.clone(),
                 state,
             };
