@@ -12,7 +12,6 @@ use gosub_shared::node::NodeId;
 use gosub_shared::traits::config::{HasCssSystem, HasDocument, HasHtmlParser};
 use gosub_shared::traits::document::DocumentBuilder;
 
-
 #[derive(Clone, Debug, PartialEq)]
 struct Config;
 
@@ -64,7 +63,7 @@ fn stackoverflow_home(c: &mut Criterion) {
     let mut bytestream = ByteStream::new(Encoding::UTF8, None);
     let _ = bytestream.read_from_file(html_file);
 
-    let doc_handle : DocumentHandle<Config> = DocumentBuilderImpl::new_document(None);
+    let doc_handle: DocumentHandle<Config> = DocumentBuilderImpl::new_document(None);
     let _ = Html5Parser::parse_document(&mut bytestream, doc_handle.clone(), None);
 
     group.bench_function("stackoverflow home", |b| {

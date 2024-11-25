@@ -290,8 +290,6 @@ impl<C: HasLayouter<LayoutTree = Self>> RenderTree<C> {
         self.nodes.get(&node_id).map(|props| &props.properties)
     }
 
-    /// Generate a render tree from the given document
-
     /// Removes all unrenderable nodes from the render tree
     fn remove_unrenderable_nodes(&mut self) {
         // There are more elements that are not renderable, but for now we only remove the most common ones
