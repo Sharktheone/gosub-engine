@@ -34,7 +34,7 @@ pub struct RenderTree<C: HasLayouter> {
 }
 
 #[allow(unused)]
-impl<C: HasLayouter<LayoutTree=Self>> LayoutTree<C> for RenderTree<C> {
+impl<C: HasLayouter<LayoutTree = Self>> LayoutTree<C> for RenderTree<C> {
     type NodeId = NodeId;
     type Node = RenderTreeNode<C>;
 
@@ -107,7 +107,7 @@ impl<C: HasLayouter<LayoutTree=Self>> LayoutTree<C> for RenderTree<C> {
     }
 }
 
-impl<C: HasLayouter<LayoutTree=Self>> RenderTree<C> {
+impl<C: HasLayouter<LayoutTree = Self>> RenderTree<C> {
     // Generates a new render tree with a root node
     pub fn with_capacity(capacity: usize) -> Self {
         let mut tree = Self {
@@ -440,7 +440,7 @@ impl<C: HasLayouter<LayoutTree=Self>> RenderTree<C> {
     }
 }
 
-impl<C: HasRenderTree<LayoutTree=Self, RenderTree=Self> + HasDocument> RenderTree<C> {
+impl<C: HasRenderTree<LayoutTree = Self, RenderTree = Self> + HasDocument> RenderTree<C> {
     pub fn from_document(document: DocumentHandle<C>) -> Self {
         let mut render_tree = RenderTree::with_capacity(document.get().node_count());
 
@@ -550,7 +550,7 @@ impl<C: HasRenderTree<LayoutTree=Self, RenderTree=Self> + HasDocument> RenderTre
     }
 }
 
-impl<C: HasLayouter<LayoutTree=Self>> render_tree::RenderTree<C> for RenderTree<C> {
+impl<C: HasLayouter<LayoutTree = Self>> render_tree::RenderTree<C> for RenderTree<C> {
     type NodeId = NodeId;
     type Node = RenderTreeNode<C>;
 
@@ -810,7 +810,7 @@ impl<C: HasLayouter> LayoutNode<C> for RenderTreeNode<C> {
 }
 
 /// Generates a render tree for the given document based on its loaded stylesheets
-pub fn generate_render_tree<C: HasDocument + HasRenderTree<LayoutTree=RenderTree<C>, RenderTree=RenderTree<C>>>(
+pub fn generate_render_tree<C: HasDocument + HasRenderTree<LayoutTree = RenderTree<C>, RenderTree = RenderTree<C>>>(
     document: DocumentHandle<C>,
 ) -> Result<RenderTree<C>> {
     let render_tree = RenderTree::from_document(document);

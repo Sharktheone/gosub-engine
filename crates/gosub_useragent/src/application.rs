@@ -10,7 +10,7 @@ use winit::event::WindowEvent;
 use winit::event_loop::{ActiveEventLoop, EventLoop, EventLoopProxy};
 use winit::window::WindowId;
 
-use gosub_shared::render_backend::layout::{LayoutTree};
+use gosub_shared::render_backend::layout::LayoutTree;
 use gosub_shared::render_backend::{ImageBuffer, ImgCache, NodeDesc, SizeU32};
 use gosub_shared::traits::config::ModuleConfiguration;
 use gosub_shared::traits::draw::TreeDrawer;

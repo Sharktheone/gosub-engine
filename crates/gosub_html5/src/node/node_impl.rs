@@ -45,7 +45,7 @@ pub struct NodeImpl<C: HasDocument> {
     pub location: Location,
 }
 
-impl<C: HasDocument<Document=DocumentImpl<C>>> Node<C> for NodeImpl<C> {
+impl<C: HasDocument<Document = DocumentImpl<C>>> Node<C> for NodeImpl<C> {
     type DocumentData = DocumentData;
     type DocTypeData = DocTypeData;
     type TextData = TextData;
@@ -190,7 +190,7 @@ impl<C: HasDocument<Document=DocumentImpl<C>>> Node<C> for NodeImpl<C> {
     }
 }
 
-impl<C: HasDocument<Document=DocumentImpl<C>>> PartialEq for NodeImpl<C> {
+impl<C: HasDocument<Document = DocumentImpl<C>>> PartialEq for NodeImpl<C> {
     fn eq(&self, other: &Self) -> bool {
         self.id == other.id()
     }
@@ -308,8 +308,8 @@ impl<C: HasDocument> NodeImpl<C> {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use crate::document::fragment::DocumentFragmentImpl;
-use super::*;
     use crate::node::elements::SPECIAL_HTML_ELEMENTS;
     use crate::node::elements::SPECIAL_MATHML_ELEMENTS;
     use crate::node::elements::SPECIAL_SVG_ELEMENTS;

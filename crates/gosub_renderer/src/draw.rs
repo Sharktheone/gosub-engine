@@ -33,7 +33,7 @@ mod testing;
 const DEBUG_CONTENT_COLOR: (u8, u8, u8) = (0, 192, 255); //rgb(0, 192, 255)
 const DEBUG_PADDING_COLOR: (u8, u8, u8) = (0, 255, 192); //rgb(0, 255, 192)
 const DEBUG_BORDER_COLOR: (u8, u8, u8) = (255, 72, 72); //rgb(255, 72, 72)
-// const DEBUG_MARGIN_COLOR: (u8, u8, u8) = (255, 192, 0);
+                                                        // const DEBUG_MARGIN_COLOR: (u8, u8, u8) = (255, 192, 0);
 
 type Point = gosub_shared::types::Point<FP>;
 
@@ -74,11 +74,11 @@ impl<C: HasDrawComponents> TreeDrawerImpl<C> {
     }
 }
 
-impl<C: HasDrawComponents<RenderTree=RenderTree<C>, LayoutTree=RenderTree<C>> + HasHtmlParser> TreeDrawer<C>
-for TreeDrawerImpl<C>
+impl<C: HasDrawComponents<RenderTree = RenderTree<C>, LayoutTree = RenderTree<C>> + HasHtmlParser> TreeDrawer<C>
+    for TreeDrawerImpl<C>
 where
     <<C::RenderBackend as RenderBackend>::Text as Text>::Font:
-    From<<<C::Layouter as Layouter>::TextLayout as TextLayout>::Font>,
+        From<<<C::Layouter as Layouter>::TextLayout as TextLayout>::Font>,
 {
     type ImgCache = ImageCache<C::RenderBackend>;
 
@@ -316,12 +316,12 @@ struct Drawer<'s, 't, C: HasDrawComponents + HasHtmlParser, EL: WindowedEventLoo
 }
 
 impl<
-    C: HasDrawComponents<LayoutTree=RenderTree<C>, RenderTree=RenderTree<C>> + HasHtmlParser,
-    EL: WindowedEventLoop<C>,
-> Drawer<'_, '_, C, EL>
+        C: HasDrawComponents<LayoutTree = RenderTree<C>, RenderTree = RenderTree<C>> + HasHtmlParser,
+        EL: WindowedEventLoop<C>,
+    > Drawer<'_, '_, C, EL>
 where
     <<C::RenderBackend as RenderBackend>::Text as Text>::Font:
-    From<<<C::Layouter as Layouter>::TextLayout as TextLayout>::Font>,
+        From<<<C::Layouter as Layouter>::TextLayout as TextLayout>::Font>,
 {
     pub(crate) fn render(&mut self, size: SizeU32) {
         let root = self.drawer.tree.root();
@@ -429,7 +429,7 @@ fn render_text<C: HasDrawComponents>(
     scene: &mut <C::RenderBackend as RenderBackend>::Scene,
 ) where
     <<C::RenderBackend as RenderBackend>::Text as Text>::Font:
-    From<<<C::Layouter as Layouter>::TextLayout as TextLayout>::Font>,
+        From<<<C::Layouter as Layouter>::TextLayout as TextLayout>::Font>,
 {
     // if u64::from(node.id) < 204 && u64::from(node.id) > 202 {
     //     return;
@@ -813,7 +813,7 @@ impl Side {
     }
 }
 
-impl<C: HasDrawComponents<RenderTree=RenderTree<C>, LayoutTree=RenderTree<C>>> TreeDrawerImpl<C> {
+impl<C: HasDrawComponents<RenderTree = RenderTree<C>, LayoutTree = RenderTree<C>>> TreeDrawerImpl<C> {
     fn debug_annotate(&mut self, e: NodeId) -> bool {
         let Some(node) = self.tree.get_node(e) else {
             return false;

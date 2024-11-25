@@ -110,18 +110,17 @@ impl<C: HasDocument> Default for NodeArena<C> {
 
 #[cfg(test)]
 mod tests {
-    use gosub_shared::traits::document::Document;
-use super::*;
+    use super::*;
+    use crate::document::builder::DocumentBuilderImpl;
     use crate::document::document_impl::DocumentImpl;
+    use crate::document::fragment::DocumentFragmentImpl;
+    use crate::node::HTML_NAMESPACE;
     use gosub_css3::system::Css3System;
     use gosub_shared::byte_stream::Location;
     use gosub_shared::document::DocumentHandle;
     use gosub_shared::traits::config::HasCssSystem;
-    use crate::document::builder::DocumentBuilderImpl;
+    use gosub_shared::traits::document::Document;
     use gosub_shared::traits::document::DocumentBuilder;
-    use crate::document::fragment::DocumentFragmentImpl;
-    use crate::node::HTML_NAMESPACE;
-
 
     #[derive(Clone, Debug, PartialEq)]
     struct Config;
@@ -134,8 +133,7 @@ use super::*;
         type DocumentFragment = DocumentFragmentImpl<Self>;
         type DocumentBuilder = DocumentBuilderImpl;
     }
-    
-    
+
     #[test]
     fn register_node() {
         let mut doc_handle: DocumentHandle<Config> = DocumentBuilderImpl::new_document(None);

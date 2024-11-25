@@ -30,16 +30,16 @@ impl<C: HasDocument> Html5Parser<'_, C> {
 
             if sys_identifier.is_some()
                 && LIMITED_QUIRKS_PUB_IDENTIFIER_PREFIX_NOT_MISSING_SYS
-                .iter()
-                .any(|&prefix| pub_id.as_str().starts_with(prefix))
+                    .iter()
+                    .any(|&prefix| pub_id.as_str().starts_with(prefix))
             {
                 return QuirksMode::LimitedQuirks;
             }
 
             if sys_identifier.is_none()
                 && QUIRKS_PUB_IDENTIFIER_PREFIX_MISSING_SYS
-                .iter()
-                .any(|&prefix| pub_id.as_str().starts_with(prefix))
+                    .iter()
+                    .any(|&prefix| pub_id.as_str().starts_with(prefix))
             {
                 return QuirksMode::Quirks;
             }
@@ -149,8 +149,8 @@ static LIMITED_QUIRKS_PUB_IDENTIFIER_PREFIX_NOT_MISSING_SYS: &[&str] = &[
 
 #[cfg(test)]
 mod tests {
+    use crate::document::document_impl::DocumentImpl;
     use crate::document::fragment::DocumentFragmentImpl;
-use crate::document::document_impl::DocumentImpl;
     use crate::parser::Html5Parser;
     use crate::parser::QuirksMode;
     use crate::DocumentBuilderImpl;

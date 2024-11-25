@@ -4,7 +4,7 @@ use gosub_shared::node::NodeId;
 use gosub_shared::traits::config::HasDrawComponents;
 use gosub_shared::traits::css3::{CssPropertyMap, CssValue};
 
-pub(crate) fn test_add_element<C: HasDrawComponents<RenderTree=RenderTree<C>, LayoutTree=RenderTree<C>>>(
+pub(crate) fn test_add_element<C: HasDrawComponents<RenderTree = RenderTree<C>, LayoutTree = RenderTree<C>>>(
     d: &mut TreeDrawerImpl<C>,
 ) {
     d.dirty = true;

@@ -1,7 +1,7 @@
+use crate::traits::config::HasDocument;
 use std::cell::{Ref, RefCell, RefMut};
 use std::fmt::{Debug, Display, Formatter};
 use std::rc::Rc;
-use crate::traits::config::HasDocument;
 
 pub struct DocumentHandle<C: HasDocument>(pub Rc<RefCell<C::Document>>);
 

@@ -1,6 +1,6 @@
 use crate::document::DocumentHandle;
 use crate::node::NodeId;
-use crate::traits::config::{HasDocument};
+use crate::traits::config::HasDocument;
 use crate::types::{Result, Size};
 
 use super::{ImageBuffer, RenderBackend};

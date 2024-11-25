@@ -152,8 +152,13 @@ impl Harness {
 
         let document = C::DocumentBuilder::new_document_fragment(context_node, quirks_mode);
 
-        let parser_errors =
-            C::HtmlParser::parse_fragment(&mut stream, document.clone(), context_node, Some(options), start_location)?;
+        let parser_errors = C::HtmlParser::parse_fragment(
+            &mut stream,
+            document.clone(),
+            context_node,
+            Some(options),
+            start_location,
+        )?;
 
         Ok((document, parser_errors))
     }

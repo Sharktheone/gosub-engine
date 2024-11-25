@@ -51,7 +51,7 @@ impl<C: HasDocument> PartialEq for DocumentImpl<C> {
     }
 }
 
-impl<C: HasDocument<Document=Self>> Document<C> for DocumentImpl<C> {
+impl<C: HasDocument<Document = Self>> Document<C> for DocumentImpl<C> {
     type Node = NodeImpl<C>;
 
     /// Creates a new document without a doc handle
@@ -378,7 +378,7 @@ impl<C: HasDocument<Document=Self>> Document<C> for DocumentImpl<C> {
     }
 }
 
-impl<C: HasDocument<Document=Self>> DocumentImpl<C> {
+impl<C: HasDocument<Document = Self>> DocumentImpl<C> {
     // Called whenever a node is being mutated in the document.
     fn on_document_node_mutation(&mut self, node: &NodeImpl<C>) {
         // self.on_document_node_mutation_update_id_in_node(node);
@@ -423,11 +423,11 @@ impl<C: HasDocument<Document=Self>> DocumentImpl<C> {
                 _ = writeln!(f, "{buffer}Document");
             }
             NodeDataTypeInternal::DocType(DocTypeData {
-                                              name,
-                                              pub_identifier,
-                                              sys_identifier,
-                                          }) => {
-                _ = writeln!(f, r#"{buffer}<!DOCTYPE {name} "{pub_identifier}" "{sys_identifier}">"#, );
+                name,
+                pub_identifier,
+                sys_identifier,
+            }) => {
+                _ = writeln!(f, r#"{buffer}<!DOCTYPE {name} "{pub_identifier}" "{sys_identifier}">"#,);
             }
             NodeDataTypeInternal::Text(TextData { value, .. }) => {
                 _ = writeln!(f, r#"{buffer}"{value}""#);
@@ -469,7 +469,7 @@ impl<C: HasDocument<Document=Self>> DocumentImpl<C> {
     }
 }
 
-impl<C: HasDocument<Document=Self>> Display for DocumentImpl<C> {
+impl<C: HasDocument<Document = Self>> Display for DocumentImpl<C> {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let root = self.get_root();
         self.print_tree(root, "".to_string(), true, f);
@@ -477,7 +477,7 @@ impl<C: HasDocument<Document=Self>> Display for DocumentImpl<C> {
     }
 }
 
-impl<C: HasDocument<Document=Self>> DocumentImpl<C> {
+impl<C: HasDocument<Document = Self>> DocumentImpl<C> {
     /// Fetches a node by named id (string) or returns None when no node with this ID is found
     pub fn get_node_by_named_id(&self, named_id: &str) -> Option<&C::Node> {
         let node_id = self.named_id_elements.get(named_id)?;
@@ -594,9 +594,9 @@ impl<C: HasDocument> Iterator for TreeIterator<C> {
 
 #[cfg(test)]
 mod tests {
-    use crate::document::fragment::DocumentFragmentImpl;
-use super::*;
+    use super::*;
     use crate::document::builder::DocumentBuilderImpl;
+    use crate::document::fragment::DocumentFragmentImpl;
     use crate::document::query::DocumentQuery;
     use crate::document::task_queue::DocumentTaskQueue;
     use crate::node::HTML_NAMESPACE;

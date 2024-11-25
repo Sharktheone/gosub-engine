@@ -30,16 +30,15 @@ pub trait TreeBuilder {
 
 #[cfg(test)]
 mod tests {
+    use crate::document::builder::DocumentBuilderImpl;
     use crate::document::document_impl::DocumentImpl;
+    use crate::document::fragment::DocumentFragmentImpl;
     use crate::parser::Html5Parser;
     use gosub_css3::system::Css3System;
+    use gosub_shared::traits::config::{HasCssSystem, HasDocument, HasHtmlParser};
     use gosub_testing::testing::tree_construction::fixture::{fixture_root_path, read_fixture_from_path};
     use gosub_testing::testing::tree_construction::Harness;
     use test_case::test_case;
-    use gosub_shared::traits::config::{HasCssSystem, HasDocument, HasHtmlParser};
-    use crate::document::builder::DocumentBuilderImpl;
-    use crate::document::fragment::DocumentFragmentImpl;
-    
 
     #[derive(Clone, Debug, PartialEq)]
     struct Config;
@@ -52,7 +51,7 @@ mod tests {
         type DocumentFragment = DocumentFragmentImpl<Self>;
         type DocumentBuilder = DocumentBuilderImpl;
     }
-    
+
     impl HasHtmlParser for Config {
         type HtmlParser = Html5Parser<'static, Self>;
     }
@@ -132,10 +131,7 @@ mod tests {
             // for each test, run it with and without scripting enabled based on the test file
             for &scripting_enabled in test.script_modes() {
                 let result = harness
-                    .run_test::<Config>(
-                        test.clone(),
-                        scripting_enabled,
-                    )
+                    .run_test::<Config>(test.clone(), scripting_enabled)
                     .expect("problem parsing");
 
                 // println!(
