@@ -194,6 +194,7 @@ mod tests {
         let cookies = CookieJar::new();
 
         let resp = fetch_url::<Config>("GET", url, headers, cookies);
+        dbg!(&resp);
         assert!(resp.is_ok());
     }
 }

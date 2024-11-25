@@ -36,7 +36,6 @@ mod tests {
     use gosub_testing::testing::tree_construction::fixture::{fixture_root_path, read_fixture_from_path};
     use gosub_testing::testing::tree_construction::Harness;
     use test_case::test_case;
-    use gosub_shared::document::DocumentHandle;
     use gosub_shared::traits::config::{HasCssSystem, HasDocument, HasHtmlParser};
     use crate::document::builder::DocumentBuilderImpl;
     use crate::document::fragment::DocumentFragmentImpl;
@@ -57,8 +56,6 @@ mod tests {
     impl HasHtmlParser for Config {
         type HtmlParser = Html5Parser<'static, Self>;
     }
-
-    type Handle = DocumentHandle<Config>;
 
     const DISABLED_CASES: &[&str] = &[
         // tests18.dat

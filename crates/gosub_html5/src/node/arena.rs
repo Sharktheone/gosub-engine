@@ -134,7 +134,6 @@ use super::*;
         type DocumentFragment = DocumentFragmentImpl<Self>;
         type DocumentBuilder = DocumentBuilderImpl;
     }
-    type Handle = DocumentHandle<Config>;
     
     
     #[test]
