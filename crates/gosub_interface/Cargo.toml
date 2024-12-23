@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 gosub_shared = { path = "../gosub_shared" }
+tokio = { version = "1.42.0", features = ["sync"] }
 url = "2.5.4"
 smallvec = "1.13.2"
 raw-window-handle = "0.6.2"

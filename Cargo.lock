@@ -1848,6 +1848,7 @@ dependencies = [
  "image",
  "raw-window-handle",
  "smallvec",
+ "tokio",
  "url",
 ]
 

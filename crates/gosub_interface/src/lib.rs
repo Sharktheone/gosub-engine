@@ -10,3 +10,6 @@ pub mod render_backend;
 pub mod render_tree;
 pub mod svg;
 pub mod eventloop;
+pub mod chrome;
+pub mod instance;
+pub mod request;
