@@ -1,21 +1,16 @@
 use crate::config::HasDrawComponents;
-use crate::layout::LayoutTree;
-use crate::render_backend::{ImgCache, NodeDesc, RenderBackend, WindowedEventLoop};
+use crate::eventloop::EventLoopHandle;
+use crate::render_backend::{ImgCache, NodeDesc, RenderBackend};
 use gosub_shared::geo::{Point, SizeU32, FP};
 use std::future::Future;
 use std::sync::mpsc::Sender;
 use url::Url;
+use crate::layout::LayoutTree;
 
 pub trait TreeDrawer<C: HasDrawComponents> {
     type ImgCache: ImgCache<C::RenderBackend>;
 
-    fn draw(
-        &mut self,
-        backend: &mut C::RenderBackend,
-        data: &mut <C::RenderBackend as RenderBackend>::WindowData<'_>,
-        size: SizeU32,
-        el: &impl WindowedEventLoop<C>,
-    ) -> bool;
+    fn draw(&mut self, size: SizeU32, el: &impl EventLoopHandle<C>) -> <C::RenderBackend as RenderBackend>::Scene;
     fn mouse_move(&mut self, backend: &mut C::RenderBackend, x: FP, y: FP) -> bool;
 
     fn scroll(&mut self, point: Point);
@@ -23,7 +18,7 @@ pub trait TreeDrawer<C: HasDrawComponents> {
         url: Url,
         layouter: C::Layouter,
         debug: bool,
-    ) -> impl Future<Output = gosub_shared::types::Result<Self>>
+    ) -> impl Future<Output=gosub_shared::types::Result<Self>>
     where
         Self: Sized;
 
@@ -44,7 +39,7 @@ pub trait TreeDrawer<C: HasDrawComponents> {
 
     fn delete_scene(&mut self);
 
-    fn reload(&mut self, el: impl WindowedEventLoop<C>);
+    fn reload(&mut self, el: impl EventLoopHandle<C>) -> impl Future<Output = ()> + 'static;
 
     fn reload_from(&mut self, tree: C::RenderTree);
 }

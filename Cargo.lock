@@ -1831,6 +1831,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "gosub_instance"
+version = "0.1.0"
+dependencies = [
+ "gosub_interface",
+ "gosub_shared",
+ "tokio",
+ "url",
+]
+
+[[package]]
 name = "gosub_interface"
 version = "0.1.0"
 dependencies = [

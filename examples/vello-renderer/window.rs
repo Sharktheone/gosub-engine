@@ -13,8 +13,9 @@ use winit::event_loop::{ActiveEventLoop, EventLoopProxy};
 use winit::window::{Icon, Window as WinitWindow, WindowId};
 
 use gosub_interface::config::ModuleConfiguration;
+use gosub_interface::eventloop::EventLoopHandle;
 use gosub_interface::layout::LayoutTree;
-use gosub_interface::render_backend::{ImageBuffer, NodeDesc, RenderBackend, WindowedEventLoop};
+use gosub_interface::render_backend::{ImageBuffer, NodeDesc, RenderBackend};
 use gosub_shared::geo::SizeU32;
 use gosub_shared::types::Result;
 
@@ -259,7 +260,7 @@ where
     }
 }
 
-impl<C: ModuleConfiguration> WindowedEventLoop<C> for WindowEventLoop<C>
+impl<C: ModuleConfiguration> EventLoopHandle<C> for WindowEventLoop<C>
 where
     C::RenderBackend: Send,
     C::RenderTree: Send,
@@ -267,13 +268,13 @@ where
     <C::RenderBackend as RenderBackend>::Scene: Send,
     C::Layouter: Send,
 {
-    fn redraw(&mut self) {
+    fn redraw(&self) {
         if let Err(e) = self.proxy.send_event(CustomEventInternal::Redraw(self.id)) {
             error!("Failed to send event {e}"); // only will error if the event loop was closed
         }
     }
 
-    fn add_img_cache(&mut self, url: String, buf: ImageBuffer<C::RenderBackend>, size: Option<SizeU32>) {
+    fn add_img_cache(&self, url: String, buf: ImageBuffer<C::RenderBackend>, size: Option<SizeU32>) {
         if let Err(e) = self
             .proxy
             .send_event(CustomEventInternal::AddImg(url, buf, size, self.id))
@@ -282,13 +283,24 @@ where
         }
     }
 
-    fn reload_from(&mut self, rt: C::RenderTree) {
+    fn reload_from(&self, rt: C::RenderTree) {
         if let Err(e) = self.proxy.send_event(CustomEventInternal::ReloadFrom(rt, self.id)) {
             error!("Failed to send event {e}");
         }
     }
 
-    fn open_tab(&mut self, url: Url) {
+}
+
+impl<C: ModuleConfiguration> WindowEventLoop<C>
+where
+    C::RenderBackend: Send,
+    C::RenderTree: Send,
+    C::TreeDrawer: Send,
+    <C::RenderBackend as RenderBackend>::Scene: Send,
+    C::Layouter: Send,
+{
+
+    pub(crate) fn open_tab(&self, url: Url) {
         if let Err(e) = self.proxy.send_event(CustomEventInternal::OpenTab(url, self.id)) {
             error!("Failed to send event {e}");
         }

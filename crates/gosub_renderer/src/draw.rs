@@ -7,10 +7,11 @@ use anyhow::anyhow;
 use gosub_interface::config::{HasDrawComponents, HasHtmlParser};
 use gosub_interface::css3::{CssProperty, CssPropertyMap, CssValue};
 use gosub_interface::draw::TreeDrawer;
+use gosub_interface::eventloop::EventLoopHandle;
 use gosub_interface::layout::{Layout, LayoutTree, Layouter, TextLayout};
 use gosub_interface::render_backend::{
     Border, BorderSide, BorderStyle, Brush, Color, ImageBuffer, ImgCache, NodeDesc, Rect, RenderBackend, RenderBorder,
-    RenderRect, RenderText, Scene as TScene, Text, Transform, WindowedEventLoop,
+    RenderRect, RenderText, Scene as TScene, Scene, Text, Transform,
 };
 use gosub_interface::render_tree;
 use gosub_interface::render_tree::RenderTreeNode as _;
@@ -22,6 +23,7 @@ use gosub_shared::geo::{Size, SizeU32, FP};
 use gosub_shared::node::NodeId;
 use gosub_shared::types::Result;
 use log::{error, info, warn};
+use std::future::Future;
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
 use url::Url;
@@ -82,13 +84,7 @@ where
 {
     type ImgCache = ImageCache<C::RenderBackend>;
 
-    fn draw(
-        &mut self,
-        backend: &mut C::RenderBackend,
-        data: &mut <C::RenderBackend as RenderBackend>::WindowData<'_>,
-        size: SizeU32,
-        el: &impl WindowedEventLoop<C>,
-    ) -> bool {
+    fn draw(&mut self, size: SizeU32, el: &impl EventLoopHandle<C>) -> <C::RenderBackend as RenderBackend>::Scene {
         if self.tree_scene.is_none() || self.size != Some(size) || !self.dirty {
             self.size = Some(size);
 
@@ -121,8 +117,6 @@ where
             self.size = Some(size);
         }
 
-        backend.reset(data);
-
         let bg = Rect::new(0.0, 0.0, size.width as FP, size.height as FP);
 
         let rect = RenderRect {
@@ -134,10 +128,12 @@ where
             border: None,
         };
 
-        backend.draw_rect(data, &rect);
+        let mut root_scene = <C::RenderBackend as RenderBackend>::Scene::new();
+
+        root_scene.draw_rect(&rect);
 
         if let Some(scene) = &self.tree_scene {
-            backend.apply_scene(data, scene, self.scene_transform.clone());
+            root_scene.apply_scene(scene, self.scene_transform.clone());
         }
 
         if self.dirty {
@@ -148,7 +144,7 @@ where
 
         if let Some(scene) = &self.debugger_scene {
             self.dirty = false;
-            backend.apply_scene(data, scene, self.scene_transform.clone());
+            root_scene.apply_scene(scene, self.scene_transform.clone());
         }
 
         if self.debug {
@@ -161,16 +157,16 @@ where
             let scale =
                 px_scale::<C::RenderBackend>(size, pos, self.size.as_ref().map(|x| x.width as f32).unwrap_or(0.0));
 
-            backend.apply_scene(data, &scale, None);
+            root_scene.apply_scene(&scale, None);
         }
 
         if self.dirty {
             self.dirty = false;
 
-            return true;
+            el.redraw();
         }
 
-        false
+        root_scene
     }
 
     fn mouse_move(&mut self, _backend: &mut C::RenderBackend, x: FP, y: FP) -> bool {
@@ -277,10 +273,10 @@ where
         self.debugger_scene = None;
     }
 
-    fn reload(&mut self, mut el: impl WindowedEventLoop<C>) {
+    fn reload(&mut self, el: impl EventLoopHandle<C>) -> impl Future<Output = ()> + 'static {
         let fetcher = self.fetcher.clone();
 
-        gosub_shared::async_executor::spawn(async move {
+        async move {
             info!("Reloading tab");
 
             let rt = match load_html_rendertree_fetcher::<C>(fetcher.base().clone(), &fetcher).await {
@@ -292,7 +288,7 @@ where
             };
 
             el.reload_from(rt);
-        })
+        }
     }
 
     fn reload_from(&mut self, tree: C::RenderTree) {
@@ -308,7 +304,7 @@ where
     }
 }
 
-struct Drawer<'s, 't, C: HasDrawComponents + HasHtmlParser, EL: WindowedEventLoop<C>> {
+struct Drawer<'s, 't, C: HasDrawComponents, EL: EventLoopHandle<C>> {
     scene: &'s mut <C::RenderBackend as RenderBackend>::Scene,
     drawer: &'t mut TreeDrawerImpl<C>,
     svg: Arc<Mutex<<C::RenderBackend as RenderBackend>::SVGRenderer>>,
@@ -317,7 +313,7 @@ struct Drawer<'s, 't, C: HasDrawComponents + HasHtmlParser, EL: WindowedEventLoo
 
 impl<
         C: HasDrawComponents<LayoutTree = RenderTree<C>, RenderTree = RenderTree<C>> + HasHtmlParser,
-        EL: WindowedEventLoop<C>,
+        EL: EventLoopHandle<C>,
     > Drawer<'_, '_, C, EL>
 where
     <<C::RenderBackend as RenderBackend>::Text as Text>::Font:
@@ -623,7 +619,7 @@ fn render_bg<C: HasDrawComponents>(
     svg: Arc<Mutex<<C::RenderBackend as RenderBackend>::SVGRenderer>>,
     fetcher: Arc<Fetcher>,
     img_cache: &mut ImageCache<C::RenderBackend>,
-    el: &impl WindowedEventLoop<C>,
+    el: &impl EventLoopHandle<C>,
 ) -> ((FP, FP, FP, FP), Option<SizeU32>) {
     let bg_color = node
         .props()

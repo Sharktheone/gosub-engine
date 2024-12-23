@@ -6,7 +6,7 @@ use winit::keyboard::{KeyCode, ModifiersState, PhysicalKey};
 use crate::window::{Window, WindowState};
 use gosub_interface::config::ModuleConfiguration;
 use gosub_interface::draw::TreeDrawer;
-use gosub_interface::render_backend::{Point, RenderBackend, SizeU32, WindowedEventLoop, FP};
+use gosub_interface::render_backend::{Point, RenderBackend, SizeU32, FP};
 use gosub_shared::types::Result;
 
 impl<C: ModuleConfiguration> Window<'_, C>
@@ -48,13 +48,12 @@ where
                     return Ok(());
                 };
 
-                let redraw = tab.data.draw(backend, &mut self.renderer_data, size, &self.el);
+                let scene = tab.data.draw(size, &self.el);
+                
+                backend.reset(&mut self.renderer_data);
+                backend.apply_scene(&mut self.renderer_data, &scene, None);
 
                 backend.render(&mut self.renderer_data, active_window_data)?;
-
-                if redraw {
-                    self.request_redraw();
-                }
             }
 
             WindowEvent::CursorMoved { position, .. } => {

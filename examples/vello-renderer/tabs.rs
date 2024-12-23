@@ -1,11 +1,12 @@
 use gosub_interface::config::ModuleConfiguration;
 use gosub_interface::draw::TreeDrawer;
 use gosub_interface::layout::LayoutTree;
-use gosub_interface::render_backend::{NodeDesc, WindowedEventLoop};
+use gosub_interface::render_backend::{NodeDesc};
 use gosub_shared::types::Result;
 use slotmap::{DefaultKey, SlotMap};
 use std::sync::mpsc::Sender;
 use url::Url;
+use gosub_interface::eventloop::EventLoopHandle;
 
 pub struct Tabs<C: ModuleConfiguration> {
     #[allow(clippy::type_complexity)]
@@ -125,7 +126,7 @@ impl<C: ModuleConfiguration> Tab<C> {
         })
     }
 
-    pub fn reload(&mut self, el: impl WindowedEventLoop<C>) {
+    pub fn reload(&mut self, el: impl EventLoopHandle<C>) {
         self.data.reload(el);
     }
 

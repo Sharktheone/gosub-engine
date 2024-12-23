@@ -6,8 +6,9 @@ use image::DynamicImage;
 
 use crate::draw::img_cache::ImageCache;
 use gosub_interface::config::HasDrawComponents;
+use gosub_interface::eventloop::EventLoopHandle;
 use gosub_interface::render_backend::{
-    Image as _, ImageBuffer, ImageCacheEntry, ImgCache, RenderBackend, SizeU32, WindowedEventLoop,
+    Image as _, ImageBuffer, ImageCacheEntry, ImgCache, RenderBackend, SizeU32,
 };
 use gosub_interface::svg::SvgRenderer;
 use gosub_net::http::fetcher::Fetcher;
@@ -19,7 +20,7 @@ pub fn request_img<C: HasDrawComponents>(
     url: &str,
     size: Option<SizeU32>,
     img_cache: &mut ImageCache<C::RenderBackend>,
-    el: &impl WindowedEventLoop<C>,
+    el: &impl EventLoopHandle<C>,
 ) -> Result<ImageBuffer<C::RenderBackend>> {
     let img = img_cache.get(url);
 

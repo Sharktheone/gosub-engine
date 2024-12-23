@@ -15,16 +15,6 @@ pub trait WindowHandle: HasDisplayHandle + HasWindowHandle + Send + Sync + Clone
 
 impl<T> WindowHandle for T where T: HasDisplayHandle + HasWindowHandle + Send + Sync + Clone {}
 
-pub trait WindowedEventLoop<C: HasRenderTree + HasRenderBackend>: WasmNotSendSync + Clone + 'static {
-    fn redraw(&mut self);
-
-    fn add_img_cache(&mut self, url: String, buf: ImageBuffer<C::RenderBackend>, size: Option<SizeU32>);
-
-    fn reload_from(&mut self, rt: C::RenderTree);
-
-    fn open_tab(&mut self, url: Url);
-}
-
 pub trait RenderBackend: Sized + Debug {
     type Rect: Rect + Clone;
     type Border: Border<Self> + Clone + Debug;
@@ -78,7 +68,7 @@ pub trait RenderBackend: Sized + Debug {
     ) -> Result<()>;
 }
 
-pub trait Scene<B: RenderBackend>: Clone + Debug {
+pub trait Scene<B: RenderBackend>: Clone + Debug + Send {
     fn draw_rect(&mut self, rect: &RenderRect<B>);
     fn draw_text(&mut self, text: &RenderText<B>);
 
