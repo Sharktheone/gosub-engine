@@ -40,7 +40,7 @@ impl<C: ModuleConfiguration> Window<'_, C> {
                 let Some(tab) = self.tabs.get_current_tab() else {
                     return Ok(());
                 };
-                
+
                 tab.tx.blocking_send(InstanceMessage::Redraw(size))?;
 
             }
@@ -49,11 +49,11 @@ impl<C: ModuleConfiguration> Window<'_, C> {
                 let Some(tab) = self.tabs.get_current_tab() else {
                     return Ok(());
                 };
-                
-                
-                
+
+
+
                 // tab.tx.blocking_send(InstanceMessage::MouseMove(Point::new(position.x as FP, position.y as FP)))?;
-                // 
+                //
                 // if tab.data.mouse_move(backend, position.x as FP, position.y as FP) {
                 //     self.window.request_redraw();
                 // }
@@ -72,7 +72,7 @@ impl<C: ModuleConfiguration> Window<'_, C> {
                 let delta = Point::new(delta.0 as FP, delta.1 as FP);
 
                 // tab.data.scroll(delta);
-                // 
+                //
                 // self.window.request_redraw();
             }
 

@@ -17,6 +17,7 @@ use winit::application::ApplicationHandler;
 use winit::event::WindowEvent;
 use winit::event_loop::{ActiveEventLoop, EventLoop, EventLoopProxy};
 use winit::window::WindowId;
+use gosub_interface::chrome::ChromeHandle;
 
 #[derive(Debug, Default)]
 pub struct WindowOptions {
@@ -59,7 +60,7 @@ impl<C: ModuleConfiguration> Application<'_, C> {
     }
 }
 
-impl<C: ModuleConfiguration> ApplicationHandler<CustomEventInternal<C>> for Application<'_, C> {
+impl<C: ModuleConfiguration<ChromeHandle = WinitEventLoopHandle<C>>> ApplicationHandler<CustomEventInternal<C>> for Application<'_, C> {
     fn resumed(&mut self, _event_loop: &ActiveEventLoop) {
         info!("Resumed");
         for window in self.windows.values_mut() {
@@ -110,16 +111,21 @@ impl<C: ModuleConfiguration> ApplicationHandler<CustomEventInternal<C>> for Appl
             CustomEventInternal::OpenTab(url, id) => {
                 info!("Opening tab with URL: {url}");
 
-                let handles = self.active_state().handles.clone();
+                let mut handles = self.active_state().handles.clone();
                 let Some(window) = self.windows.get_mut(&id) else {
                     error!("No window with ID: {id:?}");
                     return;
                 };
+                
+                handles.chrome.set_window(window.id());
 
                 if let Err(e) = window.tabs.open(url, self.layouter.clone(), handles) {
                     error!("Error opening tab: {e:?}");
                     return;
                 }
+                
+                
+                window.request_redraw();
             }
             CustomEventInternal::CloseWindow(id) => {
                 self.windows.remove(&id);

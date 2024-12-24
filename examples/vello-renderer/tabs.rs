@@ -1,3 +1,4 @@
+use log::info;
 use gosub_interface::config::ModuleConfiguration;
 use gosub_shared::types::Result;
 use slotmap::{DefaultKey, Key, KeyData, SlotMap};
@@ -48,6 +49,7 @@ impl Tabs {
         let id = tabs.try_insert_with_key(|key| {
             EngineInstance::new_on_thread(url, layouter, kti(key), handles)
         })?;
+
         
         
         Ok(Self {
@@ -102,7 +104,7 @@ impl Tabs {
             self.active = kti(id);
         }
     }
-    
+
     pub fn is_active(&self, id: InstanceId) -> bool {
         self.active == id
     }

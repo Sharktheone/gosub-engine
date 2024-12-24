@@ -134,6 +134,8 @@ where
 
         if let Some(scene) = &self.tree_scene {
             root_scene.apply_scene(scene, self.scene_transform.clone());
+        } else {
+            println!("No scene");
         }
 
         if self.dirty {

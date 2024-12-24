@@ -27,9 +27,8 @@ pub use winit;
 use winit::event_loop::EventLoopProxy;
 use gosub_instance::DebugEvent;
 use gosub_interface::chrome::ChromeHandle;
-use gosub_interface::eventloop::EventLoopHandle;
 use gosub_interface::instance::InstanceId;
-use gosub_interface::render_backend::{ImageBuffer, RenderBackend};
+use gosub_interface::render_backend::{RenderBackend};
 use gosub_shared::geo::SizeU32;
 
 #[derive(Clone, Debug, PartialEq)]

@@ -19,9 +19,10 @@ use winit::dpi::LogicalSize;
 use winit::event::Modifiers;
 use winit::event_loop::{ActiveEventLoop, EventLoopProxy};
 use winit::window::{Icon, Window as WinitWindow, WindowId};
-
+use gosub_interface::chrome::ChromeHandle;
 use crate::application::{CustomEventInternal, WindowOptions};
 use crate::tabs::Tabs;
+use crate::WinitEventLoopHandle;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum WindowState<'a, B: RenderBackend> {
@@ -59,16 +60,16 @@ pub struct Window<'a, C: ModuleConfiguration> {
     pub(crate) handles: Handles<C>,
 }
 
-impl<'a, C: ModuleConfiguration> Window<'a, C> {
+impl<'a, C: ModuleConfiguration<ChromeHandle = WinitEventLoopHandle<C>>> Window<'a, C> {
     pub fn new(
         event_loop: &ActiveEventLoop,
         backend: &mut C::RenderBackend,
         opts: WindowOptions,
-        handles: Handles<C>,
+        mut handles: Handles<C>,
     ) -> Result<Self> {
         let window = create_window(event_loop)?;
-
-        println!("Created window with id: {:?}", window.id());
+        
+        handles.chrome.set_window(window.id());
 
         #[cfg(target_arch = "wasm32")]
         {
@@ -106,11 +107,6 @@ impl<'a, C: ModuleConfiguration> Window<'a, C> {
             mods: Modifiers::default(),
             handles,
         })
-    }
-
-    pub async fn open_tab(&mut self, url: Url, layouter: C::Layouter) -> Result<()> {
-        self.tabs.open(url, layouter, self.handles.clone())?;
-        Ok(())
     }
 
     pub fn resumed(&mut self, backend: &mut C::RenderBackend) -> Result<()> {
