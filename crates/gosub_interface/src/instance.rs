@@ -6,6 +6,7 @@ pub struct InstanceId(pub u64);
 
 
 
+#[derive(Clone)]
 pub struct Handles<C: HasChrome> {
     pub chrome: C::ChromeHandle,
     pub request: RequestServerHandle,

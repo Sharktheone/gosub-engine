@@ -2,21 +2,14 @@ use url::Url;
 use winit::event::{ElementState, MouseScrollDelta, WindowEvent};
 use winit::event_loop::ActiveEventLoop;
 use winit::keyboard::{KeyCode, ModifiersState, PhysicalKey};
-
+use gosub_instance::{DebugEvent, InstanceMessage};
 use crate::window::{Window, WindowState};
 use gosub_interface::config::ModuleConfiguration;
 use gosub_interface::draw::TreeDrawer;
 use gosub_interface::render_backend::{Point, RenderBackend, SizeU32, FP};
 use gosub_shared::types::Result;
 
-impl<C: ModuleConfiguration> Window<'_, C>
-where
-    C::RenderBackend: Send,
-    C::RenderTree: Send,
-    C::TreeDrawer: Send,
-    <C::RenderBackend as RenderBackend>::Scene: Send,
-    C::Layouter: Send,
-{
+impl<C: ModuleConfiguration> Window<'_, C> {
     pub fn event(&mut self, el: &ActiveEventLoop, backend: &mut C::RenderBackend, event: WindowEvent) -> Result<()> {
         let WindowState::Active {
             surface: active_window_data,
@@ -47,23 +40,23 @@ where
                 let Some(tab) = self.tabs.get_current_tab() else {
                     return Ok(());
                 };
-
-                let scene = tab.data.draw(size, &self.el);
                 
-                backend.reset(&mut self.renderer_data);
-                backend.apply_scene(&mut self.renderer_data, &scene, None);
+                tab.tx.blocking_send(InstanceMessage::Redraw(size))?;
 
-                backend.render(&mut self.renderer_data, active_window_data)?;
             }
 
             WindowEvent::CursorMoved { position, .. } => {
                 let Some(tab) = self.tabs.get_current_tab() else {
                     return Ok(());
                 };
-
-                if tab.data.mouse_move(backend, position.x as FP, position.y as FP) {
-                    self.window.request_redraw();
-                }
+                
+                
+                
+                // tab.tx.blocking_send(InstanceMessage::MouseMove(Point::new(position.x as FP, position.y as FP)))?;
+                // 
+                // if tab.data.mouse_move(backend, position.x as FP, position.y as FP) {
+                //     self.window.request_redraw();
+                // }
             }
 
             WindowEvent::MouseWheel { delta, .. } => {
@@ -78,9 +71,9 @@ where
 
                 let delta = Point::new(delta.0 as FP, delta.1 as FP);
 
-                tab.data.scroll(delta);
-
-                self.window.request_redraw();
+                // tab.data.scroll(delta);
+                // 
+                // self.window.request_redraw();
             }
 
             WindowEvent::KeyboardInput { event, .. } => {
@@ -95,15 +88,15 @@ where
                 if let PhysicalKey::Code(code) = event.physical_key {
                     match code {
                         KeyCode::KeyD => {
-                            tab.data.toggle_debug();
+                            tab.tx.blocking_send(InstanceMessage::Debug(DebugEvent::Toggle))?;
                             self.window.request_redraw();
                         }
                         KeyCode::KeyC => {
-                            tab.data.clear_buffers();
+                            tab.tx.blocking_send(InstanceMessage::Debug(DebugEvent::ClearBuffers))?;
                             self.window.request_redraw();
                         }
                         KeyCode::F5 => {
-                            tab.reload(self.el.clone());
+                            tab.tx.blocking_send(InstanceMessage::Reload)?;
                         }
                         KeyCode::ArrowRight => {
                             if self.mods.state().contains(ModifiersState::CONTROL) {
@@ -178,9 +171,9 @@ where
                             }
                         }
 
-                        KeyCode::F6 => self.el.open_tab(Url::parse("https://news.ycombinator.com")?),
-                        KeyCode::F7 => self.el.open_tab(Url::parse("https://archlinux.org")?),
-                        KeyCode::F8 => self.el.open_tab(Url::parse("file://resources/test.html")?),
+                        // KeyCode::F6 => self.el.open_tab(Url::parse("https://news.ycombinator.com")?),
+                        // KeyCode::F7 => self.el.open_tab(Url::parse("https://archlinux.org")?),
+                        // KeyCode::F8 => self.el.open_tab(Url::parse("file://resources/test.html")?),
 
                         _ => {}
                     }

@@ -47,6 +47,7 @@ gosub_vello = { path = "./crates/gosub_vello", features = [] }
 gosub_cairo = { path = "./crates/gosub_cairo", features = [] }
 gosub_taffy = { path = "./crates/gosub_taffy", features = [] }
 gosub_net = { path = "./crates/gosub_net", features = [] }
+gosub_instance = { path = "./crates/gosub_instance", features = [] }
 # Dependencies are needed for gosub_engine itself, and some of the binaries in src/bin.
 cookie = { version = "0.18.1", features = ["secure", "private"] }
 url = "2.5.4"

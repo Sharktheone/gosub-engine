@@ -8,7 +8,7 @@ use gosub_html5::parser::Html5Parser;
 use gosub_interface::config::*;
 use gosub_interface::draw::TreeDrawer;
 use gosub_interface::render_backend::RenderBackend;
-use gosub_interface::render_backend::{ImageBuffer, SizeU32, WindowedEventLoop};
+use gosub_interface::render_backend::{ImageBuffer, SizeU32};
 use gosub_renderer::draw::TreeDrawerImpl;
 use gosub_rendering::render_tree::RenderTree;
 use gosub_taffy::TaffyLayouter;

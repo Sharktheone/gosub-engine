@@ -188,8 +188,8 @@ pub enum InternalInstanceMessage<C: HasTreeDrawer> {
 
 pub enum DebugEvent {
     SendNodes(SyncSender<NodeDesc>),
-    SelectElement(usize),
-    Info(usize, SyncSender<NodeDesc>),
+    SelectElement(u64),
+    Info(u64, SyncSender<NodeDesc>),
     Deselect,
     Toggle,
     Enable,
