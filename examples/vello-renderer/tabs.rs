@@ -4,6 +4,7 @@ use gosub_interface::instance::{Handles, InstanceId};
 use gosub_shared::types::Result;
 use slotmap::{DefaultKey, Key, KeyData, SlotMap};
 use url::Url;
+use gosub_rendering::render_tree::RenderTree;
 
 pub struct Tabs {
     #[allow(clippy::type_complexity)]
@@ -42,7 +43,7 @@ impl Tabs {
     }
 
     #[allow(unused)]
-    pub(crate) fn from_url<C: ModuleConfiguration>(
+    pub(crate) fn from_url<C: ModuleConfiguration<RenderTree = RenderTree<C>, LayoutTree = RenderTree<C>>>(
         url: Url,
         layouter: C::Layouter,
         handles: Handles<C>,
@@ -54,7 +55,7 @@ impl Tabs {
         Ok(Self { tabs, active: kti(id) })
     }
 
-    pub fn open<C: ModuleConfiguration>(&mut self, url: Url, layouter: C::Layouter, handles: Handles<C>) -> Result<()> {
+    pub fn open<C: ModuleConfiguration<RenderTree = RenderTree<C>, LayoutTree = RenderTree<C>>>(&mut self, url: Url, layouter: C::Layouter, handles: Handles<C>) -> Result<()> {
         let id = self
             .tabs
             .try_insert_with_key(|key| EngineInstance::new_on_thread(url.clone(), layouter, kti(key), handles))?;

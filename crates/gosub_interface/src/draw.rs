@@ -8,6 +8,7 @@ use std::future::Future;
 use std::sync::mpsc::Sender;
 use std::sync::Arc;
 use url::Url;
+use crate::document_handle::DocumentHandle;
 
 pub trait TreeDrawer<C: HasDrawComponents> {
     type ImgCache: ImgCache<C::RenderBackend>;
@@ -47,6 +48,15 @@ pub trait TreeDrawer<C: HasDrawComponents> {
         // Debug flag
         debug: bool,
     ) -> impl Future<Output = gosub_shared::types::Result<Self>>
+    where
+        Self: Sized;
+    
+    fn from_render_tree(
+        rt: C::RenderTree,
+        fetcher: Arc<Fetcher>,
+        layouter: C::Layouter,
+        debug: bool,
+    ) -> Self
     where
         Self: Sized;
 

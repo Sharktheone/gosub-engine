@@ -1849,6 +1849,8 @@ version = "0.1.0"
 dependencies = [
  "gosub_interface",
  "gosub_net",
+ "gosub_renderer",
+ "gosub_rendering",
  "gosub_shared",
  "gosub_web_platform",
  "log",
@@ -1860,6 +1862,7 @@ dependencies = [
 name = "gosub_interface"
 version = "0.1.2"
 dependencies = [
+ "bitflags 1.3.2",
  "gosub_net",
  "gosub_shared",
  "image",
@@ -2014,8 +2017,13 @@ dependencies = [
 name = "gosub_web_platform"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "gosub_interface",
+ "gosub_net",
  "gosub_shared",
+ "gosub_v8",
+ "gosub_webexecutor",
+ "gosub_webinterop",
  "log",
  "pin-project",
  "slotmap",

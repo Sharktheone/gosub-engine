@@ -9,7 +9,7 @@ use proc_macro2::{Ident, TokenTree};
 use quote::ToTokens;
 use syn::spanned::Spanned;
 use syn::{FnArg, ItemImpl, ItemStruct};
-
+use syn::parse::Parse;
 use crate::function::Function;
 use crate::impl_function::impl_js_functions;
 use crate::impl_interop_struct::impl_interop_struct;
@@ -29,7 +29,7 @@ lazy_static! {
 }
 
 #[proc_macro_attribute]
-pub fn web_interop(_: TokenStream, item: TokenStream) -> TokenStream {
+pub fn web_interop(attrs: TokenStream, item: TokenStream) -> TokenStream {
     let mut fields: Vec<Field> = Vec::new();
 
     let mut input: ItemStruct = syn::parse_macro_input!(item);
@@ -46,8 +46,27 @@ pub fn web_interop(_: TokenStream, item: TokenStream) -> TokenStream {
             fields.push(f);
         }
     }
+    
+    let mut js_name = input.ident.to_token_stream();
+    
+    
+    let attr_parser = syn::meta::parser(|meta| {
+        if meta.path.is_ident("rename") {
+            meta.parse_nested_meta(|meta| {
+                js_name = meta.path.to_token_stream();
+                
+                
+                Ok(())
+            })
+        } else {
+            Err(meta.error("Unknown attribute"))
+        }
+    });
+    
+    syn::parse_macro_input!(attrs with attr_parser);
+    
 
-    let extend = impl_interop_struct(input.ident.clone(), &fields);
+    let extend = impl_interop_struct(input.ident.clone(), &fields, js_name);
 
     let name = input.ident.clone().into_token_stream().to_string();
     STATE.write().unwrap().insert((crate_name(), name), 0);

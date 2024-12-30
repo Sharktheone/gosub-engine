@@ -7,6 +7,7 @@ use std::fmt;
 use std::fmt::{Display, Formatter};
 use url::Url;
 
+use crate::document::query::DocumentQuery;
 use crate::document::task_queue::is_valid_id_attribute_value;
 use crate::node::arena::NodeArena;
 use crate::node::data::comment::CommentData;
@@ -19,6 +20,7 @@ use crate::node::visitor::Visitor;
 use gosub_interface::config::HasDocument;
 use gosub_interface::node::Node;
 use gosub_interface::node::QuirksMode;
+use gosub_interface::scripting::{Script, ScriptFlags};
 use gosub_shared::byte_stream::Location;
 use gosub_shared::node::NodeId;
 
@@ -375,6 +377,53 @@ impl<C: HasDocument<Document = Self>> Document<C> for DocumentImpl<C> {
 
     fn cloned_node_by_id(&self, node_id: NodeId) -> Option<Self::Node> {
         self.arena.node(node_id)
+    }
+
+    fn get_scripts(&self) -> Vec<Script> {
+        let mut scripts = Vec::new();
+
+        for (_, node) in self.nodes() {
+            let Some(data) = node.get_element_data() else {
+                continue;
+            };
+
+            if data.name == "script" {
+                let mut flags = ScriptFlags::empty();
+
+                if data.attributes.contains_key("async") {
+                    flags.insert(ScriptFlags::ASYNC);
+                }
+
+                if data.attributes.contains_key("defer") {
+                    flags.insert(ScriptFlags::DEFER);
+                }
+
+                if data.attributes.contains_key("module") {
+                    flags.insert(ScriptFlags::MODULE);
+                }
+
+                if let Some(url) = data.attributes.get("src") {
+                    scripts.push(Script::new_url(url.clone(), flags));
+                } else {
+                    let mut script = String::new();
+
+                    let children = node.children();
+
+                    for child in children {
+                        let Some(text) = self.node_by_id(*child) else { continue };
+
+                        let Some(data) = text.get_text_data() else { continue };
+
+                        script.push_str(&data.value);
+                    }
+                    
+                    scripts.push(Script::new_inline(script, flags));
+                }
+            }
+
+        }
+
+        scripts
     }
 }
 

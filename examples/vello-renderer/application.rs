@@ -18,6 +18,7 @@ use winit::application::ApplicationHandler;
 use winit::event::WindowEvent;
 use winit::event_loop::{ActiveEventLoop, EventLoop, EventLoopProxy};
 use winit::window::WindowId;
+use gosub_rendering::render_tree::RenderTree;
 
 #[derive(Debug, Default)]
 pub struct WindowOptions {
@@ -60,7 +61,7 @@ impl<C: ModuleConfiguration> Application<'_, C> {
     }
 }
 
-impl<C: ModuleConfiguration<ChromeHandle = WinitEventLoopHandle<C>>> ApplicationHandler<CustomEventInternal<C>>
+impl<C: ModuleConfiguration<RenderTree = RenderTree<C>, LayoutTree = RenderTree<C>, ChromeHandle = WinitEventLoopHandle<C>>> ApplicationHandler<CustomEventInternal<C>>
     for Application<'_, C>
 {
     fn resumed(&mut self, _event_loop: &ActiveEventLoop) {
@@ -209,7 +210,7 @@ impl<C: ModuleConfiguration<ChromeHandle = WinitEventLoopHandle<C>>> Application
     }
 }
 
-impl<'a, C: ModuleConfiguration<ChromeHandle = WinitEventLoopHandle<C>>> Application<'a, C> {
+impl<'a, C: ModuleConfiguration<RenderTree = RenderTree<C>, LayoutTree = RenderTree<C>, ChromeHandle = WinitEventLoopHandle<C>>> Application<'a, C> {
     pub fn new(backend: C::RenderBackend, layouter: C::Layouter) -> Self {
         Self {
             windows: HashMap::new(),

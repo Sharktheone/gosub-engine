@@ -230,6 +230,13 @@ where
 
         Ok(Self::new(rt, layouter, fetcher, debug))
     }
+    
+    fn from_render_tree(rt: C::RenderTree, fetcher: Arc<Fetcher>, layouter: C::Layouter, debug: bool) -> Self
+    where
+        Self: Sized,
+    {
+        Self::new(rt, layouter, fetcher, debug)
+    }
 
     fn clear_buffers(&mut self) {
         self.tree_scene = None;

@@ -7,6 +7,8 @@ edition = "2021"
 gosub_shared = { path = "../gosub_shared", registry = "gosub" }
 gosub_interface = { path = "../gosub_interface", registry = "gosub" }
 gosub_web_platform = { path = "../gosub_web_platform", registry = "gosub" }
+gosub_rendering = { path = "../gosub_rendering", registry = "gosub" }
+gosub_renderer = { path = "../gosub_renderer", registry = "gosub" }
 gosub_net = { path = "../gosub_net" }
 tokio = { version = "1.42.0", features = ["sync", "rt"] }
 url = "2.5.4"

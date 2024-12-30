@@ -6,6 +6,7 @@ use gosub_shared::node::NodeId;
 use std::collections::HashMap;
 use std::fmt::{Debug, Display};
 use url::Url;
+use crate::scripting::Script;
 
 /// Type of the given document
 #[derive(PartialEq, Debug, Copy, Clone)]
@@ -121,4 +122,6 @@ pub trait Document<C: HasDocument<Document = Self>>: Sized + Display + Debug + P
     fn write(&self) -> String;
     fn write_from_node(&self, node_id: NodeId) -> String;
     fn cloned_node_by_id(&self, node_id: NodeId) -> Option<Self::Node>;
+    
+    fn get_scripts(&self) -> Vec<Script>;
 }

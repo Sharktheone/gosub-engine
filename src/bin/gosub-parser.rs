@@ -5,8 +5,9 @@ use gosub_html5::document::document_impl::DocumentImpl;
 use gosub_html5::document::fragment::DocumentFragmentImpl;
 use gosub_html5::parser::Html5Parser;
 use gosub_interface::config::{HasCssSystem, HasDocument, HasHtmlParser};
-use gosub_interface::document::DocumentBuilder;
+use gosub_interface::document::{Document, DocumentBuilder};
 use gosub_interface::document_handle::DocumentHandle;
+use gosub_interface::node::{ElementDataType, Node, TextDataType};
 use gosub_shared::byte_stream::{ByteStream, Encoding};
 use gosub_shared::timing::Scale;
 use gosub_shared::timing_display;
@@ -84,6 +85,32 @@ fn main() -> Result<()> {
     println!("Found {} stylesheets", doc_handle.get().stylesheets.len());
     for sheet in &doc_handle.get().stylesheets {
         println!("Stylesheet url: {:?}", sheet.url);
+    }
+
+    let doc = doc_handle.get();
+
+    for (_, node) in doc.nodes() {
+        let Some(data) = node.get_element_data() else {
+            continue;
+        };
+
+        if data.name() == "script" {
+            if let Some(url) = data.attributes.get("src") {
+                
+            } else {
+                let mut script = String::new();
+
+                let children = node.children();
+
+                for child in children {
+                    let Some(text) = doc.node_by_id(*child) else { continue };
+
+                    let Some(data) = text.get_text_data() else { continue };
+
+                    script.push_str(data.value());
+                }
+            }
+        }
     }
 
     // let mut handle_mut = handle.get_mut();

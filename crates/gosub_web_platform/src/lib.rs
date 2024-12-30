@@ -1,5 +1,6 @@
 extern crate core;
 
+use std::sync::Arc;
 use crate::callback::{FutureExecutor, TokioExecutor};
 use crate::event_listeners::{EventListeners, Listeners};
 use crate::timers::WebTimers;
@@ -7,15 +8,22 @@ use gosub_interface::config::HasWebComponents;
 use gosub_interface::input::InputEvent;
 use gosub_interface::instance::Handles;
 use std::thread;
+use log::error;
 use tokio::runtime::{Handle, Runtime};
 use tokio::sync::mpsc::{Receiver, Sender};
 use tokio::task::LocalSet;
+use gosub_interface::scripting::Script;
+use gosub_net::http::fetcher::Fetcher;
+use gosub_v8::V8Engine;
+use crate::script_executor::ScriptExecutor;
 
 mod callback;
 mod event_listeners;
 pub mod poll_guard;
 #[allow(dead_code)]
 mod timers;
+mod script_executor;
+mod api;
 
 /// The web event loop, this will be the main event loop for a JS or Lua runtime, it is directly tied to an instance's EventLoop
 #[allow(unused)]
@@ -27,6 +35,7 @@ pub struct WebEventLoop<C: HasWebComponents, E: FutureExecutor = TokioExecutor> 
     irx: Receiver<LocalEventLoopMessage<E>>,
     itx: Sender<LocalEventLoopMessage<E>>,
     timers: WebTimers,
+    script_executor: ScriptExecutor,
 }
 
 /// Handle to the event loop, this can be used to spawn tasks or send messages to the event loop
@@ -37,6 +46,7 @@ pub struct WebEventLoopHandle {
 
 pub enum WebEventLoopMessage {
     InputEvent(InputEvent),
+    Scripts(Vec<Script>),
     Close,
 }
 
@@ -46,7 +56,7 @@ pub enum LocalEventLoopMessage<E: FutureExecutor> {
 
 impl<C: HasWebComponents> WebEventLoop<C> {
     /// Create a new WebEventLoop on a new thead, returning the handle to the event loop
-    pub fn new_on_thread(handles: Handles<C>) -> WebEventLoopHandle {
+    pub fn new_on_thread(handles: Handles<C>, fetcher: Arc<Fetcher>) -> WebEventLoopHandle {
         let rt = tokio::runtime::Builder::new_current_thread()
             .enable_all()
             .build()
@@ -66,6 +76,7 @@ impl<C: HasWebComponents> WebEventLoop<C> {
                 itx,
                 rx,
                 timers: WebTimers::new(),
+                script_executor: ScriptExecutor::new(fetcher),
             };
 
             el.run(rt, TokioExecutor);
@@ -86,7 +97,7 @@ impl<C: HasWebComponents, E: FutureExecutor> WebEventLoop<C, E> {
                         let Some(msg) = val else {
                             break;
                         };
-                        self.handle_message(msg, &mut e);
+                        self.handle_message(msg, &mut e).await;
                     }
 
                     val = self.irx.recv() => {
@@ -100,10 +111,15 @@ impl<C: HasWebComponents, E: FutureExecutor> WebEventLoop<C, E> {
         });
     }
 
-    fn handle_message(&mut self, msg: WebEventLoopMessage, exec: &mut E) {
+    async fn handle_message(&mut self, msg: WebEventLoopMessage, exec: &mut E) {
         match msg {
             WebEventLoopMessage::InputEvent(e) => {
                 self.listeners.handle_input_event(e, exec);
+            }
+            WebEventLoopMessage::Scripts(scripts) => {
+                if let Err(e) = self.script_executor.run_scripts(scripts).await {
+                    error!("Error running scripts: {:?}", e);
+                };
             }
             WebEventLoopMessage::Close => {
                 self.rx.close();

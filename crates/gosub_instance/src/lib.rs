@@ -18,6 +18,9 @@ use tokio::sync::mpsc::{Receiver, Sender};
 use tokio::task;
 use tokio::task::LocalSet;
 use url::Url;
+use gosub_interface::document::Document;
+use gosub_renderer::render_tree::load_document;
+use gosub_rendering::render_tree::{generate_render_tree, RenderTree};
 
 /// Represents a running instance of the engine. This can be a tab in a browser or a webview
 pub struct EngineInstance<C: ModuleConfiguration> {
@@ -35,7 +38,7 @@ pub struct EngineInstance<C: ModuleConfiguration> {
     size: SizeU32,
 }
 
-impl<C: ModuleConfiguration> EngineInstance<C> {
+impl<C: ModuleConfiguration<RenderTree = RenderTree<C>, LayoutTree = RenderTree<C>>> EngineInstance<C> {
     pub async fn new(
         url: Url,
         layouter: C::Layouter,
@@ -59,11 +62,23 @@ impl<C: ModuleConfiguration> EngineInstance<C> {
         handles: Handles<C>,
     ) -> Result<Self> {
         let fetcher = Arc::new(Fetcher::new(url.clone()));
-        let data = C::TreeDrawer::with_fetcher(url.clone(), fetcher.clone(), layouter, false).await?;
+        
+        let handle = load_document::<C>(url.clone(), &fetcher).await?;
+        
+        let doc = handle.get();
+        let scripts = doc.get_scripts();
+        drop(doc);
+        
+        let rt = generate_render_tree(handle.clone())?;
+        
+
+        let data = C::TreeDrawer::from_render_tree(rt, fetcher.clone(), layouter, false);
 
         let (itx, irx) = tokio::sync::mpsc::channel(128);
 
-        let web = WebEventLoop::new_on_thread(handles.clone());
+        let web = WebEventLoop::new_on_thread(handles.clone(), fetcher.clone());
+        
+        web.tx.send(WebEventLoopMessage::Scripts(scripts)).await?;
 
         Ok(EngineInstance {
             title: "Gosub".to_string(),
