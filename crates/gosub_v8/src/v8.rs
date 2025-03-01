@@ -17,6 +17,7 @@ use gosub_shared::types::Result;
 use gosub_webexecutor::js::WebRuntime;
 pub use object::*;
 pub use value::*;
+use crate::v8::template::V8ObjectTemplate;
 
 mod array;
 mod compile;
@@ -24,6 +25,7 @@ mod context;
 mod function;
 mod object;
 mod value;
+mod template;
 
 // status of the V8 engine
 static V8_INITIALIZING: AtomicBool = AtomicBool::new(false);
@@ -176,6 +178,7 @@ impl WebRuntime for V8Engine {
     type Context = V8Context;
     type Value = V8Value;
     type Object = V8Object;
+    type ObjectTemplate = V8ObjectTemplate;
     type Compiled = V8Compiled;
     type GetterCB = GetterCallback;
     type SetterCB = SetterCallback;

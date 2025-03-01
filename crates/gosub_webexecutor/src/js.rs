@@ -9,6 +9,7 @@ pub use object::*;
 pub use runtime::*;
 pub use value::*;
 pub use value_conversion::*;
+pub use gc::*;
 
 mod array;
 mod compile;
@@ -19,6 +20,7 @@ mod object;
 mod runtime;
 mod value;
 mod value_conversion;
+mod gc;
 
 #[derive(Error, Debug)]
 pub enum JSError {

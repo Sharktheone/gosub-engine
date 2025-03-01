@@ -64,8 +64,8 @@ impl From<V8Array> for V8Value {
     }
 }
 
-impl From<V8Object> for V8Value {
-    fn from(object: V8Object) -> Self {
+impl<T> From<V8Object<T>> for V8Value {
+    fn from(object: V8Object<T>) -> Self {
         let mut scope = object.ctx.scope();
 
         let value: Local<Value> = Local::new(&mut scope, object.value).into();

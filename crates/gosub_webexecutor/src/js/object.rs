@@ -1,11 +1,13 @@
 use core::fmt::Display;
-
+use std::ops::Deref;
 use gosub_shared::types::Result;
-
+use crate::js::gc::GarbageCollectable;
 use crate::js::WebRuntime;
 
-pub trait WebObject: Into<<Self::RT as WebRuntime>::Value> + Clone {
-    type RT: WebRuntime<Object = Self>;
+pub trait WebObject<I: GarbageCollectable = ()>: Into<<Self::RT as WebRuntime>::Value> + Clone {
+    type RT: WebRuntime<Object = Self, TypedObject<I> = Self>;
+    
+    fn get_inner(&self) -> impl Deref<Target = I>;
 
     fn set_property(&self, name: &str, value: &<Self::RT as WebRuntime>::Value) -> Result<()>;
 
@@ -29,8 +31,36 @@ pub trait WebObject: Into<<Self::RT as WebRuntime>::Value> + Clone {
         setter: Box<dyn Fn(&mut <Self::RT as WebRuntime>::SetterCB)>,
     ) -> Result<()>;
 
-    fn new(ctx: &<Self::RT as WebRuntime>::Context) -> Result<Self>;
+    fn with_val(ctx: &<Self::RT as WebRuntime>::Context, val: I) -> Result<Self>;
+
+    fn new(ctx: &<Self::RT as WebRuntime>::Context) -> Result<Self> where I: Default {
+        Self::with_val(ctx, I::default())
+    }
 }
+
+
+
+pub trait WebObjectTemplate: Clone {
+    type RT: WebRuntime<ObjectTemplate = Self>;
+
+    fn set_property(&self, name: &str, value: &<Self::RT as WebRuntime>::Value) -> Result<()>;
+
+    fn set_method(&self, name: &str, func: &<Self::RT as WebRuntime>::Function) -> Result<()>;
+
+    fn set_method_variadic(&self, name: &str, func: &<Self::RT as WebRuntime>::FunctionVariadic) -> Result<()>;
+
+    #[allow(clippy::type_complexity)]
+    fn set_property_accessor(
+        &self,
+        name: &str,
+        getter: Box<dyn Fn(&mut <Self::RT as WebRuntime>::GetterCB)>,
+        setter: Box<dyn Fn(&mut <Self::RT as WebRuntime>::SetterCB)>,
+    ) -> Result<()>;
+
+    fn new(ctx: &<Self::RT as WebRuntime>::Context) -> Result<Self>;
+    fn new_instance(&self) -> Result<<Self::RT as WebRuntime>::Object>;
+}
+
 
 pub trait WebGetterCallback {
     type RT: WebRuntime<GetterCB = Self>;

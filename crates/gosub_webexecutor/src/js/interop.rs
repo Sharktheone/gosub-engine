@@ -6,5 +6,10 @@ use gosub_shared::types::Result;
 use crate::js::WebRuntime;
 
 pub trait JSInterop {
-    fn implement<RT: WebRuntime>(s: Rc<RefCell<Self>>, ctx: RT::Context) -> Result<()>;
+    type Template;
+    
+    
+    fn make_template() -> Self::Template;
+    
+    fn implement<RT: WebRuntime>(self, t: Self::Template, ctx: RT::Context) -> Result<RT::Object>;
 }

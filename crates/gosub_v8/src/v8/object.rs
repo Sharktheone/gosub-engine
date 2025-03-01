@@ -1,37 +1,76 @@
 use core::fmt::Display;
+use std::any::TypeId;
 use std::ffi::c_void;
-
+use std::ops::Deref;
 use gosub_shared::types::Result;
-use gosub_webexecutor::js::{JSError, WebGetterCallback, WebObject, WebRuntime, WebSetterCallback, WebValue};
+use gosub_webexecutor::js::{GarbageCollectable, JSError, WebGetterCallback, WebObject, WebRuntime, WebSetterCallback, WebValue};
 use gosub_webexecutor::Error;
-use v8::{
-    AccessorConfiguration, External, Global, HandleScope, Local, Name, Object, PropertyCallbackArguments, ReturnValue,
-    Value,
-};
-
+use v8::{AccessorConfiguration, External, Global, HandleScope, Local, Name, Object, ObjectTemplate, PropertyCallbackArguments, ReturnValue, Value};
+use v8::cppgc::GarbageCollected;
 use crate::{FromContext, V8Context, V8Ctx, V8Engine, V8Function, V8FunctionVariadic, V8Value};
 
-#[derive(Clone)]
-pub struct V8Object {
+const CPPGC_TAG: u16 = 1;
+
+pub struct V8Object<T> {
     pub ctx: V8Context,
     pub value: Global<Object>,
+    pub _marker: std::marker::PhantomData<T>,
+}
+
+impl<T> Clone for V8Object<T> {
+    fn clone(&self) -> Self {
+        Self {
+            ctx: self.ctx.clone(),
+            value: Global::new(&mut self.ctx.isolate(), self.value.clone()),
+            _marker: std::marker::PhantomData,
+        }
+    }
 }
 
 pub struct GetterCallback {
-    ctx: V8Context,
-    ret: V8Value,
+    pub ctx: V8Context,
+    pub ret: V8Value,
 }
 
-impl V8Object {
-    pub fn new(ctx: V8Context) -> Result<V8Object> {
+impl V8Object<()> {
+    pub fn new(ctx: V8Context) -> Result<Self> {
+        Self::with_inner(ctx, ())
+    }
+}
+
+impl<T> GarbageCollected for V8GcObject<T> {
+    fn trace(&self, visitor: &v8::cppgc::Visitor) {
+        // self.member.trace(visitor); //TODO: MEMLEAK ALARM
+    }
+}
+
+struct V8GcObject<T> {
+    tag: TypeId,
+    member: T
+}
+
+impl<T: 'static> V8Object<T> {
+    pub fn with_inner(ctx: V8Context, val: T) -> Result<Self> {
         let mut scope = ctx.scope();
         let value = Object::new(&mut scope);
+        
+        unsafe {
+            let member = v8::cppgc::make_garbage_collected(
+                scope.get_cpp_heap().unwrap(),
+                V8GcObject {
+                    tag: TypeId::of::<T>(),
+                    member: val,
+                },
+            );
+            
+            Object::wrap::<CPPGC_TAG, V8GcObject<T>>(&mut scope, value, &member);
+        }
 
         let value = Global::new(&mut scope, value);
 
         drop(scope);
 
-        Ok(V8Object { ctx, value })
+        Ok(Self { ctx, value, _marker: std::marker::PhantomData })
     }
 }
 
@@ -52,8 +91,8 @@ impl WebGetterCallback for GetterCallback {
 }
 
 pub struct SetterCallback {
-    ctx: V8Context,
-    value: V8Value,
+    pub ctx: V8Context,
+    pub value: V8Value,
 }
 
 impl WebSetterCallback for SetterCallback {
@@ -72,17 +111,22 @@ impl WebSetterCallback for SetterCallback {
     }
 }
 
-struct GetterSetter {
-    ctx: V8Context,
-    getter: Box<dyn Fn(&mut GetterCallback)>,
-    setter: Box<dyn Fn(&mut SetterCallback)>,
+pub struct GetterSetter {
+    pub ctx: V8Context,
+    pub getter: Box<dyn Fn(&mut GetterCallback)>,
+    pub setter: Box<dyn Fn(&mut SetterCallback)>,
 }
 
-impl WebObject for V8Object {
+impl<T: GarbageCollectable> WebObject<T> for V8Object<T> {
     type RT = V8Engine;
+
+    fn get_inner(&self) -> &T {
+        todo!()
+    }
 
     fn set_property(&self, name: &str, value: &V8Value) -> Result<()> {
         let scope = &mut self.ctx.scope();
+
 
         let Some(name) = v8::String::new(scope, name) else {
             return Err(Error::JS(JSError::Generic("failed to create a string".to_owned())).into());
@@ -291,16 +335,16 @@ impl WebObject for V8Object {
         Ok(())
     }
 
-    fn new(ctx: &<Self::RT as WebRuntime>::Context) -> Result<Self> {
-        Self::new(ctx.clone())
+    fn with_val(ctx: &<Self::RT as WebRuntime>::Context, inner: T) -> Result<Self> {
+        Self::with_inner(ctx.clone(), inner)
     }
 }
 
-impl FromContext<Local<'_, Object>> for V8Object {
+impl<T> FromContext<Local<'_, Object>> for V8Object<T> {
     fn from_ctx(ctx: V8Context, object: Local<'_, Object>) -> Self {
         let object = Global::new(&mut ctx.isolate(), object);
 
-        Self { ctx, value: object }
+        Self { ctx, value: object, _marker: std::marker::PhantomData }
     }
 }
 

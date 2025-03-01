@@ -1,15 +1,15 @@
 use gosub_shared::types::Result;
 
-use crate::js::{
-    Args, VariadicArgs, VariadicArgsInternal, WebArray, WebCompiled, WebContext, WebFunction, WebFunctionCallBack,
-    WebFunctionCallBackVariadic, WebFunctionVariadic, WebGetterCallback, WebObject, WebSetterCallback, WebValue,
-};
+use crate::js::{Args, VariadicArgs, VariadicArgsInternal, WebArray, WebCompiled, WebContext, WebFunction, WebFunctionCallBack, WebFunctionCallBackVariadic, WebFunctionVariadic, WebGetterCallback, WebObject, WebObjectTemplate, WebSetterCallback, WebValue};
+use crate::js::gc::GarbageCollectable;
 
 // trait around the main JS engine (e.g V8, SpiderMonkey, JSC, etc.)
 pub trait WebRuntime {
     type Context: WebContext<RT = Self>;
     type Value: WebValue<RT = Self>;
     type Object: WebObject<RT = Self>;
+    type TypedObject<I: GarbageCollectable>: WebObject<I, RT = Self>;
+    type ObjectTemplate: WebObjectTemplate<RT = Self>;
     type Compiled: WebCompiled<RT = Self>;
     type GetterCB: WebGetterCallback<RT = Self>;
     type SetterCB: WebSetterCallback<RT = Self>;
