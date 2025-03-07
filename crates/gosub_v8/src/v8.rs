@@ -14,7 +14,7 @@ pub use compile::*;
 pub use context::*;
 pub use function::*;
 use gosub_shared::types::Result;
-use gosub_webexecutor::js::WebRuntime;
+use gosub_webexecutor::js::{GarbageCollectable, WebRuntime};
 pub use object::*;
 pub use value::*;
 use crate::v8::template::V8ObjectTemplate;
@@ -178,6 +178,7 @@ impl WebRuntime for V8Engine {
     type Context = V8Context;
     type Value = V8Value;
     type Object = V8Object;
+    type TypedObject<I: GarbageCollectable> = V8Object<I>;
     type ObjectTemplate = V8ObjectTemplate;
     type Compiled = V8Compiled;
     type GetterCB = GetterCallback;

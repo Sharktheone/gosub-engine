@@ -171,9 +171,8 @@ impl<T> Ref<'_, T> {
     }
 }
 
-pub trait AsArray {
-    type Runtime: WebRuntime;
-    fn array(&self) -> Result<Ref<<Self::Runtime as WebRuntime>::Array>>;
+pub trait AsArray<RT: WebRuntime> {
+    fn array(&self) -> Result<Ref<RT::Array>>;
 }
 
 impl<V, T> IntoRustValue<Vec<T>> for V

@@ -6,25 +6,18 @@ use crate::js::IntoRustValue;
 use crate::js::WebRuntime;
 
 //trait for JS functions (interop between JS and Rust)
-pub trait WebFunction {
-    type RT: WebRuntime<Function = Self>;
-
-    fn new(
-        ctx: <Self::RT as WebRuntime>::Context,
-        func: impl Fn(&mut <Self::RT as WebRuntime>::FunctionCallBack) + 'static,
-    ) -> Result<Self>
+pub trait WebFunction<RT: WebRuntime> {
+    fn new(ctx: RT::Context, func: impl Fn(&mut RT::FunctionCallBack) + 'static) -> Result<Self>
     where
         Self: Sized;
 
-    fn call(&mut self, args: &[<Self::RT as WebRuntime>::Value]) -> Result<<Self::RT as WebRuntime>::Value>;
+    fn call(&mut self, args: &[RT::Value]) -> Result<RT::Value>;
 }
 
-pub trait WebFunctionCallBack {
-    type RT: WebRuntime<FunctionCallBack = Self>;
+pub trait WebFunctionCallBack<RT: WebRuntime> {
+    fn context(&mut self) -> RT::Context;
 
-    fn context(&mut self) -> <Self::RT as WebRuntime>::Context;
-
-    fn args(&mut self) -> &<Self::RT as WebRuntime>::Args;
+    fn args(&mut self) -> &RT::Args;
 
     fn len(&self) -> usize;
 
@@ -34,13 +27,11 @@ pub trait WebFunctionCallBack {
 
     fn error(&mut self, error: impl Display);
 
-    fn ret(&mut self, value: <Self::RT as WebRuntime>::Value);
+    fn ret(&mut self, value: RT::Value);
 }
 
-pub trait Args: Iterator {
-    type RT: WebRuntime<Args = Self>;
-
-    fn get(&self, index: usize, ctx: <Self::RT as WebRuntime>::Context) -> Option<<Self::RT as WebRuntime>::Value>;
+pub trait Args<RT: WebRuntime>: Iterator {
+    fn get(&self, index: usize, ctx: RT::Context) -> Option<RT::Value>;
 
     fn len(&self) -> usize;
 
@@ -48,28 +39,22 @@ pub trait Args: Iterator {
         self.len() == 0
     }
 
-    fn as_vec(&self, ctx: <Self::RT as WebRuntime>::Context) -> Vec<<Self::RT as WebRuntime>::Value>;
+    fn as_vec(&self, ctx: RT::Context) -> Vec<RT::Value>;
 }
 
 //extra trait for variadic functions to mark them as such
-pub trait WebFunctionVariadic {
-    type RT: WebRuntime<FunctionVariadic = Self>;
-    fn new(
-        ctx: <Self::RT as WebRuntime>::Context,
-        func: impl Fn(&mut <Self::RT as WebRuntime>::FunctionCallBackVariadic) + 'static,
-    ) -> Result<Self>
+pub trait WebFunctionVariadic<RT: WebRuntime> {
+    fn new(ctx: RT::Context, func: impl Fn(&mut RT::FunctionCallBackVariadic) + 'static) -> Result<Self>
     where
         Self: Sized;
 
-    fn call(&mut self, args: &[<Self::RT as WebRuntime>::Value]) -> Result<<Self::RT as WebRuntime>::Value>;
+    fn call(&mut self, args: &[RT::Value]) -> Result<RT::Value>;
 }
 
-pub trait WebFunctionCallBackVariadic {
-    type RT: WebRuntime<FunctionCallBackVariadic = Self>;
+pub trait WebFunctionCallBackVariadic<RT: WebRuntime> {
+    fn context(&mut self) -> RT::Context;
 
-    fn context(&mut self) -> <Self::RT as WebRuntime>::Context;
-
-    fn args(&mut self) -> &<Self::RT as WebRuntime>::VariadicArgsInternal;
+    fn args(&mut self) -> &RT::VariadicArgsInternal;
 
     fn len(&self) -> usize;
 
@@ -79,13 +64,11 @@ pub trait WebFunctionCallBackVariadic {
 
     fn error(&mut self, error: impl Display);
 
-    fn ret(&mut self, value: <Self::RT as WebRuntime>::Value);
+    fn ret(&mut self, value: RT::Value);
 }
 
-pub trait VariadicArgsInternal: Iterator {
-    type RT: WebRuntime<VariadicArgsInternal = Self>;
-
-    fn get(&self, index: usize, ctx: <Self::RT as WebRuntime>::Context) -> Option<<Self::RT as WebRuntime>::Value>;
+pub trait VariadicArgsInternal<RT: WebRuntime>: Iterator {
+    fn get(&self, index: usize, ctx: RT::Context) -> Option<RT::Value>;
 
     fn len(&self) -> usize;
 
@@ -93,21 +76,15 @@ pub trait VariadicArgsInternal: Iterator {
         self.len() == 0
     }
 
-    fn as_vec(&self, ctx: <Self::RT as WebRuntime>::Context) -> Vec<<Self::RT as WebRuntime>::Value>;
+    fn as_vec(&self, ctx: RT::Context) -> Vec<RT::Value>;
 
-    fn variadic(&self, ctx: <Self::RT as WebRuntime>::Context) -> <Self::RT as WebRuntime>::VariadicArgs;
+    fn variadic(&self, ctx: RT::Context) -> RT::VariadicArgs;
 
-    fn variadic_start(
-        &self,
-        start: usize,
-        ctx: <Self::RT as WebRuntime>::Context,
-    ) -> <Self::RT as WebRuntime>::VariadicArgs;
+    fn variadic_start(&self, start: usize, ctx: RT::Context) -> RT::VariadicArgs;
 }
 
-pub trait VariadicArgs {
-    type RT: WebRuntime<VariadicArgs = Self>;
-
-    fn get(&self, index: usize) -> Option<&<Self::RT as WebRuntime>::Value>;
+pub trait VariadicArgs<RT: WebRuntime> {
+    fn get(&self, index: usize) -> Option<&RT::Value>;
 
     fn len(&self) -> usize;
 
@@ -115,13 +92,13 @@ pub trait VariadicArgs {
         self.len() == 0
     }
 
-    fn as_vec(&self) -> &Vec<<Self::RT as WebRuntime>::Value>;
+    fn as_vec(&self) -> &Vec<RT::Value>;
 
     fn as_vec_as<T>(&self) -> Vec<T>
     where
-        <Self::RT as WebRuntime>::Value: IntoRustValue<T>;
+        RT::Value: IntoRustValue<T>;
 
     fn get_as<T>(&self, index: usize) -> Option<T>
     where
-        <Self::RT as WebRuntime>::Value: IntoRustValue<T>;
+        RT::Value: IntoRustValue<T>;
 }

@@ -4,80 +4,75 @@ use gosub_shared::types::Result;
 use crate::js::gc::GarbageCollectable;
 use crate::js::WebRuntime;
 
-pub trait WebObject<I: GarbageCollectable = ()>: Into<<Self::RT as WebRuntime>::Value> + Clone {
-    type RT: WebRuntime<Object = Self, TypedObject<I> = Self>;
-    
+pub trait WebObject<RT: WebRuntime, I: GarbageCollectable = ()>: Into<RT::Value> + Clone {
     fn get_inner(&self) -> impl Deref<Target = I>;
 
-    fn set_property(&self, name: &str, value: &<Self::RT as WebRuntime>::Value) -> Result<()>;
+    fn set_property(&self, name: &str, value: &RT::Value) -> Result<()>;
 
-    fn get_property(&self, name: &str) -> Result<<Self::RT as WebRuntime>::Value>;
+    fn get_property(&self, name: &str) -> Result<RT::Value>;
 
     fn call_method(
         &self,
         name: &str,
-        args: &[&<Self::RT as WebRuntime>::Value],
-    ) -> Result<<Self::RT as WebRuntime>::Value>;
+        args: &[&RT::Value],
+    ) -> Result<RT::Value>;
 
-    fn set_method(&self, name: &str, func: &<Self::RT as WebRuntime>::Function) -> Result<()>;
+    fn set_method(&self, name: &str, func: &RT::Function) -> Result<()>;
 
-    fn set_method_variadic(&self, name: &str, func: &<Self::RT as WebRuntime>::FunctionVariadic) -> Result<()>;
+    fn set_method_variadic(&self, name: &str, func: &RT::FunctionVariadic) -> Result<()>;
 
     #[allow(clippy::type_complexity)]
     fn set_property_accessor(
         &self,
         name: &str,
-        getter: Box<dyn Fn(&mut <Self::RT as WebRuntime>::GetterCB)>,
-        setter: Box<dyn Fn(&mut <Self::RT as WebRuntime>::SetterCB)>,
+        getter: Box<dyn Fn(&mut RT::GetterCB)>,
+        setter: Box<dyn Fn(&mut RT::SetterCB)>,
     ) -> Result<()>;
 
-    fn with_val(ctx: &<Self::RT as WebRuntime>::Context, val: I) -> Result<Self>;
+    fn with_val(ctx: &RT::Context, val: I) -> Result<Self>;
 
-    fn new(ctx: &<Self::RT as WebRuntime>::Context) -> Result<Self> where I: Default {
+    fn new(ctx: &RT::Context) -> Result<Self> where I: Default {
         Self::with_val(ctx, I::default())
     }
 }
 
 
 
-pub trait WebObjectTemplate: Clone {
-    type RT: WebRuntime<ObjectTemplate = Self>;
+pub trait WebObjectTemplate<RT: WebRuntime>: Clone {
 
-    fn set_property(&self, name: &str, value: &<Self::RT as WebRuntime>::Value) -> Result<()>;
+    fn set_property(&self, name: &str, value: &RT::Value) -> Result<()>;
 
-    fn set_method(&self, name: &str, func: &<Self::RT as WebRuntime>::Function) -> Result<()>;
+    fn set_method(&self, name: &str, func: &RT::Function) -> Result<()>;
 
-    fn set_method_variadic(&self, name: &str, func: &<Self::RT as WebRuntime>::FunctionVariadic) -> Result<()>;
+    fn set_method_variadic(&self, name: &str, func: &RT::FunctionVariadic) -> Result<()>;
+    
+    fn inherit_from(&self, parent: &RT::ObjectTemplate) -> Result<()>;
 
     #[allow(clippy::type_complexity)]
     fn set_property_accessor(
         &self,
         name: &str,
-        getter: Box<dyn Fn(&mut <Self::RT as WebRuntime>::GetterCB)>,
-        setter: Box<dyn Fn(&mut <Self::RT as WebRuntime>::SetterCB)>,
+        getter: Box<dyn Fn(&mut RT::GetterCB)>,
+        setter: Box<dyn Fn(&mut RT::SetterCB)>,
     ) -> Result<()>;
 
-    fn new(ctx: &<Self::RT as WebRuntime>::Context) -> Result<Self>;
-    fn new_instance(&self) -> Result<<Self::RT as WebRuntime>::Object>;
+    fn new(ctx: &RT::Context) -> Result<Self>;
+    fn new_instance(&self) -> Result<RT::Object>;
 }
 
 
-pub trait WebGetterCallback {
-    type RT: WebRuntime<GetterCB = Self>;
-
-    fn context(&mut self) -> &mut <Self::RT as WebRuntime>::Context;
+pub trait WebGetterCallback<RT: WebRuntime> {
+    fn context(&mut self) -> &mut RT::Context;
 
     fn error(&mut self, error: impl Display);
 
-    fn ret(&mut self, value: <Self::RT as WebRuntime>::Value);
+    fn ret(&mut self, value: RT::Value);
 }
 
-pub trait WebSetterCallback {
-    type RT: WebRuntime<SetterCB = Self>;
-
-    fn context(&mut self) -> &mut <Self::RT as WebRuntime>::Context;
+pub trait WebSetterCallback<RT: WebRuntime> {
+    fn context(&mut self) -> &mut RT::Context;
 
     fn error(&mut self, error: impl Display);
 
-    fn value(&mut self) -> &<Self::RT as WebRuntime>::Value;
+    fn value(&mut self) -> &RT::Value;
 }

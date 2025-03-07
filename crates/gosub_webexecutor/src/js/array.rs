@@ -2,7 +2,7 @@ use gosub_shared::types::Result;
 
 use crate::js::{AsArray, WebRuntime};
 
-pub trait WebArray: Iterator + Into<<Self::RT as WebRuntime>::Value> + AsArray<Runtime = Self::RT> {
+pub trait WebArray<RT: WebRuntime>: Iterator + Into<<Self::RT as WebRuntime>::Value> + AsArray<RT> {
     type RT: WebRuntime<Array = Self>;
 
     fn get(&self, index: usize) -> Result<<Self::RT as WebRuntime>::Value>;

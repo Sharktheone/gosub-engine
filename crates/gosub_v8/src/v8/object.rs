@@ -1,7 +1,6 @@
 use core::fmt::Display;
 use std::any::TypeId;
 use std::ffi::c_void;
-use std::ops::Deref;
 use gosub_shared::types::Result;
 use gosub_webexecutor::js::{GarbageCollectable, JSError, WebGetterCallback, WebObject, WebRuntime, WebSetterCallback, WebValue};
 use gosub_webexecutor::Error;
@@ -11,7 +10,7 @@ use crate::{FromContext, V8Context, V8Ctx, V8Engine, V8Function, V8FunctionVaria
 
 const CPPGC_TAG: u16 = 1;
 
-pub struct V8Object<T> {
+pub struct V8Object<T = ()> {
     pub ctx: V8Context,
     pub value: Global<Object>,
     pub _marker: std::marker::PhantomData<T>,
@@ -119,6 +118,7 @@ pub struct GetterSetter {
 
 impl<T: GarbageCollectable> WebObject<T> for V8Object<T> {
     type RT = V8Engine;
+    type Untyped = V8Object;
 
     fn get_inner(&self) -> &T {
         todo!()
